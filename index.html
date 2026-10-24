@@ -3144,16 +3144,16 @@ body.arena-open{overflow:hidden}
         </div>
       </article>
 
-      <article class="mm-card is-back" data-action="arena" data-index="2" tabindex="0" aria-label="台风对战竞技场">
+      <article class="mm-card is-back" data-action="arena" data-index="4" tabindex="0" aria-label="台风对战竞技场">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-done">[小游戏]</span><span class="mm-no">03 / ARENA</span></div>
+          <div class="mm-card-head"><span class="mm-tag tag-done">[小游戏]</span><span class="mm-no">05 / ARENA</span></div>
           <h2 class="mm-card-title">台风对战</h2>
           <p class="mm-card-desc">从历史风王中选一位出战，与随机台风进行 1V1 回合制对决。</p>
           <div class="mm-card-foot"><span>TC ARENA</span><button class="mm-card-btn" type="button">进入竞技场 <span>→</span></button></div>
         </div>
       </article>
 
-      <article class="mm-card is-back" data-action="realtime" data-index="3" tabindex="0">
+      <article class="mm-card is-back" data-action="realtime" data-index="2" tabindex="0">
         <div class="mm-card-inner">
           <div class="mm-card-head"><span class="mm-tag tag-soon">[敬请期待]</span><span class="mm-no">04 / LIVE</span></div>
           <h2 class="mm-card-title">实时播报</h2>
@@ -3162,7 +3162,7 @@ body.arena-open{overflow:hidden}
         </div>
       </article>
 
-      <article class="mm-card is-left" data-action="diary" data-index="4" tabindex="0">
+      <article class="mm-card is-left" data-action="diary" data-index="3" tabindex="0">
         <div class="mm-card-inner">
           <div class="mm-card-head"><span class="mm-tag tag-live">[持续更新]</span><span class="mm-no">05 / LOG</span></div>
           <h2 class="mm-card-title">开发日记</h2>
@@ -3174,7 +3174,7 @@ body.arena-open{overflow:hidden}
   </div>
 
   <div class="mm-bottom">
-    <div class="mm-dots" id="mmDots"><button class="on" data-index="0" aria-label="路径制作器"></button><button data-index="1" aria-label="台风模拟器"></button><button data-index="2" aria-label="台风对战"></button><button data-index="3" aria-label="实时播报"></button><button data-index="4" aria-label="开发日记"></button></div>
+    <div class="mm-dots" id="mmDots"><button class="on" data-index="0" aria-label="路径制作器"></button><button data-index="1" aria-label="台风模拟器"></button><button data-index="4" aria-label="台风对战"></button><button data-index="2" aria-label="实时播报"></button><button data-index="3" aria-label="开发日记"></button></div>
     <div class="mm-hint"><span>← →</span> 切换模块 · 点击中央卡片进入</div>
     <div class="mm-foot-meta"><span>v4.2</span><span>SUDRE.TC</span></div>
   </div>
@@ -7513,8 +7513,8 @@ else boot();
 
   const menu = document.getElementById('main-menu');
   if (!menu) return;
-  const cards = Array.from(menu.querySelectorAll('.mm-card'));
-  const dots = Array.from(menu.querySelectorAll('#mmDots button'));
+  const cards = Array.from(menu.querySelectorAll('.mm-card')).sort((a, b) => (+a.dataset.index || 0) - (+b.dataset.index || 0));
+  const dots = Array.from(menu.querySelectorAll('#mmDots button')).sort((a, b) => (+a.dataset.index || 0) - (+b.dataset.index || 0));
   const carousel = document.getElementById('mmCarousel');
   let active = 0;
 
