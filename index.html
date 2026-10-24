@@ -8572,13 +8572,13 @@ else boot();
     });
     let lat = clamp(o.lat + (idx - center) * (.25 + o.curve * 1.1), -58, 68);
     let lon = o.lon + (idx - center) * (.45 + o.curve * 1.7);
-    let heading = ((o.heading + (idx - center) * (4 + o.curve * 18)) % 360 + 360) % 360;
+    let heading = ((o.heading + (idx - center) * (4 + o.curve * 18) + (rnd() - .5) * o.curve * 50) % 360 + 360) % 360;
     const start = dateOf(o.start);
     const pts = [];
     const name = o.name + (count > 1 ? String.fromCharCode(65 + idx) : '');
     const cy = 70 + idx;
     let dist = 0;
-    let turnNow = 0, turnLeft = 0;
+    let targetNow = climateTarget(lat), targetLeft = 0;
     for (let i = 0; i <= n; i++) {
       const t = i * step;
       const prog = t / Math.max(1, o.duration);
@@ -8592,20 +8592,18 @@ else boot();
       if (pts.length) dist += distanceNm(pts[pts.length - 1].lat, pts[pts.length - 1].lon, lat, lon);
       pts.push(p);
 
-      /* 随机“爆点”转向：每隔几小时重新抛出一个方向偏折 */
-      if (turnLeft <= 0) {
-        turnNow = (rnd() - .5) * (8 + o.curve * 42);
-        turnLeft = 2 + Math.floor(rnd() * (3 + o.curve * 7));
+      /* 每隔几个时次重新随机一个“引导目标”，在气候引导附近摆动 */
+      if (targetLeft <= 0) {
+        targetNow = climateTarget(lat) + (rnd() - .5) * o.curve * 80;
+        targetLeft = 3 + Math.floor(rnd() * (4 + o.curve * 6));
       }
-      let dh = o.turn + turnNow + memberTurnBias * .12;
+      const diff = ((targetNow - heading + 540) % 360) - 180;
+      let dh = o.turn + diff * (.1 + o.curve * .12) * memberSteer + memberTurnBias * .08;
       if (o.beta) dh += .45 * Math.cos(lat * D2R);
-      const target = climateTarget(lat);
-      const diff = ((target - heading + 540) % 360) - 180;
-      dh += diff * (.014 + o.curve * .018) * memberSteer;
-      dh += Math.sin(t / 18 + phase) * o.curve * 7 + (rnd() - .5) * o.curve * 12;
+      dh += (rnd() - .5) * o.curve * 5 + Math.sin(t / 18 + phase) * o.curve * 2.5;
       heading += dh;
       heading = ((heading % 360) + 360) % 360;
-      turnLeft--;
+      targetLeft--;
       const next = destination(lat, lon, heading, speed * step);
       lat = clamp(next[0], -62, 72);
       lon = next[1];
