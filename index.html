@@ -3014,6 +3014,36 @@ body.immersive #windAreaPanel{display:none !important}
   .sim-foot-note{width:100%}
 }
 
+/* --- v4.2 simulator lab extensions --- */
+.sim-modes{display:flex;gap:0;border:1px solid rgba(45,85,110,.65);border-radius:7px;overflow:hidden;margin-right:12px}
+.sim-mode{height:28px;padding:0 12px;border:0;background:transparent;color:#7895aa;font-size:9px;letter-spacing:.06em;cursor:pointer;transition:.2s}
+.sim-mode:hover{color:#c9e4ef;background:rgba(25,226,197,.06)}
+.sim-mode.on{color:#06121b;background:#19e2c5;font-weight:700}
+.sim-section-title{font-family:var(--mono);font-size:8px;letter-spacing:.16em;color:#5f8499;margin:12px 0 7px;text-transform:uppercase}
+.sim-advanced{margin-top:11px;border-top:1px solid rgba(45,80,105,.3);padding-top:8px}
+.sim-advanced summary{cursor:pointer;font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:#72a0b4;padding:4px 0;list-style:none}
+.sim-advanced summary::-webkit-details-marker{display:none}
+.sim-advanced summary:before{content:'▸ ';color:#19e2c5}
+.sim-advanced[open] summary:before{content:'▾ '}
+.sim-advanced .sim-grid{margin-top:7px}
+.sim-custom-hint{font-size:9px;color:#6f8da3;line-height:1.6;margin-bottom:8px}
+.sim-wp-wrap{border:1px solid rgba(45,80,105,.55);border-radius:7px;overflow:auto;max-height:250px;background:rgba(3,12,20,.55)}
+.sim-wp{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:9px}
+.sim-wp th{position:sticky;top:0;z-index:1;background:#071522;color:#5f8196;font-weight:400;font-size:7px;letter-spacing:.08em;padding:5px 3px;text-align:left}
+.sim-wp td{padding:3px;border-top:1px solid rgba(45,80,105,.22)}
+.sim-wp input{width:100%;height:24px;background:#081725;border:1px solid rgba(45,80,105,.55);border-radius:4px;color:#dce9f7;font-family:var(--mono);font-size:9px;padding:0 4px;outline:none}
+.sim-wp input:focus{border-color:rgba(25,226,197,.55)}
+.sim-wp .sim-wp-del{width:20px;height:22px;border:1px solid rgba(255,90,90,.3);border-radius:4px;background:transparent;color:#ff9b9b;font-size:10px;line-height:1;cursor:pointer}
+.sim-wp-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.sim-disclaimer{margin-top:11px;border-left-color:rgba(120,150,170,.25);background:rgba(120,150,170,.025)}
+.sim-play{position:absolute;left:9px;bottom:9px;width:30px;height:30px;border-radius:50%;border:1px solid rgba(25,226,197,.45);background:rgba(4,18,28,.78);color:#9ff7e8;font-size:11px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);cursor:pointer;z-index:2;transition:.2s}
+.sim-play:hover{background:rgba(25,226,197,.16);transform:scale(1.05)}
+.sim-hover{position:absolute;right:9px;bottom:9px;padding:3px 7px;border-radius:4px;background:rgba(2,8,14,.7);color:#7fa6b8;font-family:var(--mono);font-size:7.5px;letter-spacing:.05em;pointer-events:none;z-index:2}
+.sim-mini-chart-wrap{margin-top:8px;border:1px solid rgba(45,80,105,.35);border-radius:6px;overflow:hidden;background:rgba(3,12,20,.45)}
+#simProfile{display:block;width:100%;height:auto;aspect-ratio:720/82}
+.sim-right{display:flex;flex-direction:column}
+.sim-canvas-wrap{flex:none}
+body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
 </style>
 </head>
 <body>
@@ -3598,11 +3628,15 @@ body.immersive #windAreaPanel{display:none !important}
   <div class="panel sim-panel" role="dialog" aria-modal="true" aria-labelledby="simTitle">
     <div class="p-head sim-head">
       <div>
-        <div class="sim-eyebrow">SYNTHETIC TRACK GENERATOR · v4.2</div>
+        <div class="sim-eyebrow">SYNTHETIC TRACK LAB · v4.2</div>
         <h3 id="simTitle">TC 路径模拟器</h3>
-        <div class="sub">用可调的环境参数生成一条可复核的台风路径，并直接载入工作台。</div>
+        <div class="sub">可调运动学、强度曲线与风圈结构；支持随机集合，也可以直接手绘路径。</div>
       </div>
       <div class="sp"></div>
+      <div class="sim-modes" role="tablist" aria-label="模拟方式">
+        <button type="button" class="sim-mode on" data-simmode="auto" role="tab" aria-selected="true">自动生成</button>
+        <button type="button" class="sim-mode" data-simmode="custom" role="tab" aria-selected="false">手绘路径</button>
+      </div>
       <button class="x" data-close="simulatorModal" aria-label="关闭路径模拟器">✕</button>
     </div>
 
@@ -3613,39 +3647,81 @@ body.immersive #windAreaPanel{display:none !important}
           <select id="simPreset">
             <option value="recurve">转向北上 · 典型</option>
             <option value="west">西行登陆 · 华南</option>
-            <option value="fast">快速西行 · 低纬</option>
+            <option value="loop">海上打转 · 环行</option>
+            <option value="erratic">蛇形 / 不规则</option>
+            <option value="ri">快速增强 · RI</option>
             <option value="north">远海北转 · 高纬</option>
           </select>
           <button class="sim-mini" id="simGenerate" type="button">重新生成</button>
         </div>
 
-        <div class="sim-grid">
-          <div class="sim-field"><label>气旋名称</label><input id="simName" class="txtin" maxlength="12" value="SIM01"></div>
-          <div class="sim-field"><label>集合成员</label><select id="simMembers"><option value="1">1 条</option><option value="3">3 条</option><option value="5">5 条</option></select></div>
-          <div class="sim-field"><label>起始纬度</label><input id="simStartLat" type="number" step="0.1" value="12.0"></div>
-          <div class="sim-field"><label>起始经度</label><input id="simStartLon" type="number" step="0.1" value="145.0"></div>
-          <div class="sim-field wide"><label>起始时间（UTC）</label><input id="simStartTime" type="datetime-local" value="2026-07-01T00:00"></div>
-          <div class="sim-field"><label>初始风速 kt</label><input id="simInitialWind" type="number" min="10" max="120" value="35"></div>
-          <div class="sim-field"><label>峰值风速 kt</label><input id="simPeakWind" type="number" min="35" max="170" value="110"></div>
-          <div class="sim-field"><label>峰值时刻 h</label><input id="simPeakHour" type="number" min="6" max="144" value="72"></div>
-          <div class="sim-field"><label>模拟时长 h</label><input id="simDuration" type="number" min="24" max="240" step="6" value="120"></div>
-          <div class="sim-field"><label>移速 kt</label><input id="simSpeed" type="number" min="3" max="30" step="0.5" value="11"></div>
-          <div class="sim-field"><label>初始方位 °</label><input id="simHeading" type="number" min="0" max="360" value="295"></div>
-          <div class="sim-field"><label>转向率 °/6h</label><input id="simTurn" type="number" min="-4" max="4" step="0.1" value="2.0"></div>
-          <div class="sim-field"><label>路径摆动</label><input id="simWobble" type="number" min="0" max="1" step="0.05" value="0.15"></div>
-          <div class="sim-field"><label>风圈缩放</label><input id="simRadiiScale" type="number" min="0.5" max="2" step="0.05" value="1"></div>
+        <div id="simAutoPanel">
+          <div class="sim-section-title">运动学</div>
+          <div class="sim-grid">
+            <div class="sim-field"><label>气旋名称</label><input id="simName" class="txtin" maxlength="12" value="SIM01"></div>
+            <div class="sim-field"><label>集合成员</label><select id="simMembers"><option>1</option><option>3</option><option>5</option><option>7</option><option>9</option><option>12</option></select></div>
+            <div class="sim-field"><label>路径形态</label><select id="simTrackMode"><option value="recurve">转向北上</option><option value="west">持续西行</option><option value="north">远海北转</option><option value="loop">海上环行</option><option value="serpentine">蛇形摆动</option><option value="erratic">不规则随机</option></select></div>
+            <div class="sim-field"><label>强度曲线</label><select id="simIntensityMode"><option value="smooth">平滑增强—衰减</option><option value="ri">快速增强 RI</option><option value="steady">稳定维持</option><option value="oscillate">波动振荡</option><option value="decay">持续减弱</option></select></div>
+            <div class="sim-field"><label>起始纬度</label><input id="simStartLat" type="number" step="0.1" value="12"></div>
+            <div class="sim-field"><label>起始经度</label><input id="simStartLon" type="number" step="0.1" value="145"></div>
+            <div class="sim-field wide"><label>起始时间（UTC）</label><input id="simStartTime" type="datetime-local" value="2026-07-01T00:00"></div>
+            <div class="sim-field"><label>初始风速 kt</label><input id="simInitialWind" type="number" min="5" max="180" value="35"></div>
+            <div class="sim-field"><label>峰值风速 kt</label><input id="simPeakWind" type="number" min="10" max="250" value="110"></div>
+            <div class="sim-field"><label>峰值时刻 h</label><input id="simPeakHour" type="number" min="1" max="720" value="72"></div>
+            <div class="sim-field"><label>模拟时长 h</label><input id="simDuration" type="number" min="6" max="720" step="6" value="120"></div>
+            <div class="sim-field"><label>时间步长 h</label><select id="simStep"><option>1</option><option>3</option><option selected>6</option><option>12</option></select></div>
+            <div class="sim-field"><label>初始移速 kt</label><input id="simSpeed" type="number" min="1" max="60" step="0.5" value="11"></div>
+            <div class="sim-field"><label>末段移速 kt</label><input id="simSpeedEnd" type="number" min="1" max="60" step="0.5" value="18"></div>
+            <div class="sim-field"><label>初始方位 °</label><input id="simHeading" type="number" min="0" max="360" value="295"></div>
+            <div class="sim-field"><label>转向率 °/step</label><input id="simTurn" type="number" min="-20" max="20" step="0.1" value="2.0"></div>
+            <div class="sim-field"><label>路径摆动</label><input id="simWobble" type="number" min="0" max="5" step="0.05" value="0.15"></div>
+            <div class="sim-field"><label>随机扰动</label><input id="simNoise" type="number" min="0" max="1" step="0.01" value="0.08"></div>
+            <div class="sim-field"><label>随机种子</label><input id="simSeed" type="number" min="1" max="999999" value="42"></div>
+            <div class="sim-field"><label>纬度 β 漂移</label><label class="chk"><input type="checkbox" id="simBeta" checked>开启</label></div>
+          </div>
+
+          <details class="sim-advanced" open>
+            <summary>风圈结构与气压</summary>
+            <div class="sim-grid">
+              <div class="sim-field"><label>风圈缩放</label><input id="simRadiiScale" type="number" min="0.2" max="4" step="0.05" value="1"></div>
+              <div class="sim-field"><label>不对称方位 °</label><input id="simAsymAngle" type="number" min="0" max="360" value="45"></div>
+              <div class="sim-field"><label>不对称强度</label><input id="simAsym" type="number" min="0" max="1" step="0.05" value="0.16"></div>
+              <div class="sim-field"><label>50kt 比例</label><input id="simR50" type="number" min="0.1" max="1" step="0.05" value="0.56"></div>
+              <div class="sim-field"><label>64kt 比例</label><input id="simR64" type="number" min="0.1" max="1" step="0.05" value="0.32"></div>
+              <div class="sim-field"><label>气压基准 hPa</label><input id="simPressureBase" type="number" min="950" max="1020" value="1013"></div>
+              <div class="sim-field"><label>气压—风速系数</label><input id="simPressureK" type="number" min="0.5" max="1.5" step="0.05" value="0.94"></div>
+            </div>
+          </details>
         </div>
 
-        <div class="sim-note">
-          模型：球面恒向位移 + 纬度相关的转向/β 漂移 + 平滑强度曲线 + 四象限风圈估计。
-          这是一条教学/研究用合成路径，不是官方预报。
+        <div id="simCustomPanel" hidden>
+          <div class="sim-section-title">手绘控制点</div>
+          <div class="sim-custom-hint">在右侧预览中点击即可追加控制点；或直接编辑下表。时间单位：小时（相对起始时间）。</div>
+          <div class="sim-wp-wrap">
+            <table class="sim-wp">
+              <thead><tr><th>h</th><th>LAT</th><th>LON</th><th>WIND</th><th></th></tr></thead>
+              <tbody id="simWpBody"></tbody>
+            </table>
+          </div>
+          <div class="sim-wp-actions">
+            <button class="sim-mini" id="simWpAdd" type="button">＋ 追加点</button>
+            <button class="sim-mini" id="simWpClear" type="button">清空</button>
+            <button class="sim-mini" id="simWpFrom" type="button">从当前路径导入</button>
+          </div>
+          <div class="sim-note">手绘模式会按控制点时间线性插值，风速与风圈在控制点之间平滑过渡。至少需要 2 个控制点。</div>
+        </div>
+
+        <div class="sim-note sim-disclaimer">
+          模型为教学/研究用合成路径，不是官方预报。每次生成都可复现；改变随机种子即可得到新的集合成员。
         </div>
       </div>
 
       <div class="sim-right">
         <div class="sim-canvas-wrap">
           <canvas id="simCanvas" width="720" height="430"></canvas>
-          <div class="sim-canvas-tag">PREVIEW · 6h STEP</div>
+          <div class="sim-canvas-tag">PREVIEW · <span id="simStepTag">6h</span> STEP</div>
+          <button class="sim-play" id="simPlay" type="button" aria-label="播放模拟">▶</button>
+          <div class="sim-hover" id="simHover">LAT — / LON — / WIND —</div>
         </div>
         <div id="simStats" class="sim-stats"></div>
         <div class="sim-legend">
@@ -3655,12 +3731,14 @@ body.immersive #windAreaPanel{display:none !important}
           <span><i class="sim-dot st"></i>STY</span>
           <span class="sim-credit">SUDRE.TC / SIM ENGINE</span>
         </div>
+        <div class="sim-mini-chart-wrap"><canvas id="simProfile" width="720" height="82"></canvas></div>
       </div>
     </div>
 
     <div class="sim-foot">
       <div class="sim-foot-note" id="simFootNote">等待生成模拟路径…</div>
       <div class="sp"></div>
+      <button class="hbtn" id="simPng" type="button">导出预览 PNG</button>
       <button class="hbtn" id="simExport" type="button">导出 B-Deck</button>
       <button class="hbtn primary" id="simLoad" type="button">载入工作台</button>
     </div>
@@ -8245,7 +8323,7 @@ else boot();
 })();
 
 /* ============================================================
-   V4.2 — TC 路径模拟器
+   V4.2 — TC 路径模拟实验室
    ============================================================ */
 (function () {
   'use strict';
@@ -8254,17 +8332,38 @@ else boot();
   const app = () => window.SUDRE || null;
   const D2R = Math.PI / 180;
   const R_NM = 3440.065;
+  const MAX_POINTS = 1200;
+
   let built = false;
+  let mode = 'auto';
   let state = null;
+  let preview = null;
+  let custom = [];
+  let playing = false;
+  let playRaf = 0;
+  let playIdx = 0;
+  let scheduleTimer = 0;
+
+  const DEFAULT_WP = [
+    { t: 0, lat: 12, lon: 145, wind: 35 },
+    { t: 24, lat: 14, lon: 141, wind: 50 },
+    { t: 48, lat: 18, lon: 136, wind: 80 },
+    { t: 72, lat: 22, lon: 132, wind: 110 },
+    { t: 96, lat: 27, lon: 129, wind: 75 }
+  ];
 
   const PRESETS = {
-    recurve: { lat: 12, lon: 145, init: 35, peak: 110, peakHour: 72, duration: 120, speed: 11, heading: 295, turn: 2.0, wobble: .15 },
-    west: { lat: 10, lon: 150, init: 30, peak: 92, peakHour: 48, duration: 96, speed: 15, heading: 280, turn: .08, wobble: .1 },
-    fast: { lat: 8, lon: 155, init: 28, peak: 78, peakHour: 36, duration: 72, speed: 20, heading: 275, turn: .03, wobble: .08 },
-    north: { lat: 18, lon: 136, init: 38, peak: 125, peakHour: 78, duration: 120, speed: 10, heading: 330, turn: 2.2, wobble: .12 }
+    recurve: { track: 'recurve', intensity: 'smooth', lat: 12, lon: 145, init: 35, peak: 110, peakHour: 72, duration: 120, speed: 11, speedEnd: 18, heading: 295, turn: 2.0, wobble: .15, noise: .08, seed: 42 },
+    west:    { track: 'west', intensity: 'smooth', lat: 10, lon: 150, init: 30, peak: 95, peakHour: 48, duration: 96, speed: 15, speedEnd: 12, heading: 280, turn: .05, wobble: .08, noise: .04, seed: 42 },
+    loop:    { track: 'loop', intensity: 'oscillate', lat: 14, lon: 140, init: 40, peak: 105, peakHour: 60, duration: 144, speed: 8, speedEnd: 8, heading: 250, turn: 0, wobble: .2, noise: .05, seed: 42 },
+    erratic: { track: 'erratic', intensity: 'oscillate', lat: 12, lon: 145, init: 30, peak: 90, peakHour: 60, duration: 120, speed: 10, speedEnd: 14, heading: 290, turn: 1.2, wobble: .8, noise: .6, seed: 42 },
+    ri:      { track: 'recurve', intensity: 'ri', lat: 13, lon: 140, init: 35, peak: 165, peakHour: 36, duration: 96, speed: 12, speedEnd: 18, heading: 300, turn: 2.2, wobble: .12, noise: .05, seed: 42 },
+    north:   { track: 'north', intensity: 'smooth', lat: 18, lon: 136, init: 38, peak: 125, peakHour: 78, duration: 120, speed: 10, speedEnd: 20, heading: 330, turn: 2.2, wobble: .12, noise: .04, seed: 42 }
   };
 
-  function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const lerp = (a, b, t) => a + (b - a) * t;
+
   function toast(msg, type) {
     if (typeof window.toast === 'function') { try { return window.toast(msg, type || 'ok', 3000); } catch (e) {} }
     const host = document.getElementById('toasts');
@@ -8277,6 +8376,17 @@ else boot();
   }
   function sfx(type) { if (typeof window.playSFX === 'function') { try { window.playSFX(type); } catch (e) {} } }
 
+  function prng(seed) {
+    let t = (seed >>> 0) || 1;
+    return function () {
+      t += 0x6D2B79F5;
+      let r = t;
+      r = Math.imul(r ^ (r >>> 15), r | 1);
+      r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
   function destination(lat, lon, brg, dist) {
     const d = dist / R_NM, br = brg * D2R;
     const la1 = lat * D2R, lo1 = lon * D2R;
@@ -8288,7 +8398,21 @@ else boot();
     return [la2 / D2R, lon2];
   }
 
+  function bearing(lat1, lon1, lat2, lon2) {
+    const p1 = lat1 * D2R, p2 = lat2 * D2R, dl = (lon2 - lon1) * D2R;
+    const y = Math.sin(dl) * Math.cos(p2);
+    const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+    return ((Math.atan2(y, x) / D2R) + 360) % 360;
+  }
+
+  function distanceNm(lat1, lon1, lat2, lon2) {
+    const p1 = lat1 * D2R, p2 = lat2 * D2R, dp = (lat2 - lat1) * D2R, dl = (lon2 - lon1) * D2R;
+    const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    return 2 * R_NM * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+
   function windColor(w) {
+    if (w >= 130) return '#ff4f79';
     if (w >= 96) return '#ff6b6b';
     if (w >= 83) return '#ff9b6b';
     if (w >= 64) return '#ffd15c';
@@ -8300,7 +8424,8 @@ else boot();
     if (w < 64) return 'TS';
     if (w < 83) return 'TY';
     if (w < 96) return 'STY';
-    return 'SUPER';
+    if (w < 130) return 'SUPER';
+    return 'HYPER';
   }
   function stampOf(d) {
     return String(d.getUTCFullYear()) + String(d.getUTCMonth() + 1).padStart(2, '0') +
@@ -8311,6 +8436,16 @@ else boot();
     const n = Math.round(Math.abs(v) * 10);
     return String(n).padStart(isLat ? 3 : 4, '0') + (isLat ? (neg ? 'S' : 'N') : (neg ? 'W' : 'E'));
   }
+  function dateOf(value) {
+    const m = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!m) return new Date(Date.UTC(2026, 6, 1));
+    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]));
+  }
+  function inputDate(d) {
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getUTCDate()).padStart(2, '0') + 'T' + String(d.getUTCHours()).padStart(2, '0') + ':' +
+      String(d.getUTCMinutes()).padStart(2, '0');
+  }
 
   function readOpts() {
     const read = (id, fallback) => {
@@ -8319,76 +8454,195 @@ else boot();
       const n = parseFloat(el.value);
       return isNaN(n) ? fallback : n;
     };
+    const readInt = (id, fallback) => Math.round(read(id, fallback));
     return {
+      mode,
       name: (($('#simName') || {}).value || 'SIM01').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'SIM01',
-      lat: clamp(read('simStartLat', 12), -45, 50),
+      track: ($('#simTrackMode') || {}).value || 'recurve',
+      intensity: ($('#simIntensityMode') || {}).value || 'smooth',
+      lat: clamp(read('simStartLat', 12), -60, 70),
       lon: clamp(read('simStartLon', 145), -180, 180),
       start: ($('#simStartTime') || {}).value || '2026-07-01T00:00',
-      initWind: clamp(read('simInitialWind', 35), 10, 140),
-      peakWind: clamp(read('simPeakWind', 110), 20, 170),
-      peakHour: clamp(read('simPeakHour', 72), 6, 216),
-      duration: clamp(read('simDuration', 120), 24, 240),
-      speed: clamp(read('simSpeed', 11), 3, 30),
+      initWind: clamp(read('simInitialWind', 35), 5, 200),
+      peakWind: clamp(read('simPeakWind', 110), 10, 260),
+      peakHour: clamp(read('simPeakHour', 72), 1, 720),
+      duration: clamp(read('simDuration', 120), 6, 720),
+      step: clamp(readInt('simStep', 6), 1, 12),
+      speed: clamp(read('simSpeed', 11), 1, 60),
+      speedEnd: clamp(read('simSpeedEnd', 18), 1, 60),
       heading: ((read('simHeading', 295) % 360) + 360) % 360,
-      turn: clamp(read('simTurn', 2), -5, 5),
-      wobble: clamp(read('simWobble', .15), 0, 1),
-      radiiScale: clamp(read('simRadiiScale', 1), .5, 2),
-      members: clamp(read('simMembers', 1), 1, 5)
+      turn: clamp(read('simTurn', 2), -20, 20),
+      wobble: clamp(read('simWobble', .15), 0, 5),
+      noise: clamp(read('simNoise', .08), 0, 1),
+      seed: clamp(readInt('simSeed', 42), 1, 999999),
+      members: clamp(readInt('simMembers', 1), 1, 12),
+      beta: !!($('#simBeta') || {}).checked,
+      radiiScale: clamp(read('simRadiiScale', 1), .2, 4),
+      asymAngle: ((read('simAsymAngle', 45) % 360) + 360) % 360,
+      asym: clamp(read('simAsym', .16), 0, 1),
+      r50: clamp(read('simR50', .56), .1, 1),
+      r64: clamp(read('simR64', .32), .1, 1),
+      pressureBase: clamp(read('simPressureBase', 1013), 900, 1025),
+      pressureK: clamp(read('simPressureK', .94), .3, 2)
     };
   }
 
-  function dateOf(value) {
-    const m = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-    if (!m) return new Date(Date.UTC(2026, 6, 1));
-    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]));
+  function radiiFor(wind, heading, o) {
+    const base = (52 + wind * 1.1) * o.radiiScale;
+    const q = (angle) => Math.max(.2, 1 + o.asym * Math.cos((angle - o.asymAngle) * D2R));
+    const r34 = {
+      ne: Math.round(base * q(45)),
+      se: Math.round(base * q(135) * .94),
+      sw: Math.round(base * q(225) * .86),
+      nw: Math.round(base * q(315) * 1.02)
+    };
+    return {
+      34: r34,
+      50: wind >= 50 ? { ne: Math.round(r34.ne * o.r50), se: Math.round(r34.se * o.r50), sw: Math.round(r34.sw * o.r50), nw: Math.round(r34.nw * o.r50) } : null,
+      64: wind >= 64 ? { ne: Math.round(r34.ne * o.r64), se: Math.round(r34.se * o.r64), sw: Math.round(r34.sw * o.r64), nw: Math.round(r34.nw * o.r64) } : null
+    };
+  }
+  function pressureFor(wind, o) {
+    return Math.round(clamp(o.pressureBase - wind * o.pressureK, 850, 1020));
   }
 
-  function makeMember(o, idx, memberCount) {
-    const step = 6;
-    const n = Math.round(o.duration / step);
-    const peak = Math.max(o.peakWind, o.initWind + 5);
-    const peakHour = clamp(o.peakHour, step, o.duration);
-    const offset = (idx - (memberCount - 1) / 2) * 3.2;
-    let heading = ((o.heading + offset) % 360 + 360) % 360;
-    let lat = o.lat + (idx - (memberCount - 1) / 2) * .25;
-    let lon = o.lon;
+  function windAt(o, t, rnd) {
+    const peak = Math.max(o.peakWind, o.initWind + 2);
+    const ph = Math.min(o.peakHour, o.duration);
+    const decay = Math.max(18, o.initWind * .55);
+    if (o.intensity === 'steady') return Math.round(o.initWind);
+    if (o.intensity === 'decay') return Math.round(clamp(o.initWind - (o.initWind - 18) * (t / o.duration), 12, 200));
+    if (o.intensity === 'ri') {
+      if (t < ph) {
+        const x = ph ? t / ph : 1;
+        const y = clamp(x / .55, 0, 1);
+        return Math.round(o.initWind + (peak - o.initWind) * (3 * y * y - 2 * y * y * y));
+      }
+      const d = (t - ph) / Math.max(1, o.duration - ph);
+      return Math.round(clamp(peak - (peak - decay) * Math.pow(d, .8), 12, 220));
+    }
+    if (o.intensity === 'oscillate') {
+      const x = t / Math.max(1, o.duration);
+      const grow = clamp(x / .28, 0, 1);
+      const wave = .5 + .5 * Math.sin(t / 22 + (rnd ? rnd() * .2 : 0));
+      return Math.round(clamp(o.initWind + (peak - o.initWind) * grow * (.55 + .45 * wave) - (peak - decay) * Math.max(0, x - .62) * .45, 12, 220));
+    }
+    if (t <= ph) {
+      const x = ph ? t / ph : 1;
+      return Math.round(o.initWind + (peak - o.initWind) * (3 * x * x - 2 * x * x * x));
+    }
+    const d = (t - ph) / Math.max(1, o.duration - ph);
+    return Math.round(clamp(peak - (peak - decay) * Math.pow(d, .9), 12, 220));
+  }
+
+  function makeAutoMember(o, idx, count) {
+    const rnd = prng(o.seed + idx * 7919);
+    const center = (count - 1) / 2;
+    const step = o.step;
+    const n = Math.min(MAX_POINTS, Math.max(1, Math.round(o.duration / step)));
+    let lat = clamp(o.lat + (idx - center) * .15, -58, 68);
+    let lon = o.lon + (idx - center) * .35;
+    let heading = ((o.heading + (idx - center) * 3.2) % 360 + 360) % 360;
     const start = dateOf(o.start);
     const pts = [];
-    const name = o.name + (memberCount > 1 ? String.fromCharCode(65 + idx) : '');
-    const cy = 90 + idx;
+    const name = o.name + (count > 1 ? String.fromCharCode(65 + idx) : '');
+    const cy = 70 + idx;
+    let dist = 0;
     for (let i = 0; i <= n; i++) {
       const t = i * step;
-      const tNorm = t / Math.max(1, o.duration);
-      let wind;
-      if (t <= peakHour) {
-        const x = peakHour ? t / peakHour : 1;
-        wind = o.initWind + (peak - o.initWind) * (3 * x * x - 2 * x * x * x);
-      } else {
-        const d = (t - peakHour) / Math.max(1, o.duration - peakHour);
-        wind = peak - (peak - Math.max(22, o.initWind * .55)) * Math.pow(d, .9);
-      }
-      wind = Math.round(clamp(wind, 12, 175));
-      const base = (68 + wind * 1.0) * o.radiiScale;
-      const asym = 1 + .12 * Math.sin((heading + 35) * D2R);
-      const radii = {
-        34: { ne: Math.round(base * asym), se: Math.round(base * .94), sw: Math.round(base * .86), nw: Math.round(base * 1.02) },
-        50: wind >= 50 ? { ne: Math.round(base * .57), se: Math.round(base * .5), sw: Math.round(base * .47), nw: Math.round(base * .55) } : null,
-        64: wind >= 64 ? { ne: Math.round(base * .32), se: Math.round(base * .28), sw: Math.round(base * .25), nw: Math.round(base * .3) } : null
-      };
-      const mslp = Math.round(clamp(1013 - wind * .94, 875, 1012));
-      pts.push({
-        t, time: new Date(start.getTime() + t * 3600000), lat, lon, wind, mslp,
-        status: statusOf(wind), heading, radii, name, cy
-      });
-      heading = heading + o.turn + (lat > 18 ? .38 : 0) + o.wobble * Math.sin(t / 22);
+      const prog = t / Math.max(1, o.duration);
+      const speed = lerp(o.speed, o.speedEnd, prog);
+      const wind = windAt(o, t, rnd);
+      const radii = radiiFor(wind, heading, o);
+      const p = { t, time: new Date(start.getTime() + t * 3600000), lat, lon, wind, mslp: pressureFor(wind, o), status: statusOf(wind), heading, radii, name, cy };
+      if (pts.length) dist += distanceNm(pts[pts.length - 1].lat, pts[pts.length - 1].lon, lat, lon);
+      pts.push(p);
+      let dh = o.turn;
+      if (o.track === 'recurve') dh += (o.beta && lat > 18 ? .38 : 0) + o.wobble * Math.sin(t / 22);
+      else if (o.track === 'west') dh = o.turn * .15 + o.wobble * Math.sin(t / 30) * .3;
+      else if (o.track === 'north') dh = o.turn * 1.1 + (o.beta && lat > 18 ? .25 : 0) + o.wobble * Math.sin(t / 24) * .4;
+      else if (o.track === 'loop') dh = (o.turn >= 0 ? 1 : -1) * (15 + Math.abs(o.turn)) + o.wobble * Math.sin(t / 20);
+      else if (o.track === 'serpentine') dh = o.turn + Math.sin(t / 30) * Math.max(1.6, Math.abs(o.turn) * 1.8) + o.wobble * Math.sin(t / 15);
+      else if (o.track === 'erratic') dh = (rnd() - .5) * (o.turn + 4) * 2 + (rnd() - .5) * o.noise * 26;
+      heading += dh + (rnd() - .5) * o.noise * (o.track === 'erratic' ? 28 : 5);
       heading = ((heading % 360) + 360) % 360;
-      const [la, lo] = destination(lat, lon, heading, o.speed * step);
-      lat = clamp(la, -40, 52);
-      lon = lo;
+      const next = destination(lat, lon, heading, speed * step);
+      lat = clamp(next[0], -62, 72);
+      lon = next[1];
     }
     return {
-      name, cy, points: pts, offset,
-      distance: (n * o.speed * step),
+      name, cy, points: pts, distance: dist,
+      peak: Math.max(...pts.map(p => p.wind)),
+      minMslp: Math.min(...pts.map(p => p.mslp)),
+      end: pts[pts.length - 1]
+    };
+  }
+
+  function readWps() {
+    const rows = [...document.querySelectorAll('#simWpBody tr')];
+    return rows.map(row => {
+      const g = (cls) => {
+        const el = row.querySelector('.' + cls);
+        return el ? parseFloat(el.value) : NaN;
+      };
+      return { t: g('wp-time'), lat: g('wp-lat'), lon: g('wp-lon'), wind: g('wp-wind') };
+    }).filter(p => [p.t, p.lat, p.lon, p.wind].every(Number.isFinite));
+  }
+
+  function renderWps() {
+    const body = $('#simWpBody');
+    if (!body) return;
+    body.innerHTML = custom.map((p, i) =>
+      '<tr data-i="' + i + '">' +
+      '<td><input class="wp-time" type="number" step="1" value="' + p.t + '"></td>' +
+      '<td><input class="wp-lat" type="number" step="0.1" value="' + p.lat + '"></td>' +
+      '<td><input class="wp-lon" type="number" step="0.1" value="' + p.lon + '"></td>' +
+      '<td><input class="wp-wind" type="number" step="1" value="' + p.wind + '"></td>' +
+      '<td><button class="sim-wp-del" data-del="' + i + '" type="button" aria-label="删除控制点">×</button></td>' +
+      '</tr>').join('');
+  }
+
+  function makeCustomMember(o, idx, count) {
+    const wps = readWps().map((p, i) => ({
+      t: clamp(p.t, 0, o.duration), lat: clamp(p.lat, -80, 85), lon: p.lon, wind: clamp(p.wind, 1, 260), i
+    })).sort((a, b) => a.t - b.t || a.i - b.i);
+    if (wps.length < 2) return null;
+    const center = (count - 1) / 2;
+    const start = dateOf(o.start);
+    const pts = [];
+    const name = o.name + (count > 1 ? String.fromCharCode(65 + idx) : '');
+    const cy = 70 + idx;
+    let dist = 0;
+    for (let k = 0; k < wps.length - 1; k++) {
+      const a = wps[k], b = wps[k + 1];
+      const steps = Math.max(1, Math.round((b.t - a.t) / o.step));
+      for (let s = 0; s < steps; s++) {
+        const u = s / steps;
+        const lat = lerp(a.lat, b.lat, u) + (idx - center) * .18;
+        let lon = lerp(a.lon, b.lon, u) + (idx - center) * .3;
+        while (lon > 180) lon -= 360;
+        while (lon < -180) lon += 360;
+        const wind = clamp(Math.round(lerp(a.wind, b.wind, u)), 1, 260);
+        const prev = pts[pts.length - 1];
+        const h = prev ? bearing(prev.lat, prev.lon, lat, lon) : bearing(a.lat, a.lon, b.lat, b.lon);
+        const p = { t: lerp(a.t, b.t, u), time: new Date(start.getTime() + lerp(a.t, b.t, u) * 3600000), lat: clamp(lat, -80, 85), lon, wind, mslp: pressureFor(wind, o), status: statusOf(wind), heading: h, radii: radiiFor(wind, h, o), name, cy };
+        if (pts.length) dist += distanceNm(pts[pts.length - 1].lat, pts[pts.length - 1].lon, p.lat, p.lon);
+        pts.push(p);
+      }
+    }
+    const z = wps[wps.length - 1];
+    const prev = pts[pts.length - 1];
+    const pz = {
+      t: z.t, time: new Date(start.getTime() + z.t * 3600000), lat: z.lat, lon: z.lon, wind: z.wind,
+      mslp: pressureFor(z.wind, o), status: statusOf(z.wind), heading: prev ? prev.heading : 0,
+      radii: radiiFor(z.wind, 0, o), name, cy
+    };
+    if (prev) dist += distanceNm(prev.lat, prev.lon, pz.lat, pz.lon);
+    pts.push(pz);
+    for (let i = pts.length - 1; i > 0; i--) if (pts[i].t === pts[i - 1].t) pts.splice(i, 1);
+    if (!pts.length) return null;
+    return {
+      name, cy, points: pts, distance: dist,
       peak: Math.max(...pts.map(p => p.wind)),
       minMslp: Math.min(...pts.map(p => p.mslp)),
       end: pts[pts.length - 1]
@@ -8411,23 +8665,49 @@ else boot();
             [rr.ne, rr.se, rr.sw, rr.nw].map(v => String(v).padStart(4, ' ')).join(', ') +
             ', 1010, 240,  30,   0,   0,   W,   0,    ,   0,   0,       ' + m.name + ', D,');
         }
-        if (!wrote) {
-          lines.push(base + ',   0,    ,    0,    0,    0,    0, 1010, 240,  30,   0,   0,   W,   0,    ,   0,   0,       ' + m.name + ', D,');
-        }
+        if (!wrote) lines.push(base + ',   0,    ,    0,    0,    0,    0, 1010, 240,  30,   0,   0,   W,   0,    ,   0,   0,       ' + m.name + ', D,');
       }
     }
     return lines.join('\n') + '\n';
   }
 
-  function drawPreview(o, members) {
+  function drawProfile(member) {
+    const cv = $('#simProfile');
+    if (!cv) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = cv.clientWidth || 720, h = Math.round(w * 82 / 720);
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(3,12,20,.8)'; ctx.fillRect(0, 0, w, h);
+    const pts = member ? member.points : [];
+    if (!pts.length) return;
+    const minW = Math.max(0, Math.min(...pts.map(p => p.wind)) - 10);
+    const maxW = Math.max(...pts.map(p => p.wind)) + 10;
+    const X = i => 10 + i / Math.max(1, pts.length - 1) * (w - 20);
+    const Y = v => h - 8 - (v - minW) / Math.max(1, maxW - minW) * (h - 18);
+    ctx.strokeStyle = 'rgba(80,140,165,.18)'; ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) { const y = 8 + i / 4 * (h - 18); ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(w - 10, y); ctx.stroke(); }
+    ctx.beginPath();
+    pts.forEach((p, i) => i ? ctx.lineTo(X(i), Y(p.wind)) : ctx.moveTo(X(i), Y(p.wind)));
+    ctx.lineTo(X(pts.length - 1), h - 8); ctx.lineTo(X(0), h - 8); ctx.closePath();
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(25,226,197,.22)'); g.addColorStop(1, 'rgba(25,226,197,0)');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.beginPath();
+    pts.forEach((p, i) => i ? ctx.lineTo(X(i), Y(p.wind)) : ctx.moveTo(X(i), Y(p.wind)));
+    ctx.strokeStyle = '#19e2c5'; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.fillStyle = 'rgba(150,215,225,.7)'; ctx.font = '7px monospace';
+    ctx.fillText('INTENSITY PROFILE', 10, h - 2);
+  }
+
+  function drawPreview(members, marker) {
     const cv = $('#simCanvas');
     if (!cv) return;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
     const cssW = cv.clientWidth || 720, cssH = Math.round(cssW * 430 / 720);
-    if (cv.width !== Math.round(cssW * dpr) || cv.height !== Math.round(cssH * dpr)) {
-      cv.width = Math.round(cssW * dpr);
-      cv.height = Math.round(cssH * dpr);
-    }
+    cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
     const ctx = cv.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
@@ -8436,6 +8716,11 @@ else boot();
     ctx.fillStyle = g; ctx.fillRect(0, 0, cssW, cssH);
 
     const all = members.flatMap(m => m.points);
+    if (!all.length) {
+      ctx.fillStyle = 'rgba(150,190,205,.5)'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
+      ctx.fillText('至少需要 2 个控制点', cssW / 2, cssH / 2);
+      preview = null; return;
+    }
     let minLat = Math.min(...all.map(p => p.lat)), maxLat = Math.max(...all.map(p => p.lat));
     let minLon = Math.min(...all.map(p => p.lon)), maxLon = Math.max(...all.map(p => p.lon));
     const padLat = Math.max(1.2, (maxLat - minLat) * .14), padLon = Math.max(1.2, (maxLon - minLon) * .14);
@@ -8445,41 +8730,47 @@ else boot();
       const y = 18 + (maxLat - lat) / (maxLat - minLat || 1) * (cssH - 62);
       return [x, y];
     };
+    const inv = (x, y) => ({
+      lon: minLon + (x - 28) / (cssW - 56) * (maxLon - minLon),
+      lat: maxLat - (y - 18) / (cssH - 62) * (maxLat - minLat)
+    });
+    preview = { members, minLat, maxLat, minLon, maxLon, proj, inv, cssW, cssH };
+
     ctx.strokeStyle = 'rgba(70,125,155,.14)'; ctx.lineWidth = 1;
     for (let i = 0; i <= 6; i++) {
-      const x = 28 + i / 6 * (cssW - 56);
-      const y = 18 + i / 6 * (cssH - 62);
+      const x = 28 + i / 6 * (cssW - 56), y = 18 + i / 6 * (cssH - 62);
       ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, cssH - 44); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(28, y); ctx.lineTo(cssW - 28, y); ctx.stroke();
     }
     ctx.font = '8px monospace'; ctx.fillStyle = 'rgba(120,170,190,.55)';
-    ctx.fillText('SYNTHETIC TRACK · 6h', 30, cssH - 10);
-    ctx.fillText('LAT ' + minLat.toFixed(1) + '–' + maxLat.toFixed(1) + ' / LON ' + minLon.toFixed(1) + '–' + maxLon.toFixed(1), cssW - 280, cssH - 10);
+    ctx.fillText('SYNTHETIC TRACK · ' + (state ? state.opts.step : 6) + 'h', 30, cssH - 10);
+    ctx.fillText('LAT ' + minLat.toFixed(1) + '–' + maxLat.toFixed(1) + ' / LON ' + minLon.toFixed(1) + '–' + maxLon.toFixed(1), cssW - 310, cssH - 10);
 
     members.forEach((m, mi) => {
-      const alpha = mi === 0 ? 1 : .46;
+      const alpha = mi === 0 ? 1 : .42;
       ctx.globalAlpha = alpha;
-      /* 34kt envelope, sampled to keep the preview fast */
-      for (let i = 2; i < m.points.length - 1; i += 3) {
+      const envStep = Math.max(1, Math.round(m.points.length / 18));
+      for (let i = 1; i < m.points.length; i += envStep) {
         const p = m.points[i], q = proj(p.lat, p.lon);
-        const r = (p.radii[34].ne + p.radii[34].se + p.radii[34].sw + p.radii[34].nw) / 4 / 60;
-        const rp = Math.max(4, r / (maxLat - minLat || 1) * (cssH - 62));
+        const r = ((p.radii[34].ne + p.radii[34].se + p.radii[34].sw + p.radii[34].nw) / 4) / 60;
+        const rp = Math.max(3, r / (maxLat - minLat || 1) * (cssH - 62));
         ctx.beginPath(); ctx.arc(q[0], q[1], rp, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(25,226,197,.035)'; ctx.fill();
-        ctx.strokeStyle = 'rgba(25,226,197,.09)'; ctx.stroke();
+        ctx.fillStyle = 'rgba(25,226,197,.025)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(25,226,197,.07)'; ctx.stroke();
       }
       for (let i = 1; i < m.points.length; i++) {
         const a = m.points[i - 1], b = m.points[i];
         const p1 = proj(a.lat, a.lon), p2 = proj(b.lat, b.lon);
         ctx.strokeStyle = windColor(b.wind);
-        ctx.lineWidth = mi === 0 ? 2.4 : 1.3;
+        ctx.lineWidth = mi === 0 ? 2.4 : 1.2;
         ctx.globalAlpha = alpha;
         ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
       }
+      const pointStep = Math.max(1, Math.round(m.points.length / 24));
       m.points.forEach((p, i) => {
-        if (i % 2 && i !== m.points.length - 1) return;
+        if (i % pointStep && i !== m.points.length - 1) return;
         const q = proj(p.lat, p.lon);
-        ctx.beginPath(); ctx.arc(q[0], q[1], mi === 0 ? 3.2 : 2.2, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(q[0], q[1], mi === 0 ? 3.1 : 2.1, 0, Math.PI * 2);
         ctx.fillStyle = windColor(p.wind); ctx.globalAlpha = alpha; ctx.fill();
         ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 1; ctx.stroke();
       });
@@ -8489,7 +8780,16 @@ else boot();
       ctx.fillStyle = '#eaf9ff'; ctx.fillText('END', e[0] + 7, e[1] - 5);
     });
     ctx.globalAlpha = 1;
+
+    if (typeof marker === 'number' && members[0] && members[0].points[marker]) {
+      const p = members[0].points[marker], q = proj(p.lat, p.lon);
+      ctx.beginPath(); ctx.arc(q[0], q[1], 8, 0, Math.PI * 2); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
+      ctx.beginPath(); ctx.arc(q[0], q[1], 3, 0, Math.PI * 2); ctx.fillStyle = windColor(p.wind); ctx.fill();
+      ctx.fillStyle = '#eaf9ff'; ctx.font = '8px monospace';
+      ctx.fillText('+' + p.t + 'h · ' + p.wind + 'kt', q[0] + 10, q[1] - 8);
+    }
     ctx.strokeStyle = 'rgba(25,226,197,.16)'; ctx.strokeRect(1, 1, cssW - 2, cssH - 2);
+    drawProfile(members[0]);
   }
 
   function renderStats(members) {
@@ -8505,68 +8805,114 @@ else boot();
     box.innerHTML = stats.map(([k, v]) => '<div class="sim-stat"><b>' + v + '</b><span>' + k + '</span></div>').join('');
   }
 
-  function generate() {
-    const o = readOpts();
-    const members = [];
-    for (let i = 0; i < o.members; i++) members.push(makeMember(o, i, o.members));
-    const text = toBDeck(members);
-    state = { opts: o, members, text };
-    drawPreview(o, members);
-    renderStats(members);
+  function setNote() {
     const note = $('#simFootNote');
-    if (note) note.textContent = o.members + ' 条路径 · ' + o.duration + 'h · ' + o.speed + 'kt 移速 · ' + o.name;
-    const load = $('#simLoad');
-    if (load) load.disabled = false;
+    if (!note) return;
+    if (!state) { note.textContent = '等待生成模拟路径…'; return; }
+    if (!state.members.length) { note.textContent = '手绘模式：至少需要 2 个控制点'; return; }
+    const m = state.members[0];
+    note.textContent = state.members.length + ' 条路径 · ' + m.points.length + ' 点 · ' + state.opts.duration + 'h · ' + state.opts.step + 'h 步长 · ' + state.opts.name;
+    const tag = $('#simStepTag'); if (tag) tag.textContent = state.opts.step + 'h';
+  }
+
+  function generate() {
+    stopPlay();
+    const o = readOpts();
+    let members = [];
+    if (mode === 'custom') {
+      for (let i = 0; i < o.members; i++) {
+        const m = makeCustomMember(o, i, o.members);
+        if (m) members.push(m);
+      }
+    } else {
+      for (let i = 0; i < o.members; i++) members.push(makeAutoMember(o, i, o.members));
+    }
+    state = { opts: o, members, text: members.length ? toBDeck(members) : '' };
+    drawPreview(members);
+    if (members.length) renderStats(members);
+    setNote();
+    const load = $('#simLoad'); if (load) load.disabled = !members.length;
+    const ex = $('#simExport'); if (ex) ex.disabled = !members.length;
+    const png = $('#simPng'); if (png) png.disabled = !members.length;
     return state;
+  }
+
+  function scheduleGenerate() {
+    clearTimeout(scheduleTimer);
+    scheduleTimer = setTimeout(generate, 140);
   }
 
   function applyPreset(key) {
     const p = PRESETS[key] || PRESETS.recurve;
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    set('simTrackMode', p.track); set('simIntensityMode', p.intensity);
     set('simStartLat', p.lat); set('simStartLon', p.lon);
     set('simInitialWind', p.init); set('simPeakWind', p.peak); set('simPeakHour', p.peakHour);
-    set('simDuration', p.duration); set('simSpeed', p.speed); set('simHeading', p.heading);
-    set('simTurn', p.turn); set('simWobble', p.wobble);
+    set('simDuration', p.duration); set('simSpeed', p.speed); set('simSpeedEnd', p.speedEnd);
+    set('simHeading', p.heading); set('simTurn', p.turn); set('simWobble', p.wobble);
+    set('simNoise', p.noise); set('simSeed', p.seed);
   }
 
-  function openSimulator() {
-    const modal = $('#simulatorModal');
-    if (!modal) return;
-    if (!built) build();
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    if (!state) generate();
-    sfx('ui_open');
-  }
-  function closeSimulator() {
-    const modal = $('#simulatorModal');
-    if (!modal) return;
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-    sfx('ui_close');
+  function setMode(next) {
+    mode = next === 'custom' ? 'custom' : 'auto';
+    document.querySelectorAll('.sim-mode').forEach(b => {
+      b.classList.toggle('on', b.dataset.simmode === mode);
+      b.setAttribute('aria-selected', String(b.dataset.simmode === mode));
+    });
+    const auto = $('#simAutoPanel'), cp = $('#simCustomPanel');
+    if (auto) auto.hidden = mode !== 'auto';
+    if (cp) cp.hidden = mode !== 'custom';
+    if (mode === 'custom' && !custom.length) {
+      const o = readOpts();
+      custom = DEFAULT_WP.map(p => ({ ...p, lat: p.lat + (o.lat - 12) * .2, lon: p.lon + (o.lon - 145) * .2 }));
+      renderWps();
+    }
+    generate();
   }
 
-  function exportBDeck() {
-    if (!state) generate();
-    if (!state) return;
-    const blob = new Blob([state.text], { type: 'text/plain;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'SudreTc_SIM_' + state.opts.name + '_' + new Date().toISOString().slice(0, 10) + '.bdeck.txt';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    toast('模拟 B-Deck 已导出', 'ok');
+  function addWpFromCanvas(x, y) {
+    if (mode !== 'custom' || !preview) return;
+    const ll = preview.inv(x, y);
+    if (!Number.isFinite(ll.lat) || !Number.isFinite(ll.lon)) return;
+    const last = custom[custom.length - 1] || { t: -12, wind: 35 };
+    custom.push({ t: Math.max(0, (last.t || 0) + 12), lat: +ll.lat.toFixed(1), lon: +ll.lon.toFixed(1), wind: Math.max(15, Math.round(last.wind || 35)) });
+    renderWps();
+    scheduleGenerate();
+    sfx('ui_click');
+  }
+
+  function stopPlay() {
+    playing = false;
+    if (playRaf) cancelAnimationFrame(playRaf);
+    playRaf = 0;
+    document.body.classList.remove('sim-playing');
+    const b = $('#simPlay'); if (b) b.textContent = '▶';
+  }
+  function startPlay() {
+    if (!state || !state.members.length) return;
+    stopPlay();
+    playing = true;
+    playIdx = 0;
+    document.body.classList.add('sim-playing');
+    const b = $('#simPlay'); if (b) b.textContent = '❚❚';
+    const n = state.members[0].points.length;
+    const step = Math.max(1, Math.round(n / 100));
+    const tick = () => {
+      if (!playing) return;
+      drawPreview(state.members, playIdx);
+      playIdx += step;
+      if (playIdx >= n) { playIdx = n - 1; drawPreview(state.members, playIdx); stopPlay(); return; }
+      playRaf = requestAnimationFrame(() => setTimeout(tick, 55));
+    };
+    tick();
   }
 
   function loadIntoWorkbench() {
-    if (!state) generate();
-    if (!state || !state.text) { toast('请先生成模拟路径', 'warn'); return; }
+    if (!state || !state.text) { toast('请先生成有效路径', 'warn'); return; }
     const a = app();
     if (!a || typeof a.ingest !== 'function') { toast('工作台尚未准备完成', 'err'); return; }
     closeSimulator();
-    if (typeof window.hideMainMenu === 'function') {
-      try { window.hideMainMenu(true); } catch (e) {}
-    }
+    if (typeof window.hideMainMenu === 'function') { try { window.hideMainMenu(true); } catch (e) {} }
     document.body.classList.remove('menu-visible', 'main-menu-open');
     const normal = document.querySelector('[data-mode="normal"]');
     if (normal) { try { normal.click(); } catch (e) {} }
@@ -8576,38 +8922,147 @@ else boot();
         a.state.settings.mode = 'normal';
         document.body.classList.remove('pro', 'pro-mode');
         if (normal) { try { normal.click(); } catch (e) {} }
-        if (storms && storms[0]) { a.state.frac = Math.max(0, storms[0].points.length - 1); }
+        if (storms && storms[0]) a.state.frac = Math.max(0, storms[0].points.length - 1);
         a.draw();
         if (typeof a.updateTimeline === 'function') a.updateTimeline();
         if (typeof window.playSFX === 'function') window.playSFX('ui_success');
-        const n = (storms && storms.length) || state.members.length;
-        toast('模拟完成：已载入 ' + n + ' 条路径', 'ok');
-      } catch (e) {
-        toast('载入模拟失败：' + e.message, 'err');
-      }
+        toast('模拟完成：已载入 ' + ((storms && storms.length) || state.members.length) + ' 条路径', 'ok');
+      } catch (e) { toast('载入模拟失败：' + e.message, 'err'); }
     }, 520);
+  }
+
+  function exportBDeck() {
+    if (!state || !state.text) { toast('没有可导出的路径', 'warn'); return; }
+    const blob = new Blob([state.text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'SudreTc_SIM_' + state.opts.name + '_' + Date.now().toString().slice(-6) + '.bdeck.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast('模拟 B-Deck 已导出', 'ok');
+  }
+
+  function exportPng() {
+    if (!state || !state.members.length) { toast('没有可导出的预览', 'warn'); return; }
+    stopPlay();
+    drawPreview(state.members);
+    const cv = $('#simCanvas');
+    cv.toBlob(blob => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'SudreTc_SIM_' + state.opts.name + '_preview.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      toast('模拟预览 PNG 已导出', 'ok');
+    }, 'image/png');
+  }
+
+  function openSimulator() {
+    const modal = $('#simulatorModal');
+    if (!modal) return;
+    if (!built) build();
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    if (!state) generate();
+    else { drawPreview(state.members); renderStats(state.members); setNote(); }
+    sfx('ui_open');
+  }
+  function closeSimulator() {
+    const modal = $('#simulatorModal');
+    if (!modal) return;
+    stopPlay();
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    sfx('ui_close');
+  }
+
+  function initCustomFromCurrent() {
+    const a = app();
+    const st = a && a.activeStorm ? a.activeStorm() : null;
+    if (!st || !st.points || st.points.length < 2) { toast('当前没有可导入的路径', 'warn'); return; }
+    const t0 = st.points[0].time;
+    const step = Math.max(1, Math.ceil(st.points.length / 8));
+    custom = st.points.filter((p, i) => i % step === 0 || i === st.points.length - 1).slice(0, 10).map(p => ({
+      t: Math.round((p.time - t0) / 3600000),
+      lat: +p.lat.toFixed(1), lon: +p.lon.toFixed(1), wind: Math.round(p.wind || 35)
+    }));
+    const stEl = $('#simStartTime');
+    if (stEl) stEl.value = inputDate(new Date(t0));
+    renderWps();
+    setMode('custom');
+    toast('已从当前工作台导入控制点', 'ok');
   }
 
   function build() {
     if (built) return;
     built = true;
     const preset = $('#simPreset');
-    if (preset) preset.addEventListener('change', () => { applyPreset(preset.value); generate(); });
+    if (preset) preset.addEventListener('change', () => { applyPreset(preset.value); setMode('auto'); });
     const gen = $('#simGenerate');
     if (gen) gen.addEventListener('click', () => { generate(); sfx('ui_click'); });
     const load = $('#simLoad');
     if (load) load.addEventListener('click', loadIntoWorkbench);
     const ex = $('#simExport');
     if (ex) ex.addEventListener('click', exportBDeck);
+    const png = $('#simPng');
+    if (png) png.addEventListener('click', exportPng);
+    const play = $('#simPlay');
+    if (play) play.addEventListener('click', () => { if (playing) stopPlay(); else startPlay(); });
     const close = $('#simulatorModal [data-close]');
     if (close) close.addEventListener('click', closeSimulator);
-    const m = $('#simulatorModal');
-    if (m) m.addEventListener('click', (e) => { if (e.target === m) closeSimulator(); });
-    ['simStartLat','simStartLon','simInitialWind','simPeakWind','simPeakHour','simDuration','simSpeed','simHeading','simTurn','simWobble','simRadiiScale','simMembers','simName','simStartTime'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener('change', () => { generate(); });
+    const modal = $('#simulatorModal');
+    if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeSimulator(); });
+    document.querySelectorAll('.sim-mode').forEach(b => b.addEventListener('click', () => setMode(b.dataset.simmode)));
+
+    const autoPanel = $('#simAutoPanel');
+    if (autoPanel) { autoPanel.addEventListener('input', scheduleGenerate); autoPanel.addEventListener('change', scheduleGenerate); }
+    const wpBody = $('#simWpBody');
+    if (wpBody) {
+      wpBody.addEventListener('input', scheduleGenerate);
+      wpBody.addEventListener('click', e => {
+        const d = e.target.closest('[data-del]');
+        if (!d) return;
+        custom.splice(+d.dataset.del, 1);
+        renderWps();
+        generate();
+      });
+    }
+    const wpAdd = $('#simWpAdd');
+    if (wpAdd) wpAdd.addEventListener('click', () => {
+      const last = custom[custom.length - 1] || { t: -12, lat: 12, lon: 145, wind: 35 };
+      custom.push({ t: Math.max(0, (last.t || 0) + 12), lat: last.lat, lon: last.lon, wind: Math.max(15, last.wind || 35) });
+      renderWps(); generate();
     });
+    const wpClear = $('#simWpClear');
+    if (wpClear) wpClear.addEventListener('click', () => { custom = []; renderWps(); generate(); });
+    const wpFrom = $('#simWpFrom');
+    if (wpFrom) wpFrom.addEventListener('click', initCustomFromCurrent);
+
+    const cv = $('#simCanvas');
+    if (cv) {
+      cv.addEventListener('click', e => {
+        if (mode !== 'custom' || !preview) return;
+        const r = cv.getBoundingClientRect();
+        addWpFromCanvas((e.clientX - r.left) / r.width * preview.cssW, (e.clientY - r.top) / r.height * preview.cssH);
+      });
+      cv.addEventListener('mousemove', e => {
+        if (!preview) return;
+        const r = cv.getBoundingClientRect();
+        const ll = preview.inv((e.clientX - r.left) / r.width * preview.cssW, (e.clientY - r.top) / r.height * preview.cssH);
+        let best = null, bd = 1e9;
+        ((state && state.members[0]) ? state.members[0].points : []).forEach(p => {
+          const d = Math.abs(p.lat - ll.lat) + Math.abs(p.lon - ll.lon);
+          if (d < bd) { bd = d; best = p; }
+        });
+        const h = $('#simHover');
+        if (h) h.textContent = best ? ('LAT ' + best.lat.toFixed(1) + ' / LON ' + best.lon.toFixed(1) + ' / ' + best.wind + ' kt') : ('LAT ' + ll.lat.toFixed(1) + ' / LON ' + ll.lon.toFixed(1));
+      });
+      cv.addEventListener('mouseleave', () => { const h = $('#simHover'); if (h) h.textContent = 'LAT — / LON — / WIND —'; });
+    }
+    window.addEventListener('resize', () => { if (modal && modal.classList.contains('open') && state) drawPreview(state.members, playing ? playIdx : undefined); });
     if (preset) applyPreset(preset.value || 'recurve');
+    renderWps();
   }
 
   window.openSimulator = openSimulator;
@@ -8615,12 +9070,12 @@ else boot();
   window.generateSimulation = generate;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { if (!$('#simulatorModal')) return; build(); }, { once: true });
+    document.addEventListener('DOMContentLoaded', () => { if ($('#simulatorModal')) build(); }, { once: true });
   } else if ($('#simulatorModal')) build();
 
   const header = document.getElementById('simBtn');
   if (header) header.addEventListener('click', openSimulator);
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', e => {
     const modal = $('#simulatorModal');
     if (e.key === 'Escape' && modal && modal.classList.contains('open')) closeSimulator();
   });
