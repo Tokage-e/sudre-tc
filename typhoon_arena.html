@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC Arena · 台风对战</title>
+<style>
+
+:root{
+  --bg:#06101b;--bg2:#081725;--panel:#0c1c2e;--panel2:#10253a;--line:#1d3854;--line2:#2a4d70;
+  --txt:#dce9f7;--txt2:#93a9c4;--txt3:#637b98;--teal:#19e2c5;--teal2:#0fbfa9;
+  --amber:#ffb02e;--red:#ff5353;--violet:#a973ff;--rose:#ff6f91;
+  --mono:'Cascadia Mono','IBM Plex Mono',Consolas,monospace;
+  --sans:'Segoe UI','Noto Sans SC','Microsoft YaHei',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{
+  color:var(--txt);font:13px/1.55 var(--sans);padding:14px;overflow-x:hidden;
+  background:
+    radial-gradient(900px 500px at 78% -10%,rgba(25,226,197,.09),transparent 62%),
+    radial-gradient(700px 420px at 8% 8%,rgba(70,130,220,.10),transparent 60%),
+    linear-gradient(160deg,#06101b,#071522 58%,#06101b);
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.32;z-index:0;
+  background-image:linear-gradient(rgba(29,56,84,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(29,56,84,.18) 1px,transparent 1px);
+  background-size:42px 42px;mask-image:linear-gradient(180deg,#000,transparent 88%);
+}
+.container{max-width:1080px;margin:0 auto;position:relative;z-index:1;padding-bottom:24px}
+.glass{
+  background:linear-gradient(180deg,rgba(12,28,46,.94),rgba(8,20,34,.92));
+  border:1px solid var(--line);border-radius:10px;padding:16px;
+  box-shadow:0 18px 50px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.025);
+}
+.top-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap;padding-right:34px}
+.arena-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.arena-mark{width:30px;height:30px;border:1px solid rgba(25,226,197,.45);border-radius:8px;display:grid;place-items:center;color:var(--teal);font-size:15px;background:rgba(25,226,197,.06);flex:0 0 auto}
+.arena-brand b{display:block;font-size:13px;letter-spacing:.16em;color:#eaf7ff}
+.arena-brand small{display:block;font:8.5px/1.3 var(--mono);letter-spacing:.24em;color:var(--txt3);margin-top:3px}
+.top-actions{display:flex;gap:7px;flex-wrap:wrap}
+.help-btn,.skill-btn,.music-btn{
+  padding:8px 11px;border:1px solid var(--line);border-radius:7px;background:rgba(16,37,58,.72);
+  color:var(--txt2);font:10px var(--mono);letter-spacing:.08em;cursor:pointer;transition:.15s;
+}
+.help-btn:hover,.skill-btn:hover,.music-btn:hover{border-color:rgba(25,226,197,.5);color:var(--teal);background:rgba(25,226,197,.06)}
+#skillPopup,#helpPopup{
+  display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);width:min(640px,92vw);
+  max-height:78vh;overflow:auto;z-index:140;padding:20px;line-height:1.7;font-size:12.5px;
+}
+#skillPopup{right:auto}
+#helpPopup h3{font-size:16px;color:var(--teal);letter-spacing:.04em;margin-bottom:8px}
+#helpPopup h4{color:#8fd8ff;margin:13px 0 5px;font-size:12px;font-family:var(--mono);letter-spacing:.06em}
+#helpPopup ul{padding-left:18px;margin:5px 0}
+#helpPopup p{color:var(--txt2)}
+.skill-item{margin:10px 0;line-height:1.65;font-size:12px;color:var(--txt2)}
+.skill-title{color:var(--amber);font-family:var(--mono);font-size:10px;letter-spacing:.06em;margin-right:4px}
+.typhoon-block{border-bottom:1px solid rgba(42,77,112,.55);padding-bottom:10px;margin-bottom:10px}
+.typhoon-block h4{color:#dff7ff;font-size:12px;margin-bottom:4px}
+.all-skill-view{max-height:62vh;overflow:auto;padding-right:4px}
+
+#resultPopup{
+  display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(420px,92vw);
+  text-align:center;z-index:160;padding:24px;
+}
+.result-title{font-size:25px;margin-bottom:8px;letter-spacing:.06em}
+.win-text{color:var(--teal)}
+.lose-text{color:var(--red)}
+#resMsg{color:var(--txt2);margin-bottom:16px;font-size:12px}
+#resultPopup button{margin:4px}
+
+#menuPage,#selectPage,#battlePage{display:none;position:relative;animation:arenaIn .35s ease both}
+@keyframes arenaIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#menuPage{text-align:center;padding:34px 0 10px}
+.arena-kicker{font:9px var(--mono);letter-spacing:.38em;color:var(--teal);margin-bottom:12px}
+#menuPage h1{
+  font-size:clamp(30px,5.4vw,52px);line-height:1.08;letter-spacing:.02em;color:#f0fbff;margin-bottom:10px;
+  text-shadow:0 0 30px rgba(25,226,197,.18);
+}
+#menuPage h1 span{color:var(--teal)}
+#menuPage .arena-sub{font-size:12px;color:var(--txt3);margin-bottom:22px}
+#menuPage .glass{max-width:610px;margin:0 auto;padding:22px}
+.mode-btn{
+  width:100%;padding:14px 22px;font-size:13px;letter-spacing:.08em;border-radius:8px;color:#03211c;
+  background:linear-gradient(180deg,#22e4c7,#0fbfa9);font-weight:800;cursor:pointer;
+  box-shadow:0 10px 30px rgba(25,226,197,.18);transition:.15s;
+}
+.mode-btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.menu-note{font-size:10px;color:var(--txt3);line-height:1.7;margin-top:12px}
+#selectPage .title-bar{text-align:center;font-size:18px;margin:4px 0 4px;color:#eaf7ff;letter-spacing:.04em}
+#selectPage .sub-title{text-align:center;font:9px var(--mono);letter-spacing:.22em;color:var(--txt3);margin-bottom:16px}
+.card-list{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:14px 0}
+@media(min-width:620px){.card-list{grid-template-columns:repeat(3,1fr);gap:10px}}
+@media(min-width:900px){.card-list{grid-template-columns:repeat(4,1fr)}}
+.card{
+  background:linear-gradient(180deg,rgba(14,32,52,.92),rgba(8,21,36,.92));
+  border:1px solid #2a4d70;border-radius:9px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;
+  transition:transform .15s,border-color .15s,box-shadow .15s;position:relative;overflow:hidden;
+}
+.card::before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--teal);opacity:.65}
+.card:hover{transform:translateY(-2px);border-color:rgba(25,226,197,.55);box-shadow:0 12px 26px rgba(0,0,0,.28)}
+.card:active{transform:scale(.985)}
+.card .t-name{font-size:13px;font-weight:700;color:#effbff;padding-left:3px}
+.card .t-year{font-size:10px;color:var(--txt3);font-family:var(--mono);padding-left:3px}
+.card .attr-tag{display:inline-block;width:fit-content;padding:2px 7px;border:1px solid var(--line2);border-radius:4px;font:9px var(--mono);color:#a9e9ff;margin:3px 0 2px}
+.card .stat{font-size:10.5px;line-height:1.5;color:var(--txt2);padding-left:3px;font-family:var(--mono)}
+.UR{border-color:rgba(255,176,46,.7)}.UR::before{background:var(--amber)}
+.SSR{border-color:rgba(255,111,145,.7)}.SSR::before{background:var(--rose)}
+.SR{border-color:rgba(169,115,255,.65)}.SR::before{background:var(--violet)}
+.N{border-color:rgba(25,226,197,.5)}.N::before{background:var(--teal)}
+.normal{border-color:#405d78}.normal::before{background:#6f8ba6}
+.operate{display:flex;gap:8px;margin-top:12px;justify-content:center;flex-wrap:wrap}
+.btn-random,.btn-back{border:1px solid var(--line);border-radius:7px;padding:10px 18px;font-size:11px;letter-spacing:.04em;cursor:pointer;transition:.15s}
+.btn-random{background:rgba(25,226,197,.1);border-color:rgba(25,226,197,.45);color:var(--teal)}
+.btn-random:hover{background:rgba(25,226,197,.16)}
+.btn-back{background:rgba(16,37,58,.7);color:var(--txt2)}
+.btn-back:hover{color:var(--txt);border-color:var(--line2)}
+
+.battle-topline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px;font:9px var(--mono);letter-spacing:.16em;color:var(--txt3);flex-wrap:wrap}
+.battle-topline b{color:var(--teal)}
+.btn-select{font:9px var(--mono);letter-spacing:.08em;color:var(--txt2);border:1px solid var(--line);border-radius:6px;padding:6px 9px;background:rgba(16,37,58,.55);cursor:pointer}
+.btn-select:hover{color:var(--teal);border-color:rgba(25,226,197,.45)}
+.battle-row{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+@media(min-width:700px){.battle-row{flex-direction:row;justify-content:space-between;gap:12px}.player-card,.ai-card{width:calc(50% - 6px)}}
+.player-card,.ai-card{width:100%;font-size:12px;line-height:1.7;padding:14px}
+.card-title{font-size:12px;font-weight:700;color:#dff7ff;margin-bottom:7px;letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between}
+.card-title span{font:8px var(--mono);color:var(--txt3);letter-spacing:.12em}
+.stat-row{display:flex;justify-content:space-between;gap:8px;margin:3px 0;color:var(--txt2)}
+.stat-row span:last-child{color:#e4f3ff;font-family:var(--mono);font-size:10.5px}
+.hp-bar,.energy-bar{width:100%;border-radius:5px;overflow:hidden;margin:6px 0;background:#07131f;border:1px solid #17314a}
+.hp-bar{height:16px}.hp-fill{height:100%;background:linear-gradient(90deg,#b62e45,#ff5b73);transition:width .3s}
+.energy-bar{height:8px}.energy-fill{height:100%;background:linear-gradient(90deg,#0f9e8e,#36e4ff);transition:width .3s}
+.status-area{margin-top:7px;display:flex;flex-wrap:wrap;gap:4px;min-height:18px}
+.status-tag{padding:1px 6px;border-radius:4px;font:8.5px var(--mono);background:rgba(70,120,170,.16);border:1px solid rgba(120,180,255,.24);color:var(--txt2)}
+.tag-buff{color:#7cf0c8;border-color:rgba(25,226,197,.3)}
+.tag-debuff{color:#ff8a9f;border-color:rgba(255,83,83,.3)}
+.log-box{
+  height:214px;overflow:auto;background:#050e18;border:1px solid var(--line);padding:11px 13px;border-radius:8px;
+  margin:12px 0;font:10.5px/1.7 var(--mono);white-space:pre-wrap;color:#b8ccdf;
+}
+.log-box::-webkit-scrollbar{width:6px}.log-box::-webkit-scrollbar-thumb{background:#244565;border-radius:3px}
+.operate-battle{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px 0 4px}
+.operate-battle button{border:1px solid transparent;border-radius:7px;font-size:10.5px;padding:9px 11px;cursor:pointer;transition:.15s;letter-spacing:.03em}
+.operate-battle button:hover{filter:brightness(1.1)}
+.operate-battle button:disabled{opacity:.34;cursor:not-allowed;filter:none}
+.btn-attack{background:rgba(255,83,83,.13);border-color:rgba(255,83,83,.4)!important;color:#ff9aa9}
+.btn-skill1{background:rgba(255,176,46,.11);border-color:rgba(255,176,46,.38)!important;color:#ffd07a}
+.btn-skill2{background:rgba(80,170,255,.12);border-color:rgba(80,170,255,.38)!important;color:#9bd6ff}
+.btn-ult{background:rgba(169,115,255,.14);border-color:rgba(169,115,255,.42)!important;color:#d3b4ff}
+.btn-event{background:rgba(25,226,197,.1);border-color:rgba(25,226,197,.36)!important;color:#7cf0c8}
+button{border:none;border-radius:6px;font-size:11px;padding:9px 12px;color:#fff;cursor:pointer;background:#17314a}
+#resultPopup button{font-size:10px;padding:8px 11px}
+#resultPopup button:first-of-type{background:linear-gradient(180deg,#22e4c7,#0fbfa9);color:#03211c;font-weight:700}
+#resultPopup button:last-of-type{background:rgba(16,37,58,.8);border:1px solid var(--line);color:var(--txt2)}
+@media(max-width:520px){
+  body{padding:9px}.glass{padding:12px}.top-bar{gap:7px}.arena-brand small{display:none}
+  #menuPage{padding-top:18px}.log-box{height:170px}
+  .operate-battle button{flex:1 1 42%}
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="top-bar">
+        <div class="arena-brand">
+            <div class="arena-mark">✦</div>
+            <div><b>TC ARENA</b><small>TYPHOON DUEL / 1V1</small></div>
+        </div>
+        <div class="top-actions">
+            <button class="help-btn" onclick="playClick();openHelp()">玩法说明</button>
+            <button class="skill-btn" onclick="playClick();openSkillView()">技能一览</button>
+        </div>
+    </div>
+
+    <div id="helpPopup" class="glass">
+        <h3>完整对战规则</h3>
+        <h4>一、基础规则</h4>
+        <p>单台风1V1对决，我方先手，轮流出手。将对方血量降至0即可获胜。</p>
+        <ul>
+            <li>ATK攻击力：决定伤害基础值</li>
+            <li>DEF防御力：按比例降低受到的伤害</li>
+            <li>HP生命值：归零则战败</li>
+        </ul>
+        <h4>二、属性克制</h4>
+        <ul>
+            <li>风→浪→雨→风，克制伤害×1.5，被克制×0.7</li>
+        </ul>
+        <h4>三、能量与技能</h4>
+        <ul>
+            <li>普攻+30能量，上限300</li>
+            <li>一技能100、二技能200、大招300</li>
+            <li>敌方AI会自主释放技能</li>
+        </ul>
+        <h4>四、天灾系统</h4>
+        <p>累计造成500伤害解锁1次抽取，单局最多3次，有概率触发稀有天灾。</p>
+        <h4>五、胜负条件</h4>
+        <p>敌方血量归零获胜，我方血量归零失败。</p>
+        <button style="margin-top:16px;width:100%" onclick="playClick();closeHelp()">关闭</button>
+    </div>
+
+    <div id="skillPopup" class="glass">
+        <div class="all-skill-view" id="skillAllBox"></div>
+        <div class="battle-skill-view" style="display:none">
+            <div class="skill-item"><span class="skill-title">我方被动</span><div id="myPassiveShort"></div></div>
+            <div class="skill-item"><span class="skill-title">一技能</span><div id="mySkill1Short"></div></div>
+            <div class="skill-item"><span class="skill-title">二技能</span><div id="mySkill2Short"></div></div>
+            <div class="skill-item"><span class="skill-title">大招</span><div id="myUltShort"></div></div>
+        </div>
+        <button style="width:100%;margin-top:16px" onclick="playClick();closeSkillView()">关闭</button>
+    </div>
+
+    <div id="resultPopup" class="glass">
+        <div class="result-title" id="resTitle"></div>
+        <p id="resMsg"></p>
+        <button onclick="playClick();rematch()">再战一局</button>
+        <button onclick="playClick();backMenu()">返回主菜单</button>
+    </div>
+
+    <div id="menuPage">
+        <div class="arena-kicker">TROPICAL CYCLONE COMBAT SIM</div>
+        <h1>风王 <span>·</span> 极速对决</h1>
+        <div class="arena-sub">从历史风王中选一位，与随机对手进行 1V1 回合制对战。</div>
+        <div class="glass">
+            <button class="mode-btn" onclick="playClick();startGame()">开始对战</button>
+            <div class="menu-note">风 → 浪 → 雨 → 风 · 克制伤害 ×1.5<br>普攻积攒能量，技能与天灾改变战局。</div>
+        </div>
+    </div>
+
+    <div id="selectPage">
+        <div class="title-bar">选择你的出战台风</div>
+        <div class="sub-title">SELECT YOUR STORM</div>
+        <div class="card-list" id="cardBox"></div>
+        <div class="operate">
+            <button class="btn-random" onclick="playClick();randomPick()">随机选择</button>
+            <button class="btn-back" onclick="playClick();backMenu()">返回</button>
+        </div>
+    </div>
+
+    <div id="battlePage">
+        <div class="battle-topline"><span>DUEL / ROUND <b id="turnTag">我方先手</b></span><button class="btn-select" onclick="playClick();showSelect()">重新选择</button></div>
+        <div class="battle-row">
+            <div class="player-card glass">
+                <div class="card-title">我方台风</div>
+                <div class="stat-row"><span>名称</span><span id="pName"></span></div>
+                <div class="stat-row"><span>属性</span><span id="pAttr"></span></div>
+                <div class="stat-row"><span>攻击</span><span id="pAtkDetail"></span></div>
+                <div class="stat-row"><span>防御</span><span id="pDefDetail"></span></div>
+                <div class="hp-bar"><div class="hp-fill" id="pHpBar"></div></div>
+                <div class="stat-row"><span>血量</span><span id="pHpDetail"></span></div>
+                <div class="energy-bar"><div class="energy-fill" id="pEngBar"></div></div>
+                <div class="stat-row"><span>能量</span><span id="pEngDetail"></span></div>
+                <div class="status-area" id="pStatus"></div>
+            </div>
+            <div class="ai-card glass">
+                <div class="card-title">敌方台风</div>
+                <div class="stat-row"><span>名称</span><span id="aName"></span></div>
+                <div class="stat-row"><span>属性</span><span id="aAttr"></span></div>
+                <div class="stat-row"><span>攻击</span><span id="aAtkDetail"></span></div>
+                <div class="stat-row"><span>防御</span><span id="aDefDetail"></span></div>
+                <div class="hp-bar"><div class="hp-fill" id="aHpBar"></div></div>
+                <div class="stat-row"><span>血量</span><span id="aHpDetail"></span></div>
+                <div class="energy-bar"><div class="energy-fill" id="aEngBar"></div></div>
+                <div class="stat-row"><span>能量</span><span id="aEngDetail"></span></div>
+                <div class="status-area" id="aStatus"></div>
+            </div>
+        </div>
+        <div class="operate-battle">
+            <button class="btn-attack" id="btnAttack" onclick="doAttack()">普攻 +30 能量</button>
+            <button class="btn-skill1" id="btnSkill1" onclick="skill1()">一技能 · 100</button>
+            <button class="btn-skill2" id="btnSkill2" onclick="skill2()">二技能 · 200</button>
+            <button class="btn-ult" id="btnUlt" onclick="ultSkill()">大招 · 300</button>
+            <button class="btn-event" id="eventBtn" onclick="drawEvent()">抽取天灾</button>
+        </div>
+        <div class="log-box" id="logBox"></div>
+    </div>
+</div>
+
+<script>
+// ========== 音频系统 ==========
+let audioCtx = null;
+function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();}
+function playTone(freq,dur,type="sine",vol=0.2){
+    initAudio();
+    let o=audioCtx.createOscillator();
+    let g=audioCtx.createGain();
+    o.type=type;o.frequency.value=freq;
+    g.gain.value=vol;
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+    o.stop(audioCtx.currentTime+dur);
+}
+function playClick(){playTone(800,0.08,"square",0.1);}
+function playAttack(){playTone(180,0.15,"sawtooth",0.15);}
+function playSkill(){playTone(520,0.2,"triangle",0.18);playTone(780,0.25,"triangle",0.12);}
+function playUlt(){playTone(300,0.4,"sawtooth",0.2);setTimeout(()=>playTone(600,0.3,"square",0.15),150);}
+function playWin(){playTone(523,0.2);setTimeout(()=>playTone(659,0.2),200);setTimeout(()=>playTone(784,0.4),400);}
+function playLose(){playTone(300,0.3,"sawtooth",0.15);setTimeout(()=>playTone(200,0.5,"sawtooth",0.15),300);}
+function playEvent(){playTone(440,0.15);setTimeout(()=>playTone(880,0.2),150);}
+function playRareEvent(){playTone(660,0.15);setTimeout(()=>playTone(990,0.2),120);setTimeout(()=>playTone(1320,0.25),240);}
+
+let bgmPlaying = false;
+let bgmOsc = null;
+function startBgm(){
+    if(bgmPlaying) return;
+    initAudio();
+    bgmOsc = audioCtx.createOscillator();
+    let g = audioCtx.createGain();
+    bgmOsc.type = 'sine';
+    bgmOsc.frequency.value = 80;
+    g.gain.value = 0.08;
+    bgmOsc.connect(g);g.connect(audioCtx.destination);
+    bgmOsc.start();
+    setInterval(()=>{
+        if(bgmPlaying && bgmOsc){
+            let freq = 65 + Math.random()*35;
+            bgmOsc.frequency.linearRampToValueAtTime(freq, audioCtx.currentTime + 2.5);
+        }
+    }, 2500);
+    bgmPlaying = true;
+    document.getElementById("musicBtn").innerText = "🎵 开";
+}
+function stopBgm(){
+    if(!bgmPlaying) return;
+    if(bgmOsc){bgmOsc.stop();bgmOsc = null;}
+    bgmPlaying = false;
+    document.getElementById("musicBtn").innerText = "🎵 关";
+}
+function toggleMusic(){playClick();bgmPlaying?stopBgm():startBgm();}
+
+// ========== 台风数据 ==========
+const typhoonList = [
+    {name:"台风海燕",year:"2013",rare:"UR",attr:"风",atk:82,def:875,hp:2200,shortPassive:"受伤35%概率减伤30%",shortS1:"增攻+120固伤",shortS2:"降防40+200伤害",shortUlt:"35%血量以下斩杀"},
+    {name:"台风泰培",year:"1979",rare:"UR",attr:"浪",atk:78,def:870,hp:2500,shortPassive:"受击概率回血250",shortS1:"250固定伤害",shortS2:"降防50+220伤害",shortUlt:"破防70+450伤害"},
+    {name:"台风威马逊",year:"2014",rare:"UR",attr:"雨",atk:75,def:880,hp:2000,shortPassive:"克制伤害+15%",shortS1:"克制倍率翻倍",shortS2:"3回合持续流血",shortUlt:"600伤害+流血"},
+    {name:"台风桑美",year:"2006",rare:"UR",attr:"风",atk:88,def:860,hp:2100,shortPassive:"血量越低攻击越高",shortS1:"高攻爆发+无视防御",shortS2:"降防50+240伤害",shortUlt:"残血增伤爆发"},
+    {name:"台风温黛",year:"1956",rare:"UR",attr:"风",atk:85,def:890,hp:2400,shortPassive:"20%概率双倍伤害",shortS1:"增攻+200伤害",shortS2:"降防45+260伤害",shortUlt:"高伤+回血"},
+    {name:"台风山竹",year:"2018",rare:"SSR",attr:"浪",atk:69,def:905,hp:1800,shortPassive:"攻击永久降防10",shortS1:"降防35+200伤害",shortS2:"320固定伤害",shortUlt:"480暴击伤害"},
+    {name:"台风玛莉亚",year:"2018",rare:"SSR",attr:"风",atk:66,def:910,hp:1600,shortPassive:"25%概率追加半伤",shortS1:"增攻+180伤害",shortS2:"降防40+220伤害",shortUlt:"420破甲爆发"},
+    {name:"台风彩虹",year:"2015",rare:"SSR",attr:"雨",atk:63,def:920,hp:1500,shortPassive:"受到伤害-12%",shortS1:"直接扣血280",shortS2:"当前血量22%+固伤",shortUlt:"当前血量30%+固伤"},
+    {name:"台风利奇马",year:"2019",rare:"SSR",attr:"雨",atk:68,def:900,hp:1700,shortPassive:"攻击附加80真实伤害",shortS1:"伤害+1回合流血",shortS2:"当前血量25%+固伤",shortUlt:"高伤+长流血"},
+    {name:"台风杜苏芮",year:"2023",rare:"SR",attr:"风",atk:55,def:935,hp:1200,shortPassive:"被动触发回血100",shortS1:"瞬间回血400",shortS2:"3回合持续回血",shortUlt:"一次性回血600"},
+    {name:"台风天鸽",year:"2017",rare:"SR",attr:"浪",atk:58,def:930,hp:1300,shortPassive:"攻击伤害+20%",shortS1:"伤害翻倍",shortS2:"半防穿透+250伤害",shortUlt:"破防爆发伤害"},
+    {name:"台风菲特",year:"2013",rare:"SR",attr:"雨",atk:52,def:940,hp:1100,shortPassive:"敌方攻击-12%",shortS1:"敌方攻击减半2回合",shortS2:"敌方伤害减半2回合",shortUlt:"压制输出+伤害"},
+    {name:"台风摩羯",year:"2018",rare:"SR",attr:"风",atk:56,def:925,hp:1250,shortPassive:"25%闪避攻击",shortS1:"降防30+180伤害",shortS2:"二段连击",shortUlt:"伤害+回血"},
+    {name:"台风莫拉克",year:"2009",rare:"SR",attr:"雨",atk:50,def:945,hp:1400,shortPassive:"每回合回血60",shortS1:"回血+提升防御",shortS2:"2回合流血",shortUlt:"大量回血+伤害"},
+    {name:"台风贝碧嘉",year:"2018",rare:"N",attr:"浪",atk:45,def:955,hp:900,shortPassive:"15%闪避攻击",shortS1:"增伤+70固伤",shortS2:"追加90伤害",shortUlt:"200爆发伤害"},
+    {name:"台风莲花",year:"2015",rare:"N",attr:"雨",atk:42,def:960,hp:850,shortPassive:"减伤10%",shortS1:"增伤+60固伤",shortS2:"追加80伤害",shortUlt:"180爆发伤害"},
+    {name:"热带低压",year:"-",rare:"normal",attr:"风",atk:30,def:980,hp:600,shortPassive:"减伤5%",shortS1:"小幅增伤+50固伤",shortS2:"追加70伤害",shortUlt:"160伤害爆发"}
+];
+
+// ========== 天灾系统 ==========
+const eventPool = [
+    {txt:"攻击永久+30",type:"buff",rarity:"normal",effect:{atk:30}},
+    {txt:"防御永久+50",type:"buff",rarity:"normal",effect:{def:50}},
+    {txt:"恢复500血量",type:"buff",rarity:"normal",effect:{heal:500}},
+    {txt:"获得300点护盾",type:"buff",rarity:"normal",effect:{shield:300}},
+    {txt:"立即获得100能量",type:"buff",rarity:"normal",effect:{energy:100}},
+    {txt:"造成伤害提升20%",type:"buff",rarity:"normal",effect:{dmgDeal:0.2}},
+    {txt:"下一个大招无消耗",type:"buff",rarity:"rare",effect:{freeUlt:true}},
+    {txt:"清除自身所有减益",type:"buff",rarity:"normal",effect:{cleanDebuff:true}},
+    {txt:"攻击力降低25",type:"debuff",rarity:"normal",effect:{atk:-25}},
+    {txt:"防御力降低50",type:"debuff",rarity:"normal",effect:{def:-50}},
+    {txt:"流失100点能量",type:"debuff",rarity:"normal",effect:{energy:-100}},
+    {txt:"受到伤害增加15%",type:"debuff",rarity:"normal",effect:{dmgTaken:0.15}},
+    {txt:"立即损失300血量",type:"debuff",rarity:"normal",effect:{damage:300}},
+    {txt:"双方互换血量百分比",type:"special",rarity:"rare",effect:{swapHp:true}},
+    {txt:"重置双方所有能量",type:"special",rarity:"normal",effect:{resetEnergy:true}},
+    {txt:"额外获得1次抽取机会",type:"special",rarity:"rare",effect:{extraDraw:true}}
+];
+
+// ========== 全局变量 ==========
+let drawLimit = 3, drawCount = 0, lock = false;
+let myTyphoon = null, enemyTyphoon = null;
+let myHp = 0, enHp = 0, myEng = 0, enEng = 0;
+let myShield = 0, enShield = 0, totalDmg = 0;
+let bleedTurn = 0, myBleedTurn = 0, healTurn = 0, enHealTurn = 0;
+let enemyAtkDebuff = 0, myAtkDebuff = 0;
+let myDmgBonus = 0, myDmgTakenBonus = 0, freeUlt = false;
+
+function unlockLock(){lock=false;if(myTyphoon)refreshUI();}
+
+// ========== 页面切换 ==========
+function hideAllPages(){
+    document.getElementById("menuPage").style.display="none";
+    document.getElementById("selectPage").style.display="none";
+    document.getElementById("battlePage").style.display="none";
+}
+function backMenu(){unlockLock();hideAllPages();closeResult();document.getElementById("menuPage").style.display="block";}
+function showSelect(){unlockLock();hideAllPages();document.getElementById("selectPage").style.display="block";renderCard();}
+function showBattle(){unlockLock();hideAllPages();document.getElementById("battlePage").style.display="block";document.getElementById("logBox").innerHTML="";}
+function closeResult(){document.getElementById("resultPopup").style.display="none";}
+function startGame(){showSelect();}
+
+// ========== 选卡渲染 ==========
+function renderCard(){
+    let box = document.getElementById("cardBox");
+    box.innerHTML="";
+    typhoonList.forEach((item,idx)=>{
+        let div = document.createElement("div");
+        div.className = `card ${item.rare}`;
+        div.innerHTML = `
+            <div class="t-name">${item.name}</div>
+            <div class="t-year">(${item.year})</div>
+            <span class="attr-tag">${item.attr}</span>
+            <div class="stat">ATK:${item.atk}</div>
+            <div class="stat">DEF:${item.def}</div>
+            <div class="stat">HP:${item.hp}</div>
+        `;
+        div.onclick = ()=>{playClick();pickTyphoon(idx);};
+        box.appendChild(div);
+    })
+}
+function randomPick(){pickTyphoon(Math.floor(Math.random()*typhoonList.length));}
+
+// ========== 初始化战斗 ==========
+function pickTyphoon(idx){
+    unlockLock();
+    drawCount = 0; drawLimit = 3;
+    bleedTurn = 0; myBleedTurn = 0; healTurn = 0; enHealTurn = 0;
+    enemyAtkDebuff = 0; myAtkDebuff = 0;
+    myDmgBonus = 0; myDmgTakenBonus = 0;
+    totalDmg = 0; myShield = 0; enShield = 0; freeUlt = false;
+
+    myTyphoon = JSON.parse(JSON.stringify(typhoonList[idx]));
+    enemyTyphoon = JSON.parse(JSON.stringify(typhoonList[Math.floor(Math.random()*typhoonList.length)]));
+
+    myHp = myTyphoon.hp; enHp = enemyTyphoon.hp;
+    myEng = 0; enEng = 0;
+
+    refreshUI();
+    showBattle();
+    log("战斗开始！","system");
+    log(`我方派出 ${myTyphoon.name}，敌方派出 ${enemyTyphoon.name}`,"system");
+}
+
+// ========== 伤害计算 ==========
+function calcDamage(baseAtk, def, rate, ignoreDef=0){
+    let effectiveDef = def * (1 - ignoreDef);
+    let defReduce = effectiveDef / (effectiveDef + 500);
+    return Math.max(1, Math.floor(baseAtk * rate * (1 - defReduce)));
+}
+
+// ========== 刷新面板 ==========
+function refreshUI(){
+    document.getElementById("pName").innerText=`${myTyphoon.name} (${myTyphoon.year})`;
+    document.getElementById("pAttr").innerText=myTyphoon.attr;
+    document.getElementById("pAtkDetail").innerText=Math.max(1, myTyphoon.atk - myAtkDebuff);
+    document.getElementById("pDefDetail").innerText=myTyphoon.def;
+    document.getElementById("pHpDetail").innerText=`${Math.max(0,myHp)} / ${myTyphoon.hp}`;
+    document.getElementById("pEngDetail").innerText=`${myEng} / 300`;
+    document.getElementById("pHpBar").style.width = Math.max(0,myHp/myTyphoon.hp*100)+"%";
+    document.getElementById("pEngBar").style.width = Math.min(100,myEng/300*100)+"%";
+
+    document.getElementById("aName").innerText=`${enemyTyphoon.name} (${enemyTyphoon.year})`;
+    document.getElementById("aAttr").innerText=enemyTyphoon.attr;
+    document.getElementById("aAtkDetail").innerText=Math.max(1,enemyTyphoon.atk - enemyAtkDebuff);
+    document.getElementById("aDefDetail").innerText=enemyTyphoon.def;
+    document.getElementById("aHpDetail").innerText=`${Math.max(0,enHp)} / ${enemyTyphoon.hp}`;
+    document.getElementById("aEngDetail").innerText=`${enEng} / 300`;
+    document.getElementById("aHpBar").style.width = Math.max(0,enHp/enemyTyphoon.hp*100)+"%";
+    document.getElementById("aEngBar").style.width = Math.min(100,enEng/300*100)+"%";
+
+    let pStatus = document.getElementById("pStatus");
+    let aStatus = document.getElementById("aStatus");
+    pStatus.innerHTML = ""; aStatus.innerHTML = "";
+    if(myShield>0) pStatus.innerHTML += `<span class="status-tag tag-buff">护盾 ${myShield}</span>`;
+    if(healTurn>0) pStatus.innerHTML += `<span class="status-tag tag-buff">回血 ${healTurn}回合</span>`;
+    if(myDmgBonus>0) pStatus.innerHTML += `<span class="status-tag tag-buff">伤害+${Math.floor(myDmgBonus*100)}%</span>`;
+    if(freeUlt) pStatus.innerHTML += `<span class="status-tag tag-buff">大招免费</span>`;
+    if(myBleedTurn>0) pStatus.innerHTML += `<span class="status-tag tag-debuff">流血 ${myBleedTurn}回合</span>`;
+    if(myAtkDebuff>0) pStatus.innerHTML += `<span class="status-tag tag-debuff">攻击-${myAtkDebuff}</span>`;
+    if(myDmgTakenBonus>0) pStatus.innerHTML += `<span class="status-tag tag-debuff">受伤+${Math.floor(myDmgTakenBonus*100)}%</span>`;
+    if(bleedTurn>0) aStatus.innerHTML += `<span class="status-tag tag-debuff">流血 ${bleedTurn}回合</span>`;
+    if(enemyAtkDebuff>0) aStatus.innerHTML += `<span class="status-tag tag-debuff">攻击-${enemyAtkDebuff}</span>`;
+    if(enShield>0) aStatus.innerHTML += `<span class="status-tag tag-buff">护盾 ${enShield}</span>`;
+    if(enHealTurn>0) aStatus.innerHTML += `<span class="status-tag tag-buff">回血 ${enHealTurn}回合</span>`;
+
+    let btn = document.getElementById("eventBtn");
+    let canDraw = Math.floor(totalDmg / 500) > drawCount && drawCount < drawLimit;
+    btn.disabled = !canDraw || lock;
+    btn.innerText = drawCount >= drawLimit ? "天灾已达上限" : `抽取天灾 ${drawCount}/${drawLimit}`;
+    const b1 = document.getElementById("btnAttack"), b2 = document.getElementById("btnSkill1"), b3 = document.getElementById("btnSkill2"), b4 = document.getElementById("btnUlt");
+    if (b1) b1.disabled = lock;
+    if (b2) b2.disabled = lock || myEng < 100;
+    if (b3) b3.disabled = lock || myEng < 200;
+    if (b4) b4.disabled = lock || (!freeUlt && myEng < 300);
+    const tt = document.getElementById("turnTag");
+    if (tt) tt.textContent = lock ? "结算中" : "我方行动";
+}
+
+// ========== 战斗日志 ==========
+function log(text,type="normal"){
+    let box = document.getElementById("logBox");
+    let color="#ffffff";
+    if(type==="dmg")color="#ff7777";
+    if(type==="heal")color="#77ee99";
+    if(type==="skill")color="#77ccff";
+    if(type==="event")color="#ffdd77";
+    if(type==="passive")color="#ddbbee";
+    if(type==="system")color="#aabbdd";
+    if(type==="rare")color="#ffaa33";
+    box.innerHTML += `<span style="color:${color}">${text}</span>\n`;
+    box.scrollTop = box.scrollHeight;
+}
+
+// ========== 属性克制 ==========
+function getRate(my,en){
+    if(my=="风"&&en=="浪")return 1.5;
+    if(my=="浪"&&en=="雨")return 1.5;
+    if(my=="雨"&&en=="风")return 1.5;
+    if(my=="风"&&en=="雨")return 0.7;
+    if(my=="浪"&&en=="风")return 0.7;
+    if(my=="雨"&&en=="浪")return 0.7;
+    return 1;
+}
+
+// ========== 伤害结算 ==========
+function dealDamageToEnemy(dmg){
+    if(enShield > 0){
+        if(enShield >= dmg){enShield -= dmg;log(`敌方护盾吸收 ${dmg} 点伤害`,"system");return 0;}
+        else{dmg -= enShield;log(`敌方护盾破碎，吸收 ${enShield} 点伤害`,"system");enShield = 0;}
+    }
+    enHp -= dmg; totalDmg += dmg;
+    return dmg;
+}
+function dealDamageToMe(dmg){
+    if(myShield > 0){
+        if(myShield >= dmg){myShield -= dmg;log(`我方护盾吸收 ${dmg} 点伤害`,"system");return 0;}
+        else{dmg -= myShield;log(`我方护盾破碎，吸收 ${myShield} 点伤害`,"system");myShield = 0;}
+    }
+    myHp -= dmg;
+    return dmg;
+}
+
+// ========== 玩家普攻 ==========
+function doAttack(){
+    if(lock)return;
+    lock=true; playAttack();
+    let rate = getRate(myTyphoon.attr,enemyTyphoon.attr);
+    if(myTyphoon.name==="台风威马逊" && rate>1) rate *= 1.15;
+    
+    let finalAtk = Math.max(1, myTyphoon.atk - myAtkDebuff);
+    if(myTyphoon.name==="台风桑美"){
+        let hpLoss = 1 - myHp/myTyphoon.hp;
+        finalAtk = Math.floor(finalAtk * (1 + hpLoss*0.8));
+    }
+    
+    let baseDmg = calcDamage(finalAtk, enemyTyphoon.def, rate);
+    if(myTyphoon.name==="台风天鸽") baseDmg = Math.floor(baseDmg*1.2);
+    baseDmg = Math.floor(baseDmg * (1 + myDmgBonus));
+    
+    let extraTrue = myTyphoon.name==="台风利奇马" ? 80 : 0;
+    let realDmg = dealDamageToEnemy(baseDmg + extraTrue);
+    log(`普攻造成 ${realDmg} 点伤害`,"dmg");
+    if(extraTrue>0) log(`附加真实伤害 ${extraTrue}`,"passive");
+
+    if(myTyphoon.name==="台风山竹"){enemyTyphoon.def = Math.max(0, enemyTyphoon.def - 10);log("海岸侵蚀：敌方防御-10","passive");}
+    if(myTyphoon.name==="台风温黛" && Math.random()<0.2){dealDamageToEnemy(baseDmg);log(`巨型环流触发双倍！追加 ${baseDmg} 点伤害`,"passive");}
+    if(myTyphoon.name==="台风玛莉亚" && Math.random()<0.25){let e=Math.floor(baseDmg*0.5);dealDamageToEnemy(e);log(`风切追加 ${e} 点伤害`,"passive");}
+
+    if(bleedTurn>0){dealDamageToEnemy(120);log(`敌方流血造成 120 点伤害`,"dmg");bleedTurn--;}
+    if(enHealTurn>0){enHp = Math.min(enemyTyphoon.hp, enHp + 120);log(`敌方持续恢复 120 点血量`,"heal");enHealTurn--;}
+    if(myTyphoon.name==="台风莫拉克"){myHp = Math.min(myTyphoon.hp, myHp + 60);log(`暖池补给恢复 60 点血量`,"heal");}
+
+    myEng = Math.min(300, myEng + 30);
+    refreshUI();
+    if(enHp<=0){winGame();return;}
+    setTimeout(()=>{enemyTurn();},800);
+}
+
+// ========== 敌方AI ==========
+function enemyDecide(){
+    let name = enemyTyphoon.name;
+    let hpRatio = enHp / enemyTyphoon.hp;
+    let healTyphoons = ["台风杜苏芮","台风莫拉克"];
+    if(hpRatio < 0.35 && healTyphoons.includes(name)){
+        if(enEng >= 300) return 'ult';
+        if(enEng >= 200) return 'skill2';
+        if(enEng >= 100) return 'skill1';
+    }
+    if(enEng >= 300 && Math.random() < 0.65) return 'ult';
+    if(enEng >= 200 && Math.random() < 0.5) return 'skill2';
+    if(enEng >= 100 && Math.random() < 0.35) return 'skill1';
+    return 'attack';
+}
+
+function enemyTurn(){
+    let dodgeList = ["台风贝碧嘉","台风摩羯"];
+    if(dodgeList.includes(myTyphoon.name) && Math.random()< (myTyphoon.name==="台风摩羯"?0.25:0.15)){
+        log("我方闪避了敌方攻击！","passive");
+        enEng = Math.min(300, enEng + 30);
+        refreshUI(); unlockLock(); return;
+    }
+
+    let action = enemyDecide();
+    if(action === 'skill1') enemySkill1();
+    else if(action === 'skill2') enemySkill2();
+    else if(action === 'ult') enemyUlt();
+    else enemyAttack();
+
+    if(myBleedTurn>0){dealDamageToMe(120);log(`我方流血造成 120 点伤害`,"dmg");myBleedTurn--;}
+    if(healTurn>0){myHp = Math.min(myTyphoon.hp, myHp + 120);log(`我方持续恢复 120 点血量`,"heal");healTurn--;}
+
+    refreshUI(); unlockLock();
+    if(myHp<=0){loseGame();}
+}
+
+function enemyAttack(){
+    playAttack();
+    let realAtk = Math.max(1, enemyTyphoon.atk - enemyAtkDebuff);
+    let rate = getRate(enemyTyphoon.attr,myTyphoon.attr);
+    if(enemyTyphoon.name==="台风威马逊" && rate>1) rate *= 1.15;
+    
+    let finalAtk = realAtk;
+    if(enemyTyphoon.name==="台风桑美"){
+        let hpLoss = 1 - enHp/enemyTyphoon.hp;
+        finalAtk = Math.floor(finalAtk * (1 + hpLoss*0.8));
+    }
+    
+    let dmg = calcDamage(finalAtk, myTyphoon.def, rate);
+    if(myTyphoon.name==="台风海燕" && Math.random()<0.35){dmg = Math.floor(dmg*0.7);log("风眼减伤生效！","passive");}
+    if(myTyphoon.name==="台风彩虹") dmg = Math.floor(dmg*0.88);
+    if(myTyphoon.name==="台风莲花") dmg = Math.floor(dmg*0.9);
+    if(myTyphoon.name==="热带低压") dmg = Math.floor(dmg*0.95);
+    dmg = Math.floor(dmg * (1 + myDmgTakenBonus));
+    
+    let realDmg = dealDamageToMe(dmg);
+    log(`敌方普攻造成 ${realDmg} 点伤害`,"dmg");
+    
+    if(enemyTyphoon.name==="台风山竹"){myTyphoon.def = Math.max(0, myTyphoon.def - 10);log("敌方海岸侵蚀：我方防御-10","passive");}
+    if(enemyTyphoon.name==="台风温黛" && Math.random()<0.2){dealDamageToMe(dmg);log(`敌方巨型环流触发双倍！追加 ${dmg} 点伤害`,"passive");}
+    if(enemyTyphoon.name==="台风玛莉亚" && Math.random()<0.25){let e=Math.floor(dmg*0.5);dealDamageToMe(e);log(`敌方风切追加 ${e} 点伤害`,"passive");}
+    if(enemyTyphoon.name==="台风利奇马"){dealDamageToMe(80);log(`敌方附加真实伤害 80`,"passive");}
+    
+    if(myTyphoon.name==="台风泰培" && Math.random()<0.3){myHp = Math.min(myTyphoon.hp, myHp+250);log("环流补给恢复250血量","heal");}
+    if(myTyphoon.name==="台风杜苏芮" && Math.random()<0.3){myHp = Math.min(myTyphoon.hp, myHp+100);log("水汽补给恢复100血量","heal");}
+    if(enemyTyphoon.name==="台风泰培" && Math.random()<0.3){enHp = Math.min(enemyTyphoon.hp, enHp+250);log("敌方环流补给恢复250血量","heal");}
+    if(enemyTyphoon.name==="台风杜苏芮" && Math.random()<0.3){enHp = Math.min(enemyTyphoon.hp, enHp+100);log("敌方水汽补给恢复100血量","heal");}
+
+    enEng = Math.min(300, enEng + 30);
+}
+
+function enemySkill1(){
+    playSkill(); enEng -= 100;
+    let name = enemyTyphoon.name;
+    let rate = getRate(enemyTyphoon.attr, myTyphoon.attr);
+    if(name==="台风威马逊" && rate>1) rate *= 1.15;
+    let finalAtk = Math.max(1, enemyTyphoon.atk - enemyAtkDebuff);
+    if(name==="台风桑美"){let h=1-enHp/enemyTyphoon.hp;finalAtk=Math.floor(finalAtk*(1+h*0.8));}
+
+    if(name==="台风海燕"){let d=calcDamage(finalAtk+40,myTyphoon.def,rate,0.3)+120;dealDamageToMe(d);log(`敌方一技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风泰培"){let d=calcDamage(finalAtk,myTyphoon.def,rate)+250;dealDamageToMe(d);log(`敌方一技能造成 ${d} 点真实伤害`,"skill");}
+    else if(name==="台风威马逊"){let r=rate>1?rate*2:rate;let d=calcDamage(finalAtk,myTyphoon.def,r)+230;dealDamageToMe(d);log(`敌方一技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风桑美"){let d=calcDamage(finalAtk+50,myTyphoon.def,rate,0.25);dealDamageToMe(d);log(`敌方狂风冲击造成 ${d} 点爆发伤害`,"skill");}
+    else if(name==="台风温黛"){let d=calcDamage(finalAtk+35,myTyphoon.def,rate)+200;dealDamageToMe(d);log(`敌方一技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风山竹"){myTyphoon.def=Math.max(0,myTyphoon.def-35);let d=calcDamage(finalAtk,myTyphoon.def,rate)+200;dealDamageToMe(d);log(`敌方降低我方35点防御，造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风玛莉亚"){let d=calcDamage(finalAtk+30,myTyphoon.def,rate)+180;dealDamageToMe(d);log(`敌方一技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风彩虹"){dealDamageToMe(280);log(`敌方一技能直接扣除 280 点血量`,"skill");}
+    else if(name==="台风利奇马"){dealDamageToMe(260);myBleedTurn=Math.max(myBleedTurn,1);log(`敌方造成 260 点伤害，附加1回合流血`,"skill");}
+    else if(name==="台风杜苏芮"){enHp=Math.min(enemyTyphoon.hp,enHp+400);log("敌方一技能恢复400点血量","heal");}
+    else if(name==="台风天鸽"){let d=Math.floor(calcDamage(finalAtk,myTyphoon.def,rate,0.2)*2*1.2);dealDamageToMe(d);log(`敌方低空突袭造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风菲特"){myAtkDebuff+=Math.floor(myTyphoon.atk*0.5);log("我方攻击力减半，持续2回合","skill");}
+    else if(name==="台风摩羯"){myTyphoon.def=Math.max(0,myTyphoon.def-30);let d=calcDamage(finalAtk,myTyphoon.def,rate)+180;dealDamageToMe(d);log(`敌方降低我方30点防御，造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风莫拉克"){enHp=Math.min(enemyTyphoon.hp,enHp+300);enemyTyphoon.def+=10;log("敌方恢复300点血量，防御+10","heal");}
+    else {let d=calcDamage(finalAtk,myTyphoon.def,rate)+50;dealDamageToMe(d);log(`敌方一技能造成 ${d} 点伤害`,"skill");}
+}
+
+function enemySkill2(){
+    playSkill(); enEng -= 200;
+    let name = enemyTyphoon.name;
+    let rate = getRate(enemyTyphoon.attr, myTyphoon.attr);
+    if(name==="台风威马逊" && rate>1) rate *= 1.15;
+    let finalAtk = Math.max(1, enemyTyphoon.atk - enemyAtkDebuff);
+    if(name==="台风桑美"){let h=1-enHp/enemyTyphoon.hp;finalAtk=Math.floor(finalAtk*(1+h*0.8));}
+
+    if(name==="台风海燕"){myTyphoon.def=Math.max(0,myTyphoon.def-40);dealDamageToMe(200);log(`敌方降低我方40点防御，造成 200 点伤害`,"skill");}
+    else if(name==="台风泰培"){myTyphoon.def=Math.max(0,myTyphoon.def-50);dealDamageToMe(220);log(`敌方降低我方50点防御，造成 220 点伤害`,"skill");}
+    else if(name==="台风威马逊"){myBleedTurn=3;dealDamageToMe(180);log(`我方进入3回合流血状态，造成 180 点即时伤害`,"skill");}
+    else if(name==="台风桑美"){myTyphoon.def=Math.max(0,myTyphoon.def-50);dealDamageToMe(240);log(`敌方降低我方50点防御，造成 240 点伤害`,"skill");}
+    else if(name==="台风温黛"){myTyphoon.def=Math.max(0,myTyphoon.def-45);dealDamageToMe(260);log(`敌方降低我方45点防御，造成 260 点伤害`,"skill");}
+    else if(name==="台风山竹"){dealDamageToMe(320);log(`敌方二技能造成 320 点固定伤害`,"skill");}
+    else if(name==="台风玛莉亚"){myTyphoon.def=Math.max(0,myTyphoon.def-40);dealDamageToMe(220);log(`敌方降低我方40点防御，造成 220 点伤害`,"skill");}
+    else if(name==="台风彩虹"){let d=Math.floor(myHp*0.22)+220;dealDamageToMe(d);log(`敌方二技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风利奇马"){let d=Math.floor(myHp*0.25)+200;dealDamageToMe(d);myBleedTurn=Math.max(myBleedTurn,2);log(`敌方造成 ${d} 点伤害，附加2回合流血`,"skill");}
+    else if(name==="台风杜苏芮"){enHealTurn=3;log("敌方开启3回合持续回血","heal");}
+    else if(name==="台风天鸽"){let d=Math.floor((calcDamage(finalAtk,myTyphoon.def,rate,0.5)+250)*1.2);dealDamageToMe(d);log(`敌方阵风横扫造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风菲特"){myAtkDebuff+=Math.floor(myTyphoon.atk*0.5);log("我方伤害减半，持续2回合","skill");}
+    else if(name==="台风摩羯"){let d=calcDamage(finalAtk,myTyphoon.def,rate);dealDamageToMe(d);dealDamageToMe(d);log(`敌方回旋冲击造成两段 ${d} 点伤害`,"skill");}
+    else if(name==="台风莫拉克"){myBleedTurn=2;log("我方进入2回合流血状态","skill");}
+    else {let d=calcDamage(finalAtk,myTyphoon.def,rate)+70;dealDamageToMe(d);log(`敌方二技能造成 ${d} 点伤害`,"skill");}
+}
+
+function enemyUlt(){
+    playUlt(); enEng = 0;
+    let name = enemyTyphoon.name;
+    let rate = getRate(enemyTyphoon.attr, myTyphoon.attr);
+    if(name==="台风威马逊" && rate>1) rate *= 1.15;
+    let finalAtk = Math.max(1, enemyTyphoon.atk - enemyAtkDebuff);
+    if(name==="台风桑美"){let h=1-enHp/enemyTyphoon.hp;finalAtk=Math.floor(finalAtk*(1+h*0.8));}
+
+    if(name==="台风海燕"){
+        if(myHp < myTyphoon.hp*0.35){myHp=0;log("敌方暴风吞噬触发斩杀！","skill");}
+        else{dealDamageToMe(500);log(`敌方大招造成 500 点伤害`,"skill");}
+    }
+    else if(name==="台风泰培"){myTyphoon.def=Math.max(0,myTyphoon.def-70);dealDamageToMe(450);log(`敌方削减我方70点防御，造成 450 点伤害`,"skill");}
+    else if(name==="台风威马逊"){dealDamageToMe(600);myBleedTurn=3;log(`敌方大招造成 600 点伤害，附加3回合流血`,"skill");}
+    else if(name==="台风桑美"){let r=1-myHp/myTyphoon.hp;let d=Math.floor(550*(1+r*0.5));dealDamageToMe(d);log(`敌方巅峰登陆造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风温黛"){dealDamageToMe(520);enHp=Math.min(enemyTyphoon.hp,enHp+200);log(`敌方造成 520 点伤害，恢复 200 点血量`,"skill");}
+    else if(name==="台风山竹"){dealDamageToMe(480);log(`敌方大招造成 480 点暴击伤害`,"skill");}
+    else if(name==="台风玛莉亚"){dealDamageToMe(420);log(`敌方大招造成 420 点破甲伤害`,"skill");}
+    else if(name==="台风彩虹"){let d=Math.floor(myHp*0.3)+280;dealDamageToMe(d);log(`敌方大招造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风利奇马"){dealDamageToMe(460);myBleedTurn=4;log(`敌方造成 460 点伤害，流血延长至4回合`,"skill");}
+    else if(name==="台风杜苏芮"){enHp=Math.min(enemyTyphoon.hp,enHp+600);log("敌方大招恢复600点生命值","heal");}
+    else if(name==="台风天鸽"){let d=Math.floor((calcDamage(finalAtk*1.5,myTyphoon.def,rate,0.6)+300)*1.2);dealDamageToMe(d);log(`敌方狂风爆发造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风菲特"){dealDamageToMe(280);myAtkDebuff+=Math.floor(myTyphoon.atk*0.6);log("我方输出大幅降低","skill");}
+    else if(name==="台风摩羯"){dealDamageToMe(360);enHp=Math.min(enemyTyphoon.hp,enHp+150);log(`敌方造成 360 点伤害，恢复 150 点血量`,"skill");}
+    else if(name==="台风莫拉克"){enHp=Math.min(enemyTyphoon.hp,enHp+500);dealDamageToMe(200);log(`敌方恢复 500 点血量，造成 200 点伤害`,"skill");}
+    else {dealDamageToMe(160);log(`敌方大招造成 160 点伤害`,"skill");}
+}
+
+// ========== 玩家技能 ==========
+function skill1(){
+    if(lock||myEng<100)return;
+    lock=true; playSkill(); myEng -= 100;
+    let name = myTyphoon.name;
+    let rate = getRate(myTyphoon.attr,enemyTyphoon.attr);
+    if(name==="台风威马逊" && rate>1) rate *= 1.15;
+    let finalAtk = Math.max(1, myTyphoon.atk - myAtkDebuff);
+    if(name==="台风桑美"){let h=1-myHp/myTyphoon.hp;finalAtk=Math.floor(finalAtk*(1+h*0.8));}
+
+    if(name==="台风海燕"){let d=Math.floor((calcDamage(finalAtk+40,enemyTyphoon.def,rate,0.3)+120)*(1+myDmgBonus));dealDamageToEnemy(d);log(`一技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风泰培"){let d=Math.floor((calcDamage(finalAtk,enemyTyphoon.def,rate)+250)*(1+myDmgBonus));dealDamageToEnemy(d);log(`一技能造成 ${d} 点真实伤害`,"skill");}
+    else if(name==="台风威马逊"){let r=rate>1?rate*2:rate;let d=Math.floor((calcDamage(finalAtk,enemyTyphoon.def,r)+230)*(1+myDmgBonus));dealDamageToEnemy(d);log(`一技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风桑美"){let d=Math.floor(calcDamage(finalAtk+50,enemyTyphoon.def,rate,0.25)*(1+myDmgBonus));dealDamageToEnemy(d);log(`狂风冲击造成 ${d} 点爆发伤害`,"skill");}
+    else if(name==="台风温黛"){let d=Math.floor((calcDamage(finalAtk+35,enemyTyphoon.def,rate)+200)*(1+myDmgBonus));dealDamageToEnemy(d);log(`一技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风山竹"){enemyTyphoon.def=Math.max(0,enemyTyphoon.def-35);let d=Math.floor((calcDamage(finalAtk,enemyTyphoon.def,rate)+200)*(1+myDmgBonus));dealDamageToEnemy(d);log(`降低敌方35点防御，造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风玛莉亚"){let d=Math.floor((calcDamage(finalAtk+30,enemyTyphoon.def,rate)+180)*(1+myDmgBonus));dealDamageToEnemy(d);log(`一技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风彩虹"){dealDamageToEnemy(280);log(`一技能直接扣除 280 点血量`,"skill");}
+    else if(name==="台风利奇马"){dealDamageToEnemy(260);bleedTurn=Math.max(bleedTurn,1);log(`造成 260 点伤害，附加1回合流血`,"skill");}
+    else if(name==="台风杜苏芮"){myHp=Math.min(myTyphoon.hp,myHp+400);log("一技能恢复400点血量","heal");}
+    else if(name==="台风天鸽"){let d=Math.floor(calcDamage(finalAtk,enemyTyphoon.def,rate,0.2)*2*1.2*(1+myDmgBonus));dealDamageToEnemy(d);log(`低空突袭造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风菲特"){enemyAtkDebuff+=Math.floor(enemyTyphoon.atk*0.5);log("敌方攻击力减半，持续2回合","skill");}
+    else if(name==="台风摩羯"){enemyTyphoon.def=Math.max(0,enemyTyphoon.def-30);let d=Math.floor((calcDamage(finalAtk,enemyTyphoon.def,rate)+180)*(1+myDmgBonus));dealDamageToEnemy(d);log(`降低敌方30点防御，造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风莫拉克"){myHp=Math.min(myTyphoon.hp,myHp+300);myTyphoon.def+=10;log("恢复300点血量，防御+10","heal");}
+    else {let d=Math.floor((calcDamage(finalAtk,enemyTyphoon.def,rate)+50)*(1+myDmgBonus));dealDamageToEnemy(d);log(`一技能造成 ${d} 点伤害`,"skill");}
+
+    refreshUI();
+    if(enHp<=0){winGame();return;}
+    setTimeout(()=>{enemyTurn();},800);
+}
+
+function skill2(){
+    if(lock||myEng<200)return;
+    lock=true; playSkill(); myEng -= 200;
+    let name = myTyphoon.name;
+    let rate = getRate(myTyphoon.attr,enemyTyphoon.attr);
+    if(name==="台风威马逊" && rate>1) rate *= 1.15;
+    let finalAtk = Math.max(1, myTyphoon.atk - myAtkDebuff);
+    if(name==="台风桑美"){let h=1-myHp/myTyphoon.hp;finalAtk=Math.floor(finalAtk*(1+h*0.8));}
+
+    if(name==="台风海燕"){enemyTyphoon.def=Math.max(0,enemyTyphoon.def-40);dealDamageToEnemy(200);log(`降低敌方40点防御，造成 200 点伤害`,"skill");}
+    else if(name==="台风泰培"){enemyTyphoon.def=Math.max(0,enemyTyphoon.def-50);dealDamageToEnemy(220);log(`降低敌方50点防御，造成 220 点伤害`,"skill");}
+    else if(name==="台风威马逊"){bleedTurn=3;dealDamageToEnemy(180);log(`敌方进入3回合流血状态，造成 180 点即时伤害`,"skill");}
+    else if(name==="台风桑美"){enemyTyphoon.def=Math.max(0,enemyTyphoon.def-50);dealDamageToEnemy(240);log(`降低敌方50点防御，造成 240 点伤害`,"skill");}
+    else if(name==="台风温黛"){enemyTyphoon.def=Math.max(0,enemyTyphoon.def-45);dealDamageToEnemy(260);log(`降低敌方45点防御，造成 260 点伤害`,"skill");}
+    else if(name==="台风山竹"){dealDamageToEnemy(320);log(`二技能造成 320 点固定伤害`,"skill");}
+    else if(name==="台风玛莉亚"){enemyTyphoon.def=Math.max(0,enemyTyphoon.def-40);dealDamageToEnemy(220);log(`降低敌方40点防御，造成 220 点伤害`,"skill");}
+    else if(name==="台风彩虹"){let d=Math.floor(enHp*0.22)+220;dealDamageToEnemy(d);log(`二技能造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风利奇马"){let d=Math.floor(enHp*0.25)+200;dealDamageToEnemy(d);bleedTurn=Math.max(bleedTurn,2);log(`造成 ${d} 点伤害，附加2回合流血`,"skill");}
+    else if(name==="台风杜苏芮"){healTurn=3;log("开启3回合持续回血","heal");}
+    else if(name==="台风天鸽"){let d=Math.floor((calcDamage(finalAtk,enemyTyphoon.def,rate,0.5)+250)*1.2*(1+myDmgBonus));dealDamageToEnemy(d);log(`阵风横扫造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风菲特"){enemyAtkDebuff+=Math.floor(enemyTyphoon.atk*0.5);log("敌方伤害减半，持续2回合","skill");}
+    else if(name==="台风摩羯"){let d=Math.floor(calcDamage(finalAtk,enemyTyphoon.def,rate)*(1+myDmgBonus));dealDamageToEnemy(d);dealDamageToEnemy(d);log(`回旋冲击造成两段 ${d} 点伤害`,"skill");}
+    else if(name==="台风莫拉克"){bleedTurn=2;log("敌方进入2回合流血状态","skill");}
+    else {let d=Math.floor((calcDamage(finalAtk,enemyTyphoon.def,rate)+70)*(1+myDmgBonus));dealDamageToEnemy(d);log(`二技能造成 ${d} 点伤害`,"skill");}
+
+    refreshUI();
+    if(enHp<=0){winGame();return;}
+    setTimeout(()=>{enemyTurn();},800);
+}
+
+function ultSkill(){
+    if(lock)return;
+    if(!freeUlt && myEng<300) return;
+    lock=true; playUlt();
+    if(freeUlt){freeUlt=false;log("免费大招已消耗","system");}
+    else myEng = 0;
+
+    let name = myTyphoon.name;
+    let rate = getRate(myTyphoon.attr,enemyTyphoon.attr);
+    if(name==="台风威马逊" && rate>1) rate *= 1.15;
+    let finalAtk = Math.max(1, myTyphoon.atk - myAtkDebuff);
+    if(name==="台风桑美"){let h=1-myHp/myTyphoon.hp;finalAtk=Math.floor(finalAtk*(1+h*0.8));}
+
+    if(name==="台风海燕"){
+        if(enHp < enemyTyphoon.hp*0.35){enHp=0;totalDmg+=enHp;log("暴风吞噬触发斩杀！","skill");}
+        else{dealDamageToEnemy(500);log(`大招造成 500 点伤害`,"skill");}
+    }
+    else if(name==="台风泰培"){enemyTyphoon.def=Math.max(0,enemyTyphoon.def-70);dealDamageToEnemy(450);log(`削减敌方70点防御，造成 450 点伤害`,"skill");}
+    else if(name==="台风威马逊"){dealDamageToEnemy(600);bleedTurn=3;log(`大招造成 600 点伤害，附加3回合流血`,"skill");}
+    else if(name==="台风桑美"){let r=1-enHp/enemyTyphoon.hp;let d=Math.floor(550*(1+r*0.5));dealDamageToEnemy(d);log(`巅峰登陆造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风温黛"){dealDamageToEnemy(520);myHp=Math.min(myTyphoon.hp,myHp+200);log(`造成 520 点伤害，恢复 200 点血量`,"skill");}
+    else if(name==="台风山竹"){dealDamageToEnemy(480);log(`大招造成 480 点暴击伤害`,"skill");}
+    else if(name==="台风玛莉亚"){dealDamageToEnemy(420);log(`大招造成 420 点破甲伤害`,"skill");}
+    else if(name==="台风彩虹"){let d=Math.floor(enHp*0.3)+280;dealDamageToEnemy(d);log(`大招造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风利奇马"){dealDamageToEnemy(460);bleedTurn=4;log(`造成 460 点伤害，流血延长至4回合`,"skill");}
+    else if(name==="台风杜苏芮"){myHp=Math.min(myTyphoon.hp,myHp+600);log("大招恢复600点生命值","heal");}
+    else if(name==="台风天鸽"){let d=Math.floor((calcDamage(finalAtk*1.5,enemyTyphoon.def,rate,0.6)+300)*1.2*(1+myDmgBonus));dealDamageToEnemy(d);log(`狂风爆发造成 ${d} 点伤害`,"skill");}
+    else if(name==="台风菲特"){dealDamageToEnemy(280);enemyAtkDebuff+=Math.floor(enemyTyphoon.atk*0.6);log(`造成 280 点伤害，敌方输出大幅降低`,"skill");}
+    else if(name==="台风摩羯"){dealDamageToEnemy(360);myHp=Math.min(myTyphoon.hp,myHp+150);log(`造成 360 点伤害，恢复 150 点血量`,"skill");}
+    else if(name==="台风莫拉克"){myHp=Math.min(myTyphoon.hp,myHp+500);dealDamageToEnemy(200);log(`恢复 500 点血量，造成 200 点伤害`,"skill");}
+    else {dealDamageToEnemy(160);log(`大招造成 160 点伤害`,"skill");}
+
+    refreshUI();
+    if(enHp<=0){winGame();return;}
+    setTimeout(()=>{enemyTurn();},800);
+}
+
+// ========== 天灾抽取 ==========
+function drawEvent(){
+    let canDraw = Math.floor(totalDmg / 500) > drawCount && drawCount < drawLimit;
+    if(!canDraw || lock) return;
+    
+    playEvent();
+    drawCount++;
+    let isRare = Math.random() < 0.15;
+    let pool = isRare ? eventPool.filter(e=>e.rarity==="rare") : eventPool.filter(e=>e.rarity==="normal");
+    let e = pool[Math.floor(Math.random()*pool.length)];
+
+    if(isRare){playRareEvent();log("★ 稀有天灾触发！","rare");}
+    log("抽到天灾："+e.txt,"event");
+
+    let eff = e.effect;
+    if(eff.atk) myTyphoon.atk = Math.max(1, myTyphoon.atk + eff.atk);
+    if(eff.def) myTyphoon.def = Math.max(0, myTyphoon.def + eff.def);
+    if(eff.heal) myHp = Math.min(myTyphoon.hp, myHp + eff.heal);
+    if(eff.shield) myShield += eff.shield;
+    if(eff.energy) myEng = Math.max(0, Math.min(300, myEng + eff.energy));
+    if(eff.dmgDeal) myDmgBonus += eff.dmgDeal;
+    if(eff.dmgTaken) myDmgTakenBonus += eff.dmgTaken;
+    if(eff.damage) dealDamageToMe(eff.damage);
+    if(eff.freeUlt) freeUlt = true;
+    if(eff.cleanDebuff){myDmgTakenBonus = 0; myAtkDebuff = 0; myBleedTurn = 0;log("已清除所有减益效果","system");}
+    if(eff.swapHp){
+        let myRatio = myHp / myTyphoon.hp;
+        let enRatio = enHp / enemyTyphoon.hp;
+        myHp = Math.floor(myTyphoon.hp * enRatio);
+        enHp = Math.floor(enemyTyphoon.hp * myRatio);
+        log("双方血量百分比已互换","system");
+    }
+    if(eff.resetEnergy){myEng = 0; enEng = 0;log("双方能量已全部重置","system");}
+    if(eff.extraDraw){drawLimit++;log("抽取上限+1","system");}
+
+    refreshUI();
+}
+
+// ========== 胜负结算 ==========
+function rematch(){closeResult();randomPick();}
+function winGame(){
+    unlockLock(); playWin();
+    document.getElementById("resTitle").innerText="对战胜利";
+    document.getElementById("resTitle").className="result-title win-text";
+    document.getElementById("resMsg").innerText="你击败了敌方台风！";
+    document.getElementById("resultPopup").style.display="block";
+}
+function loseGame(){
+    unlockLock(); playLose();
+    document.getElementById("resTitle").innerText="对战失败";
+    document.getElementById("resTitle").className="result-title lose-text";
+    document.getElementById("resMsg").innerText="你的台风被击败了";
+    document.getElementById("resultPopup").style.display="block";
+}
+
+// ========== 技能弹窗 ==========
+function openSkillView(){
+    let allView = document.querySelector('.all-skill-view');
+    let battleView = document.querySelector('.battle-skill-view');
+
+    if(document.getElementById("selectPage").style.display==="block"){
+        allView.style.display="block";
+        battleView.style.display="none";
+        let box = document.getElementById("skillAllBox");
+        box.innerHTML="";
+        typhoonList.forEach(item=>{
+            let div=document.createElement("div");
+            div.className="typhoon-block";
+            div.innerHTML=`
+                <h4>${item.name} (${item.year}) [${item.rare}]</h4>
+                <div class="skill-item"><span class="skill-title">被动：</span>${item.shortPassive}</div>
+                <div class="skill-item"><span class="skill-title">一技能：</span>${item.shortS1}</div>
+                <div class="skill-item"><span class="skill-title">二技能：</span>${item.shortS2}</div>
+                <div class="skill-item"><span class="skill-title">大招：</span>${item.shortUlt}</div>
+            `;
+            box.appendChild(div);
+        })
+    }else{
+        allView.style.display="none";
+        battleView.style.display="block";
+        document.getElementById("myPassiveShort").innerText=myTyphoon.shortPassive;
+        document.getElementById("mySkill1Short").innerText=myTyphoon.shortS1;
+        document.getElementById("mySkill2Short").innerText=myTyphoon.shortS2;
+        document.getElementById("myUltShort").innerText=myTyphoon.shortUlt;
+    }
+    document.getElementById("skillPopup").style.display="block";
+}
+function closeSkillView(){document.getElementById("skillPopup").style.display="none";}
+function openHelp(){document.getElementById("helpPopup").style.display="block";}
+function closeHelp(){document.getElementById("helpPopup").style.display="none";}
+
+window.onload = backMenu;
+</script>
+</body>
+</html>
