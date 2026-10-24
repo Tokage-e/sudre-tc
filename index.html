@@ -3658,7 +3658,7 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
           <button class="sim-mini sim-random" id="simRandom" type="button" title="生成新的随机种子">🎲 随机种子</button>
         </div>
 
-        <div class="sim-history-row"><label class="chk"><input type="checkbox" id="simHistorical" checked>使用 IBTrACS 历史相似路径重采样</label><span id="simHistoryMeta">1985–2024 · WP</span></div>
+        <div class="sim-history-row"><label class="chk"><input type="checkbox" id="simHistorical" checked>每次从 IBTrACS 历史库随机抽取整条路径</label><span id="simHistoryMeta">1985–2024 · WP</span></div>
 
         <div id="simAutoPanel">
           <div class="sim-section-title">随机抛点与运动学</div>
@@ -8615,6 +8615,40 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
     return found;
   }
 
+  function makeIntensityProfile(o, rnd) {
+    const dur = Math.max(1, o.duration);
+    const peakT = clamp(dur * (.22 + rnd() * .58), 1, dur - 1);
+    const peakW = clamp(o.peakWind * (.62 + rnd() * .72), 15, 300);
+    const initialW = Number.isFinite(o.initWind) ? o.initWind : (Number.isFinite(o.initialWind) ? o.initialWind : 35);
+    const startW = clamp(initialW * (.58 + rnd() * .78), 10, Math.max(12, peakW * .85));
+    const endW = clamp(startW * (.42 + rnd() * .7), 10, peakW);
+    const sec = rnd() < .48 ? {
+      t: dur * (.08 + rnd() * .84),
+      amp: (rnd() - .25) * peakW * (.1 + rnd() * .25),
+      width: dur * (.04 + rnd() * .1)
+    } : null;
+    return {
+      dur, peakT, peakW, startW, endW, sec,
+      oscAmp: peakW * (.035 + o.burst * .11) * (.4 + rnd() * .8),
+      phase: rnd() * Math.PI * 2,
+      period: 7 + rnd() * 19,
+      noise: peakW * (.018 + o.burst * .055)
+    };
+  }
+
+  function profileWind(p, t) {
+    const u = clamp(t / p.peakT, 0, 1);
+    const v = clamp((t - p.peakT) / Math.max(1, p.dur - p.peakT), 0, 1);
+    const sm = x => x * x * (3 - 2 * x);
+    let w = t <= p.peakT
+      ? p.startW + (p.peakW - p.startW) * sm(u)
+      : p.peakW + (p.endW - p.peakW) * sm(v);
+    if (p.sec) w += p.sec.amp * Math.exp(-Math.pow((t - p.sec.t) / p.sec.width, 2));
+    w += Math.sin(t / p.period + p.phase) * p.oscAmp;
+    w += Math.sin(t * .57 + p.phase * 1.7) * p.noise;
+    return w;
+  }
+
   function makeHistoricalMember(o, idx, count) {
     const tracks = window.IBTRACS_TRACKS;
     if (!tracks || !tracks.length) return null;
@@ -8623,60 +8657,24 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
     const step = o.step;
     const n = Math.min(MAX_POINTS, Math.max(1, Math.round(o.duration / step)));
     const start = dateOf(o.start);
-    const month = start.getUTCMonth() + 1;
     const name = o.name + (count > 1 ? String.fromCharCode(65 + idx) : '');
     const cy = 70 + idx;
-    const candidates = [];
-    const near = [];
-    for (const tr of tracks) {
-      const p = tr.p || [];
-      if (p.length < 8) continue;
-      /* 取离起点最近的历史位置；近距离优先，但远处轨迹也可平移后作为形状样本 */
-      let startIdx = -1, bestD = 1e9;
-      for (let i = 0; i < p.length - 1; i++) {
-        const d = distanceNm(o.lat, o.lon, p[i][0], p[i][1]);
-        if (d < bestD) { bestD = d; startIdx = i; }
-      }
-      if (startIdx < 0 || p.length - startIdx < 6) continue;
-      const h = bearing(p[startIdx][0], p[startIdx][1], p[startIdx + 1][0], p[startIdx + 1][1]);
-      const dh = Math.abs(angleDiff(h, o.heading));
-      const md = Math.abs(month - (tr.m || month));
-      const ms = Math.min(md, 12 - md);
-      const remain = p.length - startIdx;
-      const nearBy = bestD <= 12;
-      const base = nearBy ? Math.exp(-bestD / 10) : (0.11 + 0.1 / (1 + bestD / 30));
-      const score = (base + .015) * (1 + .22 * Math.cos(ms * Math.PI / 6)) * Math.min(1.4, .7 + remain / 40) * (1 - .22 * dh / 180);
-      const item = { tr, startIdx, d: bestD, score, near: nearBy };
-      candidates.push(item);
-      if (nearBy) near.push(item);
-    }
-    if (!candidates.length) return null;
-    /* 一半左右的成员来自起点附近，其余从全库形状中抽样，避免只用那几条“经过起点”的路径 */
-    const pool = (near.length && rnd() < .48) ? near.slice() : candidates.slice();
-    pool.sort((a, b) => b.score - a.score);
-    const top = pool.slice(0, Math.min(260, pool.length));
-    let total = top.reduce((s, x) => s + x.score, 0), pick = rnd() * total, chosen = top[0];
-    for (const c of top) { pick -= c.score; if (pick <= 0) { chosen = c; break; } }
-    const p = chosen.tr.p.slice(chosen.startIdx);
-    const jitterLat = (rnd() - .5) * o.curve * 2.2;
-    const jitterLon = (rnd() - .5) * o.curve * 2.2;
-    const dLat = o.lat - p[0][0] + (idx - center) * (.15 + o.curve * .5) + jitterLat;
-    const dLon = o.lon - p[0][1] + (idx - center) * (.3 + o.curve * .8) + jitterLon;
-    const phase = rnd() * Math.PI * 2;
-    const bendAmp = o.curve * (.25 + rnd() * .8);
-    const hmo = Object.assign({}, o, {
-      peakWind: clamp(o.peakWind * (.72 + rnd() * .55), 5, 320),
-      peakHour: clamp(o.peakHour * (.8 + rnd() * .4), 1, o.duration)
-    });
+    /* 直接随机抽整条历史路径；不做相似度筛选，也不再拼接。 */
+    const minLen = Math.max(8, Math.ceil(n * .45));
+    const pool = tracks.filter(tr => tr.p && tr.p.length >= minLen);
+    const source = pool.length ? pool : tracks;
+    const tr = source[Math.floor(rnd() * source.length)];
+    const p = tr.p;
+    const dLat = o.lat - p[0][0] + (idx - center) * (.1 + o.curve * .45);
+    const dLon = o.lon - p[0][1] + (idx - center) * (.2 + o.curve * .7);
+    const prof = makeIntensityProfile(o, rnd);
     const pts = [];
-    let dist = 0;
-    let heading = o.heading;
+    let dist = 0, heading = o.heading;
     for (let i = 0; i <= n; i++) {
       const f = i / Math.max(1, n);
       const src = Math.min(p.length - 1, Math.round(f * (p.length - 1)));
-      const bend = Math.sin(f * Math.PI * 2 + phase) * bendAmp;
-      const lat = clamp(p[src][0] + dLat + bend * .6, -62, 72);
-      let lon = p[src][1] + dLon + bend;
+      const lat = clamp(p[src][0] + dLat, -62, 72);
+      let lon = p[src][1] + dLon;
       while (lon > 180) lon -= 360;
       while (lon < -180) lon += 360;
       const prev = pts[pts.length - 1];
@@ -8684,12 +8682,13 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
         heading = bearing(prev.lat, prev.lon, lat, lon);
         dist += distanceNm(prev.lat, prev.lon, lat, lon);
       }
-      let wind = windAt(hmo, i * step, rnd) + ((p[src][2] || 30) - 55) * .08 + (rnd() - .5) * o.burst * 10;
-      wind = Math.round(clamp(wind, 8, 300));
+      let wind = Math.round(clamp(profileWind(prof, i * step), 8, 300));
+      const mpi = clamp(225 - 2.05 * Math.abs(lat), 25, 310);
+      wind = Math.min(wind, mpi);
       pts.push({
         t: i * step, time: new Date(start.getTime() + i * step * 3600000),
-        lat, lon, wind, mslp: pressureFor(wind, hmo), status: statusOf(wind),
-        heading, radii: radiiFor(wind, heading, hmo), name, cy
+        lat, lon, wind, mslp: pressureFor(wind, o), status: statusOf(wind),
+        heading, radii: radiiFor(wind, heading, o), name, cy
       });
     }
     return {
@@ -8703,6 +8702,7 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
   function makeAutoMember(o, idx, count) {
     if (o.historical) { const hm = makeHistoricalMember(o, idx, count); if (hm) return hm; }
     const rnd = prng(o.seed + idx * 7919);
+    const prof = makeIntensityProfile(o, rnd);
     const center = (count - 1) / 2;
     const step = o.step;
     const n = Math.min(MAX_POINTS, Math.max(1, Math.round(o.duration / step)));
@@ -8730,8 +8730,7 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
       const t = i * step;
       const prog = t / Math.max(1, o.duration);
       const speed = clamp(lerp(o.speed, o.speedEnd, prog) * memberSpeedBias * (1 + .16 * Math.max(0, lat) / 40), 1, 85);
-      let wind = windAt(mo, t, rnd);
-      wind += (rnd() - .5) * o.burst * 16;
+      let wind = profileWind(prof, t);
       const mpi = clamp(225 - 2.05 * Math.abs(lat), 25, 310);
       wind = Math.round(clamp(Math.min(wind, mpi), 8, 300));
       const radii = radiiFor(wind, heading, mo);
@@ -9066,7 +9065,7 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
     if (!state) { note.textContent = '等待生成模拟路径…'; return; }
     if (!state.members.length) { note.textContent = '手绘模式：至少需要 2 个控制点'; return; }
     const m = state.members[0];
-    const src = state.opts.historical && window.IBTRACS_TRACKS ? 'IBTrACS 重采样' : '自由随机';
+    const src = state.opts.historical && window.IBTRACS_TRACKS ? 'IBTrACS 随机路径' : '自由随机';
     note.textContent = src + ' · ' + state.members.length + ' 条路径 · ' + m.points.length + ' 点 · ' + state.opts.duration + 'h · ' + state.opts.step + 'h 步长 · ' + state.opts.name;
     const tag = $('#simStepTag'); if (tag) tag.textContent = state.opts.step + 'h';
   }
@@ -9324,6 +9323,11 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     if (!state) generate();
+    else if (mode === 'auto' && !($('#simLockSeed') || {}).checked) {
+      const seedEl = $('#simSeed');
+      if (seedEl) seedEl.value = Math.floor(Math.random() * 999999) + 1;
+      generate();
+    }
     else { drawPreview(state.members); renderStats(state.members); setNote(); }
     /* 矢量海岸线是异步加载的，晚到后补一次重绘 */
     [260, 900, 1800].forEach(ms => setTimeout(() => {
