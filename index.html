@@ -3045,6 +3045,10 @@ body.immersive #windAreaPanel{display:none !important}
 .sim-right{display:flex;flex-direction:column}
 .sim-canvas-wrap{flex:none}
 body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
+
+.sim-trace{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;display:none}
+.sim-canvas-wrap.drawing .sim-trace{display:block}
+.sim-canvas-wrap.drawing #simCanvas{cursor:crosshair}
 </style>
 </head>
 <body>
@@ -3644,27 +3648,18 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
     <div class="sim-body">
       <div class="sim-left">
         <div class="sim-presetbar">
-          <label for="simPreset">场景预设</label>
-          <select id="simPreset">
-            <option value="recurve">转向北上 · 典型</option>
-            <option value="west">西行登陆 · 华南</option>
-            <option value="loop">海上打转 · 环行</option>
-            <option value="erratic">蛇形 / 不规则</option>
-            <option value="ri">快速增强 · RI</option>
-            <option value="north">远海北转 · 高纬</option>
-          </select>
-          <button class="sim-mini" id="simGenerate" type="button">重新生成</button>
-          <button class="sim-mini sim-random" id="simRandom" type="button" title="生成新的随机种子">🎲 随机</button>
+          <label>随机路径</label>
+          <button class="sim-mini" id="simGenerate" type="button">生成新路径</button>
+          <button class="sim-mini sim-random" id="simRandom" type="button" title="生成新的随机种子">🎲 随机种子</button>
         </div>
 
         <div id="simAutoPanel">
-          <div class="sim-section-title">运动学</div>
+          <div class="sim-section-title">随机抛点与运动学</div>
           <div class="sim-grid">
             <div class="sim-field"><label>气旋名称</label><input id="simName" class="txtin" maxlength="12" value="SIM01"></div>
             <div class="sim-field"><label>集合成员</label><select id="simMembers"><option>1</option><option>3</option><option>5</option><option>7</option><option>9</option><option>12</option><option>15</option><option>20</option></select></div>
-            <div class="sim-field"><label>路径形态</label><select id="simTrackMode"><option value="recurve">转向北上</option><option value="west">持续西行</option><option value="north">远海北转</option><option value="loop">海上环行</option><option value="serpentine">蛇形摆动</option><option value="erratic">不规则随机</option></select></div>
-            <div class="sim-field"><label>强度曲线</label><select id="simIntensityMode"><option value="smooth">平滑增强—衰减</option><option value="ri">快速增强 RI</option><option value="steady">稳定维持</option><option value="oscillate">波动振荡</option><option value="decay">持续减弱</option></select></div>
-            <div class="sim-field"><label>引导场</label><select id="simSteering"><option value="climate">气候平均场</option><option value="free">自由转向</option></select></div>
+            <div class="sim-field"><label>路径曲折度</label><input id="simCurve" type="number" min="0" max="1" step="0.05" value="0.65"></div>
+            <div class="sim-field"><label>强度爆发</label><input id="simBurst" type="number" min="0" max="1" step="0.05" value="0.5"></div>
             <div class="sim-field"><label>起始纬度</label><input id="simStartLat" type="number" step="0.1" value="12"></div>
             <div class="sim-field"><label>起始经度</label><input id="simStartLon" type="number" step="0.1" value="145"></div>
             <div class="sim-field wide"><label>起始时间（UTC）</label><input id="simStartTime" type="datetime-local" value="2026-07-01T00:00"></div>
@@ -3676,9 +3671,7 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
             <div class="sim-field"><label>初始移速 kt</label><input id="simSpeed" type="number" min="1" max="80" step="0.5" value="11"></div>
             <div class="sim-field"><label>末段移速 kt</label><input id="simSpeedEnd" type="number" min="1" max="80" step="0.5" value="18"></div>
             <div class="sim-field"><label>初始方位 °</label><input id="simHeading" type="number" min="-360" max="360" value="295"></div>
-            <div class="sim-field"><label>转向率 °/step</label><input id="simTurn" type="number" min="-30" max="30" step="0.1" value="2.0"></div>
-            <div class="sim-field"><label>路径摆动</label><input id="simWobble" type="number" min="0" max="10" step="0.05" value="0.25"></div>
-            <div class="sim-field"><label>随机扰动</label><input id="simNoise" type="number" min="0" max="1" step="0.01" value="0.25"></div>
+            <div class="sim-field"><label>基础转向 °/step</label><input id="simTurn" type="number" min="-30" max="30" step="0.1" value="0.6"></div>
             <div class="sim-field"><label>随机种子</label><input id="simSeed" type="number" min="1" max="999999" value="42"></div>
             <div class="sim-field"><label>种子锁定</label><label class="chk"><input type="checkbox" id="simLockSeed">复现同一路径</label></div>
             <div class="sim-field"><label>纬度 β 漂移</label><label class="chk"><input type="checkbox" id="simBeta" checked>开启</label></div>
@@ -3700,7 +3693,7 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
 
         <div id="simCustomPanel" hidden>
           <div class="sim-section-title">手绘控制点</div>
-          <div class="sim-custom-hint">在右侧预览中点击即可追加控制点；或直接编辑下表。时间单位：小时（相对起始时间）。</div>
+          <div class="sim-custom-hint">按住鼠标在右侧预览图上直接画出路径，松开后会自动简化成少量控制点并生成。也可以编辑下表的控制点。</div>
           <div class="sim-wp-wrap">
             <table class="sim-wp">
               <thead><tr><th>h</th><th>LAT</th><th>LON</th><th>WIND</th><th></th></tr></thead>
@@ -3723,6 +3716,7 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
       <div class="sim-right">
         <div class="sim-canvas-wrap">
           <canvas id="simCanvas" width="720" height="430"></canvas>
+          <canvas id="simTrace" class="sim-trace" width="720" height="430"></canvas>
           <div class="sim-canvas-tag">PREVIEW · <span id="simStepTag">6h</span> STEP</div>
           <button class="sim-play" id="simPlay" type="button" aria-label="播放模拟">▶</button>
           <div class="sim-hover" id="simHover">LAT — / LON — / WIND —</div>
@@ -8347,6 +8341,8 @@ else boot();
   let playRaf = 0;
   let playIdx = 0;
   let scheduleTimer = 0;
+  let drawing = false;
+  let tracePts = [];
 
   const DEFAULT_WP = [
     { t: 0, lat: 12, lon: 145, wind: 35 },
@@ -8475,10 +8471,11 @@ else boot();
       speed: clamp(read('simSpeed', 11), 1, 80),
       speedEnd: clamp(read('simSpeedEnd', 18), 1, 80),
       heading: ((read('simHeading', 295) % 360) + 360) % 360,
-      turn: clamp(read('simTurn', 2), -30, 30),
-      wobble: clamp(read('simWobble', .25), 0, 10),
-      noise: clamp(read('simNoise', .25), 0, 1),
-      steering: ($('#simSteering') || {}).value || 'climate',
+      turn: clamp(read('simTurn', .6), -30, 30),
+      curve: clamp(read('simCurve', .65), 0, 1),
+      burst: clamp(read('simBurst', .5), 0, 1),
+      noise: 0,
+      steering: 'climate',
       seed: clamp(readInt('simSeed', 42), 1, 999999),
       members: clamp(readInt('simMembers', 1), 1, 20),
       beta: !!($('#simBeta') || {}).checked,
@@ -8563,50 +8560,52 @@ else boot();
     const step = o.step;
     const n = Math.min(MAX_POINTS, Math.max(1, Math.round(o.duration / step)));
     const phase = rnd() * Math.PI * 2;
-    const memberTurnBias = (rnd() - .5) * o.noise * 18;
-    const memberSpeedBias = 1 + (rnd() - .5) * o.noise * .38;
-    const memberPeakBias = 1 + (rnd() - .5) * o.noise * .34;
-    const memberSizeBias = 1 + (rnd() - .5) * o.noise * .55;
-    const memberSteer = .6 + rnd() * .9;
+    const memberTurnBias = (rnd() - .5) * o.curve * 20;
+    const memberSpeedBias = 1 + (rnd() - .5) * (0.12 + o.curve * 0.35);
+    const memberPeakBias = 1 + (rnd() - .5) * (0.12 + o.curve * 0.32);
+    const memberSizeBias = 1 + (rnd() - .5) * (0.15 + o.curve * 0.5);
+    const memberSteer = .55 + rnd() * (0.7 + o.curve * 0.4);
     const mo = Object.assign({}, o, {
       peakWind: clamp(o.peakWind * memberPeakBias, 5, 320),
-      peakHour: clamp(o.peakHour * (1 + (rnd() - .5) * o.noise * .22), 1, o.duration),
+      peakHour: clamp(o.peakHour * (1 + (rnd() - .5) * (0.1 + o.curve * 0.25)), 1, o.duration),
       radiiScale: o.radiiScale * memberSizeBias
     });
-    let lat = clamp(o.lat + (idx - center) * (.35 + o.noise * 1.15), -58, 68);
-    let lon = o.lon + (idx - center) * (.55 + o.noise * 1.6);
-    let heading = ((o.heading + (idx - center) * (6 + o.noise * 16)) % 360 + 360) % 360;
+    let lat = clamp(o.lat + (idx - center) * (.25 + o.curve * 1.1), -58, 68);
+    let lon = o.lon + (idx - center) * (.45 + o.curve * 1.7);
+    let heading = ((o.heading + (idx - center) * (4 + o.curve * 18)) % 360 + 360) % 360;
     const start = dateOf(o.start);
     const pts = [];
     const name = o.name + (count > 1 ? String.fromCharCode(65 + idx) : '');
     const cy = 70 + idx;
     let dist = 0;
+    let turnNow = 0, turnLeft = 0;
     for (let i = 0; i <= n; i++) {
       const t = i * step;
       const prog = t / Math.max(1, o.duration);
       const speed = clamp(lerp(o.speed, o.speedEnd, prog) * memberSpeedBias * (1 + .16 * Math.max(0, lat) / 40), 1, 85);
       let wind = windAt(mo, t, rnd);
+      wind += (rnd() - .5) * o.burst * 16;
       const mpi = clamp(225 - 2.05 * Math.abs(lat), 25, 310);
       wind = Math.round(clamp(Math.min(wind, mpi), 8, 300));
       const radii = radiiFor(wind, heading, mo);
       const p = { t, time: new Date(start.getTime() + t * 3600000), lat, lon, wind, mslp: pressureFor(wind, mo), status: statusOf(wind), heading, radii, name, cy };
       if (pts.length) dist += distanceNm(pts[pts.length - 1].lat, pts[pts.length - 1].lon, lat, lon);
       pts.push(p);
-      let dh = o.turn;
-      if (o.track === 'recurve') dh += (o.beta ? .45 * Math.cos(lat * D2R) : 0) + o.wobble * Math.sin(t / 22 + phase);
-      else if (o.track === 'west') dh = o.turn * .15 + (o.beta ? .18 * Math.cos(lat * D2R) : 0) + o.wobble * Math.sin(t / 30 + phase) * .35;
-      else if (o.track === 'north') dh = o.turn * 1.1 + (o.beta ? .3 * Math.cos(lat * D2R) : 0) + o.wobble * Math.sin(t / 24 + phase) * .4;
-      else if (o.track === 'loop') dh = (o.turn >= 0 ? 1 : -1) * (15 + Math.abs(o.turn)) + o.wobble * Math.sin(t / 20 + phase);
-      else if (o.track === 'serpentine') dh = o.turn + Math.sin(t / 30 + phase) * Math.max(1.6, Math.abs(o.turn) * 1.8) + o.wobble * Math.sin(t / 15);
-      else if (o.track === 'erratic') dh = (rnd() - .5) * (o.turn + 4) * 2 + (rnd() - .5) * o.noise * 26;
-      if (o.steering === 'climate' && o.track !== 'loop' && o.track !== 'erratic') {
-        const target = climateTarget(lat);
-        const diff = ((target - heading + 540) % 360) - 180;
-        dh += diff * (.022 + o.noise * .025) * memberSteer;
+
+      /* 随机“爆点”转向：每隔几小时重新抛出一个方向偏折 */
+      if (turnLeft <= 0) {
+        turnNow = (rnd() - .5) * (8 + o.curve * 42);
+        turnLeft = 2 + Math.floor(rnd() * (3 + o.curve * 7));
       }
-      dh += memberTurnBias * .12 + (rnd() - .5) * o.noise * (o.track === 'erratic' ? 30 : 14);
+      let dh = o.turn + turnNow + memberTurnBias * .12;
+      if (o.beta) dh += .45 * Math.cos(lat * D2R);
+      const target = climateTarget(lat);
+      const diff = ((target - heading + 540) % 360) - 180;
+      dh += diff * (.014 + o.curve * .018) * memberSteer;
+      dh += Math.sin(t / 18 + phase) * o.curve * 7 + (rnd() - .5) * o.curve * 12;
       heading += dh;
       heading = ((heading % 360) + 360) % 360;
+      turnLeft--;
       const next = destination(lat, lon, heading, speed * step);
       lat = clamp(next[0], -62, 72);
       lon = next[1];
@@ -8928,6 +8927,7 @@ else boot();
 
   function generate() {
     stopPlay();
+    if (!drawing) clearTrace();
     const o = readOpts();
     let members = [];
     if (mode === 'custom') {
@@ -8972,6 +8972,7 @@ else boot();
   }
 
   function setMode(next) {
+    clearTrace();
     mode = next === 'custom' ? 'custom' : 'auto';
     document.querySelectorAll('.sim-mode').forEach(b => {
       b.classList.toggle('on', b.dataset.simmode === mode);
@@ -8986,6 +8987,86 @@ else boot();
       renderWps();
     }
     generate();
+  }
+
+  function clearTrace() {
+    tracePts = [];
+    const cv = $('#simTrace');
+    if (cv) {
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+    }
+    const wrap = $('.sim-canvas-wrap');
+    if (wrap) wrap.classList.remove('drawing');
+  }
+
+  function drawTrace() {
+    const cv = $('#simTrace');
+    if (!cv || !preview || !tracePts.length) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = preview.cssW, h = preview.cssH;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.beginPath();
+    tracePts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.strokeStyle = 'rgba(245,215,110,.92)';
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#f5d76e';
+    tracePts.forEach((p, i) => {
+      if (i === 0 || i === tracePts.length - 1) {
+        ctx.beginPath(); ctx.arc(p[0], p[1], 3.2, 0, Math.PI * 2); ctx.fill();
+      }
+    });
+  }
+
+  function rdp(points, eps) {
+    if (points.length < 3) return points;
+    let maxD = 0, idx = 0;
+    const a = points[0], b = points[points.length - 1];
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const den = Math.hypot(dx, dy) || 1;
+    for (let i = 1; i < points.length - 1; i++) {
+      const p = points[i];
+      const d = Math.abs(dy * p[0] - dx * p[1] + b[0] * a[1] - b[1] * a[0]) / den;
+      if (d > maxD) { maxD = d; idx = i; }
+    }
+    if (maxD > eps) {
+      const l = rdp(points.slice(0, idx + 1), eps);
+      const r = rdp(points.slice(idx), eps);
+      return l.slice(0, -1).concat(r);
+    }
+    return [a, b];
+  }
+
+  function finishFreehand() {
+    drawing = false;
+    const wrap = $('.sim-canvas-wrap');
+    if (wrap) wrap.classList.remove('drawing');
+    if (!preview || tracePts.length < 2) { clearTrace(); return; }
+    let pts = rdp(tracePts, 4.5);
+    if (pts.length > 12) {
+      const out = [];
+      for (let i = 0; i < 12; i++) out.push(pts[Math.round(i / 11 * (pts.length - 1))]);
+      pts = out;
+    }
+    const o = readOpts();
+    const n = pts.length;
+    custom = pts.map((p, i) => {
+      const ll = preview.inv(p[0], p[1]);
+      const t = Math.round(i / Math.max(1, n - 1) * o.duration);
+      const wind = Math.round(windAt(o, t, null));
+      return { t, lat: +ll.lat.toFixed(1), lon: +ll.lon.toFixed(1), wind: Math.max(15, Math.min(300, wind)) };
+    });
+    renderWps();
+    clearTrace();
+    generate();
+    sfx('ui_click');
   }
 
   function addWpFromCanvas(x, y) {
@@ -9040,7 +9121,16 @@ else boot();
     if (normal) { try { normal.click(); } catch (e) {} }
     setTimeout(() => {
       try {
+        /* 新一轮模拟先清掉上一轮模拟，避免同一路径被重复叠加 */
+        const isOldSim = s => !!(s && (s.simulated || /^SIM\d/i.test(s.name || '') || /^WP[7-8]\d$/.test(s.id || '')));
+        const oldSims = (a.state.storms || []).filter(isOldSim);
+        if (oldSims.length) {
+          a.state.storms = (a.state.storms || []).filter(s => !isOldSim(s));
+          const first = a.state.storms[0];
+          a.state.activeId = first ? first.id : null;
+        }
         const storms = a.ingest(state.text, 'TC 路径模拟');
+        (storms || []).forEach(s => { s.simulated = true; });
         a.state.settings.mode = 'normal';
         document.body.classList.remove('pro', 'pro-mode');
         if (normal) { try { normal.click(); } catch (e) {} }
@@ -9048,7 +9138,8 @@ else boot();
         a.draw();
         if (typeof a.updateTimeline === 'function') a.updateTimeline();
         if (typeof window.playSFX === 'function') window.playSFX('ui_success');
-        toast('模拟完成：已载入 ' + ((storms && storms.length) || state.members.length) + ' 条路径', 'ok');
+        toast('模拟完成：已载入 ' + ((storms && storms.length) || state.members.length) + ' 条路径' + (oldSims.length ? '，已替换上一轮模拟' : ''), 'ok');
+        state = null;
       } catch (e) { toast('载入模拟失败：' + e.message, 'err'); }
     }, 520);
   }
@@ -9185,15 +9276,34 @@ else boot();
 
     const cv = $('#simCanvas');
     if (cv) {
-      cv.addEventListener('click', e => {
-        if (mode !== 'custom' || !preview) return;
+      const canvasXY = e => {
         const r = cv.getBoundingClientRect();
-        addWpFromCanvas((e.clientX - r.left) / r.width * preview.cssW, (e.clientY - r.top) / r.height * preview.cssH);
+        return [(e.clientX - r.left) / r.width * preview.cssW, (e.clientY - r.top) / r.height * preview.cssH];
+      };
+      cv.addEventListener('pointerdown', e => {
+        if (mode !== 'custom' || !preview || e.button !== 0) return;
+        e.preventDefault();
+        drawing = true;
+        tracePts = [];
+        const q = canvasXY(e);
+        tracePts.push(q);
+        const wrap = $('.sim-canvas-wrap');
+        if (wrap) wrap.classList.add('drawing');
+        try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+        drawTrace();
       });
-      cv.addEventListener('mousemove', e => {
+      cv.addEventListener('pointermove', e => {
         if (!preview) return;
-        const r = cv.getBoundingClientRect();
-        const ll = preview.inv((e.clientX - r.left) / r.width * preview.cssW, (e.clientY - r.top) / r.height * preview.cssH);
+        if (drawing) {
+          const q = canvasXY(e);
+          const last = tracePts[tracePts.length - 1];
+          if (!last || Math.hypot(q[0] - last[0], q[1] - last[1]) > 2) {
+            tracePts.push(q);
+            drawTrace();
+          }
+          return;
+        }
+        const ll = preview.inv(...canvasXY(e));
         let best = null, bd = 1e9;
         ((state && state.members[0]) ? state.members[0].points : []).forEach(p => {
           const d = Math.abs(p.lat - ll.lat) + Math.abs(p.lon - ll.lon);
@@ -9202,6 +9312,12 @@ else boot();
         const h = $('#simHover');
         if (h) h.textContent = best ? ('LAT ' + best.lat.toFixed(1) + ' / LON ' + best.lon.toFixed(1) + ' / ' + best.wind + ' kt') : ('LAT ' + ll.lat.toFixed(1) + ' / LON ' + ll.lon.toFixed(1));
       });
+      cv.addEventListener('pointerup', e => {
+        if (!drawing) return;
+        try { cv.releasePointerCapture(e.pointerId); } catch (err) {}
+        finishFreehand();
+      });
+      cv.addEventListener('pointercancel', () => { drawing = false; clearTrace(); });
       cv.addEventListener('mouseleave', () => { const h = $('#simHover'); if (h) h.textContent = 'LAT — / LON — / WIND —'; });
     }
     window.addEventListener('resize', () => { if (modal && modal.classList.contains('open') && state) drawPreview(state.members, playing ? playIdx : undefined); });
