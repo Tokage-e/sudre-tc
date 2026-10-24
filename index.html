@@ -3054,6 +3054,21 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
 .sim-history-row .chk{font-size:8.5px;color:#9bb7c6}
 .sim-history-row .chk input{margin-right:4px}
 #simHistoryMeta{font-family:var(--mono);font-size:7px;letter-spacing:.08em;color:#5f8499;white-space:nowrap}
+
+/* ---------------- Arena game ---------------- */
+.arena-modal{position:fixed;inset:0;z-index:2600;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(2,8,14,.76);backdrop-filter:blur(9px);opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.arena-modal.open{opacity:1;visibility:visible}
+.arena-shell{position:relative;width:min(1180px,96vw);height:min(860px,92vh);display:flex;flex-direction:column;background:#06101b;border:1px solid #2a4d70;border-radius:12px;box-shadow:0 30px 90px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.03);overflow:hidden}
+.arena-head{height:44px;flex:0 0 44px;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0c1e30,#081522)}
+.arena-head .amark{width:24px;height:24px;border:1px solid rgba(25,226,197,.4);border-radius:6px;display:grid;place-items:center;color:var(--teal);font-size:11px;background:rgba(25,226,197,.06)}
+.arena-head b{font-size:12px;letter-spacing:.12em;color:#eaf7ff}
+.arena-head small{font:8px var(--mono);letter-spacing:.2em;color:var(--txt3);margin-left:8px}
+.arena-head .sp{flex:1}
+.arena-close{position:absolute;top:7px;right:8px;z-index:6;width:28px;height:28px;border:1px solid var(--line);border-radius:6px;color:var(--txt2);display:grid;place-items:center;font-size:13px;background:rgba(6,16,27,.82);backdrop-filter:blur(6px)}
+.arena-close:hover{color:var(--red);border-color:rgba(255,83,83,.5)}
+.arena-frame{flex:1;width:100%;height:100%;border:0;background:#06101b;display:block}
+body.arena-open{overflow:hidden}
+@media(max-width:640px){.arena-modal{padding:0}.arena-shell{width:100vw;height:100dvh;max-height:none;border-radius:0;border:0}.arena-head{height:40px;flex-basis:40px}.arena-head small{display:none}}
 </style>
 </head>
 <body>
@@ -3129,18 +3144,27 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
         </div>
       </article>
 
-      <article class="mm-card is-back" data-action="realtime" data-index="2" tabindex="0">
+      <article class="mm-card is-back" data-action="arena" data-index="2" tabindex="0" aria-label="台风对战竞技场">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-soon">[敬请期待]</span><span class="mm-no">03 / LIVE</span></div>
+          <div class="mm-card-head"><span class="mm-tag tag-done">[小游戏]</span><span class="mm-no">03 / ARENA</span></div>
+          <h2 class="mm-card-title">台风对战</h2>
+          <p class="mm-card-desc">从历史风王中选一位出战，与随机台风进行 1V1 回合制对决。</p>
+          <div class="mm-card-foot"><span>TC ARENA</span><button class="mm-card-btn" type="button">进入竞技场 <span>→</span></button></div>
+        </div>
+      </article>
+
+      <article class="mm-card is-back" data-action="realtime" data-index="3" tabindex="0">
+        <div class="mm-card-inner">
+          <div class="mm-card-head"><span class="mm-tag tag-soon">[敬请期待]</span><span class="mm-no">04 / LIVE</span></div>
           <h2 class="mm-card-title">实时播报</h2>
           <p class="mm-card-desc">接入实时报文流，风圈、强度和预报锥随时间轴自动滚动更新。</p>
           <div class="mm-card-foot"><span>LIVE FEED</span><button class="mm-card-btn" type="button">敬请期待</button></div>
         </div>
       </article>
 
-      <article class="mm-card is-left" data-action="diary" data-index="3" tabindex="0">
+      <article class="mm-card is-left" data-action="diary" data-index="4" tabindex="0">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-live">[持续更新]</span><span class="mm-no">04 / LOG</span></div>
+          <div class="mm-card-head"><span class="mm-tag tag-live">[持续更新]</span><span class="mm-no">05 / LOG</span></div>
           <h2 class="mm-card-title">开发日记</h2>
           <p class="mm-card-desc">从双模式制图到逐帧导出，记录每个版本为什么被做出来。</p>
           <div class="mm-card-foot"><span>DEV LOG</span><button class="mm-card-btn" type="button">打开日记</button></div>
@@ -3150,7 +3174,7 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
   </div>
 
   <div class="mm-bottom">
-    <div class="mm-dots" id="mmDots"><button class="on" data-index="0" aria-label="路径制作器"></button><button data-index="1" aria-label="台风模拟器"></button><button data-index="2" aria-label="实时播报"></button><button data-index="3" aria-label="开发日记"></button></div>
+    <div class="mm-dots" id="mmDots"><button class="on" data-index="0" aria-label="路径制作器"></button><button data-index="1" aria-label="台风模拟器"></button><button data-index="2" aria-label="台风对战"></button><button data-index="3" aria-label="实时播报"></button><button data-index="4" aria-label="开发日记"></button></div>
     <div class="mm-hint"><span>← →</span> 切换模块 · 点击中央卡片进入</div>
     <div class="mm-foot-meta"><span>v4.2</span><span>SUDRE.TC</span></div>
   </div>
@@ -3747,6 +3771,13 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
       <button class="hbtn" id="simExport" type="button">导出 B-Deck</button>
       <button class="hbtn primary" id="simLoad" type="button">载入工作台</button>
     </div>
+  </div>
+</div>
+
+<div class="arena-modal" id="arenaModal" aria-hidden="true">
+  <div class="arena-shell" role="dialog" aria-modal="true" aria-label="台风对战竞技场">
+    <button class="arena-close" id="arenaClose" type="button" aria-label="关闭台风对战">✕</button>
+    <iframe class="arena-frame" id="arenaFrame" src="about:blank" title="台风对战竞技场"></iframe>
   </div>
 </div>
 
@@ -7570,6 +7601,31 @@ else boot();
     }, 560);
   }
 
+  function openGameArena() {
+    const modal = document.getElementById('arenaModal');
+    const frame = document.getElementById('arenaFrame');
+    if (!modal || !frame) return;
+    frame.src = './typhoon_arena.html?v=' + Date.now();
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('arena-open');
+    sfx('ui_open');
+  }
+
+  function closeGameArena() {
+    const modal = document.getElementById('arenaModal');
+    const frame = document.getElementById('arenaFrame');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('arena-open');
+    setTimeout(() => { if (frame) frame.src = 'about:blank'; }, 180);
+    sfx('ui_close');
+  }
+
+  window.openGameArena = openGameArena;
+  window.closeGameArena = closeGameArena;
+
   function enterSystem() {
     if (typeof window.BGM === 'object' && window.BGM && typeof window.BGM.start === 'function') {
       try { window.BGM.start(); } catch (e) {}
@@ -7587,6 +7643,7 @@ else boot();
     const action = card.getAttribute('data-action');
     if (action === 'builder') { enterSystem(); return; }
     if (action === 'simulator') { sfx('ui_open'); if (typeof window.openSimulator === 'function') window.openSimulator(); return; }
+    if (action === 'arena') { sfx('ui_open'); if (typeof window.openGameArena === 'function') window.openGameArena(); return; }
     if (action === 'realtime') { sfx('ui_error'); toast('实时抓取引擎正在调试，敬请期待', 'warn'); return; }
     if (action === 'diary') { sfx('ui_open'); if (typeof window.openDiary === 'function') window.openDiary(); }
   }
@@ -7594,7 +7651,7 @@ else boot();
   cards.forEach((card, i) => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.mm-card-btn')) return;
-      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); }, 420); return; }
       activateCard(card);
     });
     card.addEventListener('keydown', (e) => {
@@ -7606,7 +7663,7 @@ else boot();
     const btn = card.querySelector('.mm-card-btn');
     if (btn) btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); }, 420); return; }
       activateCard(card);
     });
   });
@@ -7628,6 +7685,14 @@ else boot();
   if (homeBtn) homeBtn.addEventListener('click', showMainMenu);
   const brand = document.querySelector('#hdr .brand');
   if (brand) { brand.style.cursor = 'pointer'; brand.title = '返回主界面'; brand.addEventListener('click', showMainMenu); }
+
+  const arenaClose = document.getElementById('arenaClose');
+  if (arenaClose) arenaClose.addEventListener('click', closeGameArena);
+  const arenaModal = document.getElementById('arenaModal');
+  if (arenaModal) arenaModal.addEventListener('click', (e) => { if (e.target === arenaModal) closeGameArena(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && arenaModal && arenaModal.classList.contains('open')) { e.preventDefault(); closeGameArena(); }
+  });
 
   /* 分享链接直接进入工作台 */
   const isShare = /[#&]s=/.test(location.hash || '');
