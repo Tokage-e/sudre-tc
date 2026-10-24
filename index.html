@@ -2813,6 +2813,207 @@ body.immersive #windAreaPanel{display:none !important}
 #muteBtn.muted{color:#ff9b9b;border-color:rgba(255,90,90,.42);background:rgba(70,10,14,.3)}
 #muteBtn svg{flex:none}
 @media(max-width:1180px){#muteBtn span{display:none}}
+/* ============================================================
+   V4.2 — TC 路径模拟器
+   ============================================================ */
+#simulatorModal{z-index:3800 !important}
+.sim-panel{
+  width:min(1120px,96vw);
+  max-height:92vh;
+  padding:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.sim-head{
+  padding:18px 20px 14px;
+  border-bottom:1px solid rgba(60,100,130,.28);
+  background:linear-gradient(180deg,rgba(8,24,38,.98),rgba(5,16,26,.94));
+}
+.sim-eyebrow{
+  font-family:var(--v41-mono,var(--mono),monospace);
+  font-size:8px;
+  letter-spacing:.2em;
+  color:#19e2c5;
+  margin-bottom:5px;
+}
+.sim-head h3{font-size:20px;letter-spacing:.03em}
+.sim-head .sub{margin-top:4px;font-size:10.5px;color:#8aa6ba}
+.sim-body{
+  display:grid;
+  grid-template-columns:420px minmax(0,1fr);
+  gap:0;
+  min-height:0;
+  flex:1 1 auto;
+}
+.sim-left{
+  padding:14px 16px;
+  border-right:1px solid rgba(60,100,130,.22);
+  overflow:auto;
+  min-height:0;
+}
+.sim-right{
+  padding:14px 16px;
+  overflow:auto;
+  min-height:0;
+  background:radial-gradient(600px 380px at 55% 30%,rgba(25,226,197,.045),transparent 68%);
+}
+.sim-presetbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:11px;
+}
+.sim-presetbar label{font-size:9px;color:#7f9db2;font-family:var(--mono);letter-spacing:.1em;white-space:nowrap}
+.sim-presetbar select{
+  flex:1;
+  min-width:0;
+  height:30px;
+  background:#071522;
+  border:1px solid var(--line);
+  border-radius:6px;
+  color:#dce9f7;
+  padding:0 7px;
+  font-size:10px;
+}
+.sim-mini{
+  height:30px;
+  padding:0 9px;
+  border:1px solid rgba(25,226,197,.4);
+  border-radius:6px;
+  background:rgba(25,226,197,.08);
+  color:#9ff7e8;
+  font-size:9.5px;
+  white-space:nowrap;
+}
+.sim-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px 9px;
+}
+.sim-field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.sim-field.wide{grid-column:1/-1}
+.sim-field label{
+  font-size:8px;
+  letter-spacing:.08em;
+  color:#728fa5;
+  font-family:var(--mono);
+}
+.sim-field input,.sim-field select{
+  width:100%;
+  height:30px;
+  background:#071522;
+  border:1px solid rgba(45,80,105,.8);
+  border-radius:6px;
+  color:#dce9f7;
+  padding:0 8px;
+  font-size:10.5px;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.sim-field input:focus,.sim-field select:focus{
+  border-color:rgba(25,226,197,.55);
+  box-shadow:0 0 0 2px rgba(25,226,197,.08);
+}
+.sim-note{
+  margin-top:12px;
+  padding:9px 10px;
+  border-left:2px solid rgba(25,226,197,.35);
+  background:rgba(25,226,197,.035);
+  color:#6f8da3;
+  font-size:9px;
+  line-height:1.7;
+}
+.sim-canvas-wrap{
+  position:relative;
+  border:1px solid rgba(50,95,125,.45);
+  border-radius:9px;
+  overflow:hidden;
+  background:#020810;
+  box-shadow:inset 0 0 60px rgba(0,0,0,.45);
+}
+#simCanvas{display:block;width:100%;height:auto;aspect-ratio:720/430}
+.sim-canvas-tag{
+  position:absolute;
+  right:9px;
+  top:8px;
+  font-family:var(--mono);
+  font-size:7px;
+  letter-spacing:.14em;
+  color:rgba(120,170,190,.55);
+}
+.sim-stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  margin-top:9px;
+}
+.sim-stat{
+  padding:7px 8px;
+  border:1px solid rgba(45,80,105,.5);
+  border-radius:6px;
+  background:rgba(5,16,26,.6);
+}
+.sim-stat b{
+  display:block;
+  font-family:var(--v41-mono,monospace);
+  font-size:13px;
+  color:#9ff7e8;
+  font-weight:500;
+}
+.sim-stat span{
+  display:block;
+  margin-top:3px;
+  font-size:7px;
+  letter-spacing:.1em;
+  color:#627f94;
+}
+.sim-legend{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:8px;
+  padding-top:7px;
+  border-top:1px solid rgba(45,80,105,.25);
+  font-family:var(--mono);
+  font-size:7.5px;
+  color:#718da1;
+}
+.sim-legend span{display:flex;align-items:center;gap:4px}
+.sim-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.sim-dot.td{background:#5bb8ff}.sim-dot.ts{background:#19e2c5}.sim-dot.ty{background:#ffd15c}.sim-dot.st{background:#ff9b6b}
+.sim-credit{margin-left:auto;color:#46657a;letter-spacing:.08em}
+.sim-foot{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:12px 18px;
+  border-top:1px solid rgba(60,100,130,.28);
+  background:rgba(4,13,22,.96);
+}
+.sim-foot-note{
+  font-family:var(--mono);
+  font-size:8.5px;
+  color:#6f8da3;
+  letter-spacing:.04em;
+}
+.sim-foot .hbtn{height:32px}
+@media(max-width:900px){
+  .sim-panel{width:96vw;max-height:94vh}
+  .sim-body{grid-template-columns:1fr;overflow:auto}
+  .sim-left{border-right:0;border-bottom:1px solid rgba(60,100,130,.22);overflow:visible}
+  .sim-right{overflow:visible}
+  .sim-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:520px){
+  .sim-grid{grid-template-columns:1fr}
+  .sim-field.wide{grid-column:auto}
+  .sim-stats{grid-template-columns:repeat(2,1fr)}
+  .sim-head .sub{display:none}
+  .sim-foot{flex-wrap:wrap}
+  .sim-foot-note{width:100%}
+}
+
 </style>
 </head>
 <body>
@@ -2879,12 +3080,12 @@ body.immersive #windAreaPanel{display:none !important}
         </div>
       </article>
 
-      <article class="mm-card is-right" data-action="simulator" data-index="1" tabindex="0">
+      <article class="mm-card is-right" data-action="simulator" data-index="1" tabindex="0" aria-label="台风路径模拟器">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-soon">[敬请期待]</span><span class="mm-no">02 / SIM</span></div>
+          <div class="mm-card-head"><span class="mm-tag tag-done">[已实现]</span><span class="mm-no">02 / SIM</span></div>
           <h2 class="mm-card-title">台风模拟器</h2>
           <p class="mm-card-desc">用环境场与历史相似路径生成虚拟台风，观察不同初始场下的路径分歧。</p>
-          <div class="mm-card-foot"><span>SIM ENGINE</span><button class="mm-card-btn" type="button">敬请期待</button></div>
+          <div class="mm-card-foot"><span>SIM ENGINE</span><button class="mm-card-btn" type="button">打开模拟器</button></div>
         </div>
       </article>
 
@@ -2949,6 +3150,7 @@ body.immersive #windAreaPanel{display:none !important}
     <button class="hbtn" data-act="share" title="分享链接"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="6" cy="12" r="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="6" r="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="18" r="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6" stroke="currentColor" stroke-width="1.5"/></svg><span>分享</span></button>
     <button class="hbtn" data-act="help" title="快捷键 / 帮助"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 9.2a2.6 2.6 0 015.1.8c0 1.7-2.6 2.2-2.6 3.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></svg></button>
   </div>
+  <button class="hbtn" id="simBtn" title="台风路径模拟"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3l2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6L12 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg><span>模拟</span></button>
   <button class="hbtn" id="muteBtn" title="静音 / 取消静音"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path class="wave" d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path class="slash" d="M16 8l5 8M21 8l-5 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="display:none"/></svg><span id="muteLabel">静音</span></button>
   <button class="hbtn primary" id="btnExport" title="导出 PNG"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span>导出</span></button>
 </header>
@@ -3268,8 +3470,8 @@ body.immersive #windAreaPanel{display:none !important}
               <p>把报文、坐标或手绘点变成一条可播放、可编辑、可导出的最佳路径。</p>
               <div class="roadmap-foot"><span>TRACK BUILDER</span><span class="roadmap-arrow">→</span></div>
             </article>
-            <article class="roadmap-card is-upcoming" data-roadmap="simulator" tabindex="0" role="button" aria-disabled="true" aria-label="台风路径模拟器，敬请期待">
-              <div class="roadmap-top"><span class="roadmap-tag tag-soon">[敬请期待]</span><span class="roadmap-ver">v5.0</span></div>
+            <article class="roadmap-card" data-roadmap="simulator" tabindex="0" role="button" aria-label="打开台风路径模拟器">
+              <div class="roadmap-top"><span class="roadmap-tag tag-done">[已实现]</span><span class="roadmap-ver">v4.2</span></div>
               <div class="roadmap-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6L12 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></div>
               <h5>台风路径模拟器</h5>
               <p>基于环境场与历史相似路径，生成可交互的虚拟台风路径与强度演化。</p>
@@ -3392,6 +3594,79 @@ body.immersive #windAreaPanel{display:none !important}
     <div class="pal-list" id="palList"></div>
   </div>
 </div>
+<div class="modal sim-modal" id="simulatorModal" aria-hidden="true">
+  <div class="panel sim-panel" role="dialog" aria-modal="true" aria-labelledby="simTitle">
+    <div class="p-head sim-head">
+      <div>
+        <div class="sim-eyebrow">SYNTHETIC TRACK GENERATOR · v4.2</div>
+        <h3 id="simTitle">TC 路径模拟器</h3>
+        <div class="sub">用可调的环境参数生成一条可复核的台风路径，并直接载入工作台。</div>
+      </div>
+      <div class="sp"></div>
+      <button class="x" data-close="simulatorModal" aria-label="关闭路径模拟器">✕</button>
+    </div>
+
+    <div class="sim-body">
+      <div class="sim-left">
+        <div class="sim-presetbar">
+          <label for="simPreset">场景预设</label>
+          <select id="simPreset">
+            <option value="recurve">转向北上 · 典型</option>
+            <option value="west">西行登陆 · 华南</option>
+            <option value="fast">快速西行 · 低纬</option>
+            <option value="north">远海北转 · 高纬</option>
+          </select>
+          <button class="sim-mini" id="simGenerate" type="button">重新生成</button>
+        </div>
+
+        <div class="sim-grid">
+          <div class="sim-field"><label>气旋名称</label><input id="simName" class="txtin" maxlength="12" value="SIM01"></div>
+          <div class="sim-field"><label>集合成员</label><select id="simMembers"><option value="1">1 条</option><option value="3">3 条</option><option value="5">5 条</option></select></div>
+          <div class="sim-field"><label>起始纬度</label><input id="simStartLat" type="number" step="0.1" value="12.0"></div>
+          <div class="sim-field"><label>起始经度</label><input id="simStartLon" type="number" step="0.1" value="145.0"></div>
+          <div class="sim-field wide"><label>起始时间（UTC）</label><input id="simStartTime" type="datetime-local" value="2026-07-01T00:00"></div>
+          <div class="sim-field"><label>初始风速 kt</label><input id="simInitialWind" type="number" min="10" max="120" value="35"></div>
+          <div class="sim-field"><label>峰值风速 kt</label><input id="simPeakWind" type="number" min="35" max="170" value="110"></div>
+          <div class="sim-field"><label>峰值时刻 h</label><input id="simPeakHour" type="number" min="6" max="144" value="72"></div>
+          <div class="sim-field"><label>模拟时长 h</label><input id="simDuration" type="number" min="24" max="240" step="6" value="120"></div>
+          <div class="sim-field"><label>移速 kt</label><input id="simSpeed" type="number" min="3" max="30" step="0.5" value="11"></div>
+          <div class="sim-field"><label>初始方位 °</label><input id="simHeading" type="number" min="0" max="360" value="295"></div>
+          <div class="sim-field"><label>转向率 °/6h</label><input id="simTurn" type="number" min="-4" max="4" step="0.1" value="2.0"></div>
+          <div class="sim-field"><label>路径摆动</label><input id="simWobble" type="number" min="0" max="1" step="0.05" value="0.15"></div>
+          <div class="sim-field"><label>风圈缩放</label><input id="simRadiiScale" type="number" min="0.5" max="2" step="0.05" value="1"></div>
+        </div>
+
+        <div class="sim-note">
+          模型：球面恒向位移 + 纬度相关的转向/β 漂移 + 平滑强度曲线 + 四象限风圈估计。
+          这是一条教学/研究用合成路径，不是官方预报。
+        </div>
+      </div>
+
+      <div class="sim-right">
+        <div class="sim-canvas-wrap">
+          <canvas id="simCanvas" width="720" height="430"></canvas>
+          <div class="sim-canvas-tag">PREVIEW · 6h STEP</div>
+        </div>
+        <div id="simStats" class="sim-stats"></div>
+        <div class="sim-legend">
+          <span><i class="sim-dot td"></i>TD</span>
+          <span><i class="sim-dot ts"></i>TS</span>
+          <span><i class="sim-dot ty"></i>TY</span>
+          <span><i class="sim-dot st"></i>STY</span>
+          <span class="sim-credit">SUDRE.TC / SIM ENGINE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sim-foot">
+      <div class="sim-foot-note" id="simFootNote">等待生成模拟路径…</div>
+      <div class="sp"></div>
+      <button class="hbtn" id="simExport" type="button">导出 B-Deck</button>
+      <button class="hbtn primary" id="simLoad" type="button">载入工作台</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal diary-modal" id="diaryModal" aria-hidden="true">
   <div class="panel diary-panel" role="dialog" aria-modal="true" aria-labelledby="diaryTitle">
     <div class="p-head">
@@ -3403,7 +3678,7 @@ body.immersive #windAreaPanel{display:none !important}
         <article class="diary-item">
           <div class="diary-meta"><span class="diary-ver">v4.2</span><time class="diary-date" datetime="2026-10-24">2026.10.24</time></div>
           <h4>风圈面积、跨机构对比与导出重构</h4>
-          <p>这一版把“看图”推进到“分析”：当前时次的 34/50kt 风圈用球面多边形实时计算覆盖面积；JTWC / CMA / JMA 的预报路径用红蓝绿虚线同时铺开，并在末端标注机构；BEST 与预报之间的灰色误差连线，把“差了多少”直接画在地图上。导出也从单一 2D 画面扩展到倾斜、抬升与 3D 当前运镜。</p>
+          <p>这一版把“看图”推进到“分析”：当前时次的 34/50kt 风圈用球面多边形实时计算覆盖面积；JTWC / CMA / JMA 的预报路径用红蓝绿虚线同时铺开，并在末端标注机构；BEST 与预报之间的灰色误差连线，把“差了多少”直接画在地图上。导出也从单一 2D 画面扩展到倾斜、抬升与 3D 当前运镜；并加入可调参数的 TC 路径模拟器，支持单条与 3/5 条集合模拟。</p>
         </article>
 
         <article class="diary-item is-pinned">
@@ -6637,7 +6912,7 @@ function boot(){
   $$('.modal').forEach(m=>m.addEventListener('transitionend',()=>{}));
   window.SUDRE={
     state,parseReport,ingest,setView,Anim,flyToStorm,setFollow,playIntro,closeIntro,
-    draw,render3D,exportPNG,exportMP4,makeExport,exportWebM,tableTSV,buildReport,stormStats,activeStorm,
+    draw,render3D,updateTimeline,exportPNG,exportMP4,makeExport,exportWebM,tableTSV,buildReport,stormStats,activeStorm,
     shareLink,openPalette,openCompare,toggleEdit,toggleMeasure,exportKML,exportGPX,
     saveDraft,undoEdit,redoEdit,openTable,renderTable,
     get map(){return map;},
@@ -6762,7 +7037,7 @@ else boot();
   /* ---------- 4. 路线图交互 ---------- */
   const ROADMAP_ACTIONS = {
     builder: () => openPathBuilder(),
-    simulator: () => v41Toast('模拟引擎正在内测中，将在后续小版本推送', 'warn', 3800),
+    simulator: () => { if (typeof window.openSimulator === 'function') window.openSimulator(); },
     realtime: () => v41Toast('实时抓取引擎正在调试，敬请期待', 'warn', 3800),
     diary: () => openDiary()
   };
@@ -7228,7 +7503,7 @@ else boot();
   function activateCard(card) {
     const action = card.getAttribute('data-action');
     if (action === 'builder') { enterSystem(); return; }
-    if (action === 'simulator') { sfx('ui_error'); toast('模拟引擎正在内测中，将在后续小版本推送', 'warn'); return; }
+    if (action === 'simulator') { sfx('ui_open'); if (typeof window.openSimulator === 'function') window.openSimulator(); return; }
     if (action === 'realtime') { sfx('ui_error'); toast('实时抓取引擎正在调试，敬请期待', 'warn'); return; }
     if (action === 'diary') { sfx('ui_open'); if (typeof window.openDiary === 'function') window.openDiary(); }
   }
@@ -7236,7 +7511,7 @@ else boot();
   cards.forEach((card, i) => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.mm-card-btn')) return;
-      if (i !== active) { focusCard(i); if (card.getAttribute('data-action') === 'diary') setTimeout(() => { if (window.openDiary) window.openDiary(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); }, 420); return; }
       activateCard(card);
     });
     card.addEventListener('keydown', (e) => {
@@ -7248,7 +7523,7 @@ else boot();
     const btn = card.querySelector('.mm-card-btn');
     if (btn) btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (i !== active) { focusCard(i); if (card.getAttribute('data-action') === 'diary') setTimeout(() => { if (window.openDiary) window.openDiary(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); }, 420); return; }
       activateCard(card);
     });
   });
@@ -7967,6 +8242,388 @@ else boot();
   }
 
   window.__cinematicIntro = { playIntro, closeIntro };
+})();
+
+/* ============================================================
+   V4.2 — TC 路径模拟器
+   ============================================================ */
+(function () {
+  'use strict';
+
+  const $ = (s, r) => (r || document).querySelector(s);
+  const app = () => window.SUDRE || null;
+  const D2R = Math.PI / 180;
+  const R_NM = 3440.065;
+  let built = false;
+  let state = null;
+
+  const PRESETS = {
+    recurve: { lat: 12, lon: 145, init: 35, peak: 110, peakHour: 72, duration: 120, speed: 11, heading: 295, turn: 2.0, wobble: .15 },
+    west: { lat: 10, lon: 150, init: 30, peak: 92, peakHour: 48, duration: 96, speed: 15, heading: 280, turn: .08, wobble: .1 },
+    fast: { lat: 8, lon: 155, init: 28, peak: 78, peakHour: 36, duration: 72, speed: 20, heading: 275, turn: .03, wobble: .08 },
+    north: { lat: 18, lon: 136, init: 38, peak: 125, peakHour: 78, duration: 120, speed: 10, heading: 330, turn: 2.2, wobble: .12 }
+  };
+
+  function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+  function toast(msg, type) {
+    if (typeof window.toast === 'function') { try { return window.toast(msg, type || 'ok', 3000); } catch (e) {} }
+    const host = document.getElementById('toasts');
+    if (!host) return;
+    const el = document.createElement('div');
+    el.className = 'toast ' + (type || 'ok');
+    el.textContent = msg;
+    host.appendChild(el);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 280); }, 3000);
+  }
+  function sfx(type) { if (typeof window.playSFX === 'function') { try { window.playSFX(type); } catch (e) {} } }
+
+  function destination(lat, lon, brg, dist) {
+    const d = dist / R_NM, br = brg * D2R;
+    const la1 = lat * D2R, lo1 = lon * D2R;
+    const la2 = Math.asin(Math.sin(la1) * Math.cos(d) + Math.cos(la1) * Math.sin(d) * Math.cos(br));
+    const lo2 = lo1 + Math.atan2(Math.sin(br) * Math.sin(d) * Math.cos(la1), Math.cos(d) - Math.sin(la1) * Math.sin(la2));
+    let lon2 = lo2 / D2R;
+    while (lon2 > 180) lon2 -= 360;
+    while (lon2 < -180) lon2 += 360;
+    return [la2 / D2R, lon2];
+  }
+
+  function windColor(w) {
+    if (w >= 96) return '#ff6b6b';
+    if (w >= 83) return '#ff9b6b';
+    if (w >= 64) return '#ffd15c';
+    if (w >= 34) return '#19e2c5';
+    return '#5bb8ff';
+  }
+  function statusOf(w) {
+    if (w < 34) return 'TD';
+    if (w < 64) return 'TS';
+    if (w < 83) return 'TY';
+    if (w < 96) return 'STY';
+    return 'SUPER';
+  }
+  function stampOf(d) {
+    return String(d.getUTCFullYear()) + String(d.getUTCMonth() + 1).padStart(2, '0') +
+      String(d.getUTCDate()).padStart(2, '0') + String(d.getUTCHours()).padStart(2, '0');
+  }
+  function coordOf(v, isLat) {
+    const neg = v < 0;
+    const n = Math.round(Math.abs(v) * 10);
+    return String(n).padStart(isLat ? 3 : 4, '0') + (isLat ? (neg ? 'S' : 'N') : (neg ? 'W' : 'E'));
+  }
+
+  function readOpts() {
+    const read = (id, fallback) => {
+      const el = document.getElementById(id);
+      if (!el) return fallback;
+      const n = parseFloat(el.value);
+      return isNaN(n) ? fallback : n;
+    };
+    return {
+      name: (($('#simName') || {}).value || 'SIM01').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'SIM01',
+      lat: clamp(read('simStartLat', 12), -45, 50),
+      lon: clamp(read('simStartLon', 145), -180, 180),
+      start: ($('#simStartTime') || {}).value || '2026-07-01T00:00',
+      initWind: clamp(read('simInitialWind', 35), 10, 140),
+      peakWind: clamp(read('simPeakWind', 110), 20, 170),
+      peakHour: clamp(read('simPeakHour', 72), 6, 216),
+      duration: clamp(read('simDuration', 120), 24, 240),
+      speed: clamp(read('simSpeed', 11), 3, 30),
+      heading: ((read('simHeading', 295) % 360) + 360) % 360,
+      turn: clamp(read('simTurn', 2), -5, 5),
+      wobble: clamp(read('simWobble', .15), 0, 1),
+      radiiScale: clamp(read('simRadiiScale', 1), .5, 2),
+      members: clamp(read('simMembers', 1), 1, 5)
+    };
+  }
+
+  function dateOf(value) {
+    const m = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!m) return new Date(Date.UTC(2026, 6, 1));
+    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]));
+  }
+
+  function makeMember(o, idx, memberCount) {
+    const step = 6;
+    const n = Math.round(o.duration / step);
+    const peak = Math.max(o.peakWind, o.initWind + 5);
+    const peakHour = clamp(o.peakHour, step, o.duration);
+    const offset = (idx - (memberCount - 1) / 2) * 3.2;
+    let heading = ((o.heading + offset) % 360 + 360) % 360;
+    let lat = o.lat + (idx - (memberCount - 1) / 2) * .25;
+    let lon = o.lon;
+    const start = dateOf(o.start);
+    const pts = [];
+    const name = o.name + (memberCount > 1 ? String.fromCharCode(65 + idx) : '');
+    const cy = 90 + idx;
+    for (let i = 0; i <= n; i++) {
+      const t = i * step;
+      const tNorm = t / Math.max(1, o.duration);
+      let wind;
+      if (t <= peakHour) {
+        const x = peakHour ? t / peakHour : 1;
+        wind = o.initWind + (peak - o.initWind) * (3 * x * x - 2 * x * x * x);
+      } else {
+        const d = (t - peakHour) / Math.max(1, o.duration - peakHour);
+        wind = peak - (peak - Math.max(22, o.initWind * .55)) * Math.pow(d, .9);
+      }
+      wind = Math.round(clamp(wind, 12, 175));
+      const base = (68 + wind * 1.0) * o.radiiScale;
+      const asym = 1 + .12 * Math.sin((heading + 35) * D2R);
+      const radii = {
+        34: { ne: Math.round(base * asym), se: Math.round(base * .94), sw: Math.round(base * .86), nw: Math.round(base * 1.02) },
+        50: wind >= 50 ? { ne: Math.round(base * .57), se: Math.round(base * .5), sw: Math.round(base * .47), nw: Math.round(base * .55) } : null,
+        64: wind >= 64 ? { ne: Math.round(base * .32), se: Math.round(base * .28), sw: Math.round(base * .25), nw: Math.round(base * .3) } : null
+      };
+      const mslp = Math.round(clamp(1013 - wind * .94, 875, 1012));
+      pts.push({
+        t, time: new Date(start.getTime() + t * 3600000), lat, lon, wind, mslp,
+        status: statusOf(wind), heading, radii, name, cy
+      });
+      heading = heading + o.turn + (lat > 18 ? .38 : 0) + o.wobble * Math.sin(t / 22);
+      heading = ((heading % 360) + 360) % 360;
+      const [la, lo] = destination(lat, lon, heading, o.speed * step);
+      lat = clamp(la, -40, 52);
+      lon = lo;
+    }
+    return {
+      name, cy, points: pts, offset,
+      distance: (n * o.speed * step),
+      peak: Math.max(...pts.map(p => p.wind)),
+      minMslp: Math.min(...pts.map(p => p.mslp)),
+      end: pts[pts.length - 1]
+    };
+  }
+
+  function toBDeck(members) {
+    const lines = [];
+    for (const m of members) {
+      for (const p of m.points) {
+        const base = 'WP, ' + String(m.cy).padStart(2, '0') + ', ' + stampOf(p.time) +
+          ',   , BEST,   0, ' + coordOf(p.lat, true) + ', ' + coordOf(p.lon, false) +
+          ', ' + String(p.wind).padStart(3, ' ') + ', ' + p.mslp + ', ' + p.status;
+        let wrote = false;
+        for (const r of [34, 50, 64]) {
+          const rr = p.radii[r];
+          if (!rr) continue;
+          wrote = true;
+          lines.push(base + ', ' + String(r).padStart(3, ' ') + ', NEQ, ' +
+            [rr.ne, rr.se, rr.sw, rr.nw].map(v => String(v).padStart(4, ' ')).join(', ') +
+            ', 1010, 240,  30,   0,   0,   W,   0,    ,   0,   0,       ' + m.name + ', D,');
+        }
+        if (!wrote) {
+          lines.push(base + ',   0,    ,    0,    0,    0,    0, 1010, 240,  30,   0,   0,   W,   0,    ,   0,   0,       ' + m.name + ', D,');
+        }
+      }
+    }
+    return lines.join('\n') + '\n';
+  }
+
+  function drawPreview(o, members) {
+    const cv = $('#simCanvas');
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = cv.clientWidth || 720, cssH = Math.round(cssW * 430 / 720);
+    if (cv.width !== Math.round(cssW * dpr) || cv.height !== Math.round(cssH * dpr)) {
+      cv.width = Math.round(cssW * dpr);
+      cv.height = Math.round(cssH * dpr);
+    }
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    const g = ctx.createLinearGradient(0, 0, cssW, cssH);
+    g.addColorStop(0, '#071827'); g.addColorStop(.55, '#0a1e2f'); g.addColorStop(1, '#040e18');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, cssW, cssH);
+
+    const all = members.flatMap(m => m.points);
+    let minLat = Math.min(...all.map(p => p.lat)), maxLat = Math.max(...all.map(p => p.lat));
+    let minLon = Math.min(...all.map(p => p.lon)), maxLon = Math.max(...all.map(p => p.lon));
+    const padLat = Math.max(1.2, (maxLat - minLat) * .14), padLon = Math.max(1.2, (maxLon - minLon) * .14);
+    minLat -= padLat; maxLat += padLat; minLon -= padLon; maxLon += padLon;
+    const proj = (lat, lon) => {
+      const x = 28 + (lon - minLon) / (maxLon - minLon || 1) * (cssW - 56);
+      const y = 18 + (maxLat - lat) / (maxLat - minLat || 1) * (cssH - 62);
+      return [x, y];
+    };
+    ctx.strokeStyle = 'rgba(70,125,155,.14)'; ctx.lineWidth = 1;
+    for (let i = 0; i <= 6; i++) {
+      const x = 28 + i / 6 * (cssW - 56);
+      const y = 18 + i / 6 * (cssH - 62);
+      ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, cssH - 44); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(28, y); ctx.lineTo(cssW - 28, y); ctx.stroke();
+    }
+    ctx.font = '8px monospace'; ctx.fillStyle = 'rgba(120,170,190,.55)';
+    ctx.fillText('SYNTHETIC TRACK · 6h', 30, cssH - 10);
+    ctx.fillText('LAT ' + minLat.toFixed(1) + '–' + maxLat.toFixed(1) + ' / LON ' + minLon.toFixed(1) + '–' + maxLon.toFixed(1), cssW - 280, cssH - 10);
+
+    members.forEach((m, mi) => {
+      const alpha = mi === 0 ? 1 : .46;
+      ctx.globalAlpha = alpha;
+      /* 34kt envelope, sampled to keep the preview fast */
+      for (let i = 2; i < m.points.length - 1; i += 3) {
+        const p = m.points[i], q = proj(p.lat, p.lon);
+        const r = (p.radii[34].ne + p.radii[34].se + p.radii[34].sw + p.radii[34].nw) / 4 / 60;
+        const rp = Math.max(4, r / (maxLat - minLat || 1) * (cssH - 62));
+        ctx.beginPath(); ctx.arc(q[0], q[1], rp, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(25,226,197,.035)'; ctx.fill();
+        ctx.strokeStyle = 'rgba(25,226,197,.09)'; ctx.stroke();
+      }
+      for (let i = 1; i < m.points.length; i++) {
+        const a = m.points[i - 1], b = m.points[i];
+        const p1 = proj(a.lat, a.lon), p2 = proj(b.lat, b.lon);
+        ctx.strokeStyle = windColor(b.wind);
+        ctx.lineWidth = mi === 0 ? 2.4 : 1.3;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+      }
+      m.points.forEach((p, i) => {
+        if (i % 2 && i !== m.points.length - 1) return;
+        const q = proj(p.lat, p.lon);
+        ctx.beginPath(); ctx.arc(q[0], q[1], mi === 0 ? 3.2 : 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = windColor(p.wind); ctx.globalAlpha = alpha; ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 1; ctx.stroke();
+      });
+      const s = proj(m.points[0].lat, m.points[0].lon), e = proj(m.end.lat, m.end.lon);
+      ctx.globalAlpha = alpha; ctx.font = '8px monospace';
+      ctx.fillStyle = '#9ff7e8'; ctx.fillText('START', s[0] + 7, s[1] - 5);
+      ctx.fillStyle = '#eaf9ff'; ctx.fillText('END', e[0] + 7, e[1] - 5);
+    });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(25,226,197,.16)'; ctx.strokeRect(1, 1, cssW - 2, cssH - 2);
+  }
+
+  function renderStats(members) {
+    const box = $('#simStats');
+    if (!box) return;
+    const m = members[0];
+    const stats = [
+      ['峰值', m.peak + ' kt'],
+      ['最低气压', m.minMslp + ' hPa'],
+      ['路径长度', Math.round(m.distance) + ' nm'],
+      ['终点', m.end.lat.toFixed(1) + '° / ' + m.end.lon.toFixed(1) + '°']
+    ];
+    box.innerHTML = stats.map(([k, v]) => '<div class="sim-stat"><b>' + v + '</b><span>' + k + '</span></div>').join('');
+  }
+
+  function generate() {
+    const o = readOpts();
+    const members = [];
+    for (let i = 0; i < o.members; i++) members.push(makeMember(o, i, o.members));
+    const text = toBDeck(members);
+    state = { opts: o, members, text };
+    drawPreview(o, members);
+    renderStats(members);
+    const note = $('#simFootNote');
+    if (note) note.textContent = o.members + ' 条路径 · ' + o.duration + 'h · ' + o.speed + 'kt 移速 · ' + o.name;
+    const load = $('#simLoad');
+    if (load) load.disabled = false;
+    return state;
+  }
+
+  function applyPreset(key) {
+    const p = PRESETS[key] || PRESETS.recurve;
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    set('simStartLat', p.lat); set('simStartLon', p.lon);
+    set('simInitialWind', p.init); set('simPeakWind', p.peak); set('simPeakHour', p.peakHour);
+    set('simDuration', p.duration); set('simSpeed', p.speed); set('simHeading', p.heading);
+    set('simTurn', p.turn); set('simWobble', p.wobble);
+  }
+
+  function openSimulator() {
+    const modal = $('#simulatorModal');
+    if (!modal) return;
+    if (!built) build();
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    if (!state) generate();
+    sfx('ui_open');
+  }
+  function closeSimulator() {
+    const modal = $('#simulatorModal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    sfx('ui_close');
+  }
+
+  function exportBDeck() {
+    if (!state) generate();
+    if (!state) return;
+    const blob = new Blob([state.text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'SudreTc_SIM_' + state.opts.name + '_' + new Date().toISOString().slice(0, 10) + '.bdeck.txt';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast('模拟 B-Deck 已导出', 'ok');
+  }
+
+  function loadIntoWorkbench() {
+    if (!state) generate();
+    if (!state || !state.text) { toast('请先生成模拟路径', 'warn'); return; }
+    const a = app();
+    if (!a || typeof a.ingest !== 'function') { toast('工作台尚未准备完成', 'err'); return; }
+    closeSimulator();
+    if (typeof window.hideMainMenu === 'function') {
+      try { window.hideMainMenu(true); } catch (e) {}
+    }
+    document.body.classList.remove('menu-visible', 'main-menu-open');
+    const normal = document.querySelector('[data-mode="normal"]');
+    if (normal) { try { normal.click(); } catch (e) {} }
+    setTimeout(() => {
+      try {
+        const storms = a.ingest(state.text, 'TC 路径模拟');
+        a.state.settings.mode = 'normal';
+        document.body.classList.remove('pro', 'pro-mode');
+        if (normal) { try { normal.click(); } catch (e) {} }
+        if (storms && storms[0]) { a.state.frac = Math.max(0, storms[0].points.length - 1); }
+        a.draw();
+        if (typeof a.updateTimeline === 'function') a.updateTimeline();
+        if (typeof window.playSFX === 'function') window.playSFX('ui_success');
+        const n = (storms && storms.length) || state.members.length;
+        toast('模拟完成：已载入 ' + n + ' 条路径', 'ok');
+      } catch (e) {
+        toast('载入模拟失败：' + e.message, 'err');
+      }
+    }, 520);
+  }
+
+  function build() {
+    if (built) return;
+    built = true;
+    const preset = $('#simPreset');
+    if (preset) preset.addEventListener('change', () => { applyPreset(preset.value); generate(); });
+    const gen = $('#simGenerate');
+    if (gen) gen.addEventListener('click', () => { generate(); sfx('ui_click'); });
+    const load = $('#simLoad');
+    if (load) load.addEventListener('click', loadIntoWorkbench);
+    const ex = $('#simExport');
+    if (ex) ex.addEventListener('click', exportBDeck);
+    const close = $('#simulatorModal [data-close]');
+    if (close) close.addEventListener('click', closeSimulator);
+    const m = $('#simulatorModal');
+    if (m) m.addEventListener('click', (e) => { if (e.target === m) closeSimulator(); });
+    ['simStartLat','simStartLon','simInitialWind','simPeakWind','simPeakHour','simDuration','simSpeed','simHeading','simTurn','simWobble','simRadiiScale','simMembers','simName','simStartTime'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => { generate(); });
+    });
+    if (preset) applyPreset(preset.value || 'recurve');
+  }
+
+  window.openSimulator = openSimulator;
+  window.closeSimulator = closeSimulator;
+  window.generateSimulation = generate;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { if (!$('#simulatorModal')) return; build(); }, { once: true });
+  } else if ($('#simulatorModal')) build();
+
+  const header = document.getElementById('simBtn');
+  if (header) header.addEventListener('click', openSimulator);
+  document.addEventListener('keydown', (e) => {
+    const modal = $('#simulatorModal');
+    if (e.key === 'Escape' && modal && modal.classList.contains('open')) closeSimulator();
+  });
 })();
 
 
