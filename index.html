@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#07111c">
-<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
 <title>Sudre.Tc · TC Track Studio v4.2</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -1437,7 +1437,7 @@ body.home-open{
   opacity:0;
   pointer-events:none;
   background-color:#06111c;
-  background-image:url('./assets/bg.jpg');
+  background-image:url('./bg.jpg');
   background-size:cover;
   background-position:center;
   background-repeat:no-repeat;
@@ -3554,7 +3554,7 @@ body.arena-open{overflow:hidden}
             <h5>声音 / BGM / SFX</h5>
             <label class="chk"><input type="checkbox" id="bgmOn" checked>背景音乐（BGM）</label>
             <div class="row"><label>BGM 音量</label><input type="range" id="bgmVol" min="0" max="100" value="30"><span class="val" id="bgmVolV">30%</span></div>
-            <div class="row"><label>音频 URL</label><input type="text" id="bgmUrl" value="./assets/bgm.mp3" placeholder="./assets/bgm.mp3" style="flex:1;min-width:0;height:30px;background:#071522;border:1px solid var(--line);border-radius:6px;padding:0 8px;color:#dce9f7"></div>
+            <div class="row"><label>音频 URL</label><input type="text" id="bgmUrl" value="./bgm.mp3" placeholder="./bgm.mp3" style="flex:1;min-width:0;height:30px;background:#071522;border:1px solid var(--line);border-radius:6px;padding:0 8px;color:#dce9f7"></div>
             <label class="chk"><input type="checkbox" id="sfxOn" checked>界面音效（Web Audio 合成）</label>
             <div class="row"><label>音效音量</label><input type="range" id="sfxVol" min="0" max="100" value="35"><span class="val" id="sfxVolV">35%</span></div>
             <div id="sfxToggles"></div>
@@ -8590,7 +8590,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   const defaults = {
     bgm: true,
     bgmVol: 30,
-    bgmUrl: './assets/bgm.mp3',
+    bgmUrl: './bgm.mp3',
     sfx: true,
     sfxVol: 35,
     sfxOn: {
@@ -8705,7 +8705,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   function applyUrl() {
     if (!audio) return;
     if (audio.getAttribute('src') !== cfg.bgmUrl) {
-      audio.src = cfg.bgmUrl || './assets/bgm.mp3';
+      audio.src = cfg.bgmUrl || './bgm.mp3';
       audio.load();
     }
   }
@@ -8734,15 +8734,18 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     stop() { if (audio) { cancelAnimationFrame(fadeRaf); audio.pause(); } },
     set(on) { cfg.bgm = !!on; save(); if (!on) this.stop(); },
     setVolume(v) { cfg.bgmVol = Math.max(0, Math.min(100, +v || 0)); save(); if (audio && !audio.paused) audio.volume = cfg.bgmVol / 100; },
-    setUrl(u) { cfg.bgmUrl = u || './assets/bgm.mp3'; save(); applyUrl(); if (audio && !audio.paused) this.start(); }
+    setUrl(u) { cfg.bgmUrl = u || './bgm.mp3'; save(); applyUrl(); if (audio && !audio.paused) this.start(); }
   };
   window.BGM = BGM;
   document.addEventListener('pointerdown', () => {
     if(cfg.bgm && audio && audio.paused){ try{ BGM.start(); }catch(e){} }
   }, {once:true});
   window.toggleSiteBgm = function(){
-    cfg.bgm = !cfg.bgm; save();
-    if(cfg.bgm){ try{ BGM.start(); }catch(e){} } else { BGM.stop(); }
+    if(cfg.bgm && audio && audio.paused){ try{ BGM.start(); }catch(e){} }
+    else {
+      cfg.bgm = !cfg.bgm; save();
+      if(cfg.bgm){ try{ BGM.start(); }catch(e){} } else { BGM.stop(); }
+    }
     const b=document.getElementById('hdrBgm');
     if(b){ b.classList.toggle('on',!!cfg.bgm); b.querySelector('span').textContent=cfg.bgm?'音乐开':'音乐关'; }
     updateMuteUI();
