@@ -8258,6 +8258,24 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     });
   });
 
+  /* 3D 侧卡片的点击热区会落在 carousel 上；按可见卡片中心做兜底命中 */
+  const carouselEl = document.getElementById('mmCarousel');
+  if (carouselEl) {
+    carouselEl.addEventListener('click', (e) => {
+      if (e.target.closest('.mm-card') || e.target.closest('button')) return;
+      let best = -1, bd = 1e9, br = null;
+      cards.forEach((card, i) => {
+        if (card.classList.contains('is-back')) return;
+        const r = card.getBoundingClientRect();
+        const d = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2));
+        if (d < bd) { bd = d; best = i; br = r; }
+      });
+      if (best >= 0 && br && bd < Math.min(br.width, br.height) * .62) {
+        focusCard(best);
+        setTimeout(() => activateCard(cards[best]), 80);
+      }
+    });
+  }
   dots.forEach((d) => d.addEventListener('click', () => focusCard(+d.dataset.index)));
   document.getElementById('mmVersion').textContent = 'v4.2';
 
