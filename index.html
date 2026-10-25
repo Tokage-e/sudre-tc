@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#07111c">
-<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
 <title>Sudre.Tc · TC Track Studio v4.2</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -1437,7 +1437,7 @@ body.home-open{
   opacity:0;
   pointer-events:none;
   background-color:#06111c;
-  background-image:url('./bg.jpg');
+  background-image:url('./assets/bg.jpg');
   background-size:cover;
   background-position:center;
   background-repeat:no-repeat;
@@ -3482,6 +3482,14 @@ body.arena-open{overflow:hidden}
           <div class="card">
             <h5>导出选项</h5>
             <label class="chk"><input type="checkbox" id="sTransparent">PNG 透明背景（不画底图 / 网格）</label>
+            <div class="row"><label>导出坐标系</label><select id="sCrs">
+              <option value="wgs84">WGS84（推荐）</option>
+              <option value="cgcs2000">CGCS2000</option>
+              <option value="gcj02">GCJ-02 火星坐标</option>
+              <option value="bd09">BD-09 百度坐标</option>
+              <option value="xian80" disabled>西安80（需本地七参数）</option>
+            </select></div>
+            <div class="note">仅作用于 CSV / GeoJSON / KML / GPX。PNG 与 B-Deck 始终使用 WGS84，避免底图与报文错位。</div>
             <div class="row"><label>WebM 帧率</label><select id="webmFps"><option>24</option><option selected>30</option><option>60</option></select></div>
           </div>
           <div class="card" data-adv>
@@ -3504,7 +3512,7 @@ body.arena-open{overflow:hidden}
             <h5>声音 / BGM / SFX</h5>
             <label class="chk"><input type="checkbox" id="bgmOn" checked>背景音乐（BGM）</label>
             <div class="row"><label>BGM 音量</label><input type="range" id="bgmVol" min="0" max="100" value="30"><span class="val" id="bgmVolV">30%</span></div>
-            <div class="row"><label>音频 URL</label><input type="text" id="bgmUrl" value="./bgm.mp3" placeholder="./bgm.mp3" style="flex:1;min-width:0;height:30px;background:#071522;border:1px solid var(--line);border-radius:6px;padding:0 8px;color:#dce9f7"></div>
+            <div class="row"><label>音频 URL</label><input type="text" id="bgmUrl" value="./assets/bgm.mp3" placeholder="./assets/bgm.mp3" style="flex:1;min-width:0;height:30px;background:#071522;border:1px solid var(--line);border-radius:6px;padding:0 8px;color:#dce9f7"></div>
             <label class="chk"><input type="checkbox" id="sfxOn" checked>界面音效（Web Audio 合成）</label>
             <div class="row"><label>音效音量</label><input type="range" id="sfxVol" min="0" max="100" value="35"><span class="val" id="sfxVolV">35%</span></div>
             <div id="sfxToggles"></div>
@@ -3887,12 +3895,12 @@ function timeLabel(){return state.settings.timeMode==='local'?'本地时间':'UT
 function fmtLat(v){const h=Math.floor(Math.abs(v)),m=(Math.abs(v)-h)*60;return `${h}°${m.toFixed(1)}′${v>=0?'N':'S'}`;}
 function fmtLon(v){const h=Math.floor(Math.abs(v)),m=(Math.abs(v)-h)*60;return `${h}°${m.toFixed(1)}′${v>=0?'E':'W'}`;}
 function nmBetween(a1,o1,a2,o2){
-  const p1=a1*D2R,p2=a2*D2R,dp=(a2-a1)*D2R,dl=(o2-o1)*D2R;
+  const p1=a1*D2R,p2=a2*D2R,dp=(a2-a1)*D2R;let dl=o2-o1;while(dl>180)dl-=360;while(dl<-180)dl+=360;dl*=D2R;
   const h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
   return R_NM*2*Math.asin(Math.sqrt(clamp(h,0,1)));
 }
 function bearing(a1,o1,a2,o2){
-  const p1=a1*D2R,p2=a2*D2R,dl=(o2-o1)*D2R;
+  const p1=a1*D2R,p2=a2*D2R;let dl=o2-o1;while(dl>180)dl-=360;while(dl<-180)dl+=360;dl*=D2R;
   const y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
   return (Math.atan2(y,x)*R2D+360)%360;
 }
@@ -4988,13 +4996,16 @@ function splitScreen(pts){
 }
 function smoothPts(pts){
   if(!state.settings.smooth||pts.length<3)return pts;
-  const out=[pts[0]];
+  const u=[];let prev=null;
+  pts.forEach(p=>{let lon=p.lon;if(prev!=null){while(lon-prev>180)lon-=360;while(lon-prev<-180)lon+=360;}prev=lon;u.push(lon);});
+  const out=[Object.assign({},pts[0],{lon:u[0]})];
   for(let i=0;i<pts.length-1;i++){
     const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    const u0=u[Math.max(0,i-1)],u1=u[i],u2=u[i+1],u3=u[Math.min(u.length-1,i+2)];
     for(let s=1;s<=6;s++){
       const t=s/6,t2=t*t,t3=t2*t;
       const lat=.5*((2*p1.lat)+(-p0.lat+p2.lat)*t+(2*p0.lat-5*p1.lat+4*p2.lat-p3.lat)*t2+(-p0.lat+3*p1.lat-3*p2.lat+p3.lat)*t3);
-      const lon=.5*((2*p1.lon)+(-p0.lon+p2.lon)*t+(2*p0.lon-5*p1.lon+4*p2.lon-p3.lon)*t2+(-p0.lon+3*p1.lon-3*p2.lon+p3.lon)*t3);
+      const lon=.5*((2*u1)+(-u0+u2)*t+(2*u0-5*u1+4*u2-u3)*t2+(-u0+3*u1-3*u2+u3)*t3);
       out.push({...p2,lat,lon});
     }
   }
@@ -6463,54 +6474,170 @@ function copyText(text){
   if(!text){toast('没有可复制的内容','warn');return;}
   navigator.clipboard.writeText(text).then(()=>toast('已复制到剪贴板','ok')).catch(()=>toast('复制失败，请手动选择','warn'));
 }
+/* ---------- 经纬度 / 日界线 / 导出坐标系 ---------- */
+function wrapLon(v){
+  v=((v+180)%360+360)%360-180;
+  return v===-180?180:v;
+}
+function wrapLonNear(v,ref){
+  while(v-ref>180)v-=360;
+  while(v-ref<-180)v+=360;
+  return v;
+}
+function unwrapTrackLons(points){
+  let prev=null;
+  return (points||[]).map(p=>{
+    let lon=p.lon;
+    if(prev!=null){
+      while(lon-prev>180)lon-=360;
+      while(lon-prev<-180)lon+=360;
+    }
+    prev=lon;
+    return Object.assign({},p,{lon});
+  });
+}
+function splitLonSegments(points){
+  const segs=[];let cur=[];let prev=null;
+  (points||[]).forEach(p=>{
+    if(prev!=null&&Math.abs(p.lon-prev)>180){
+      if(cur.length>1)segs.push(cur);
+      cur=[];
+    }
+    cur.push(p);prev=p.lon;
+  });
+  if(cur.length>1)segs.push(cur);
+  return segs;
+}
+function exportCrs(){
+  const el=document.getElementById('sCrs');
+  return el?el.value:'wgs84';
+}
+function crsPoint(lat,lon,crs){
+  if(crs==='gcj02'||crs==='bd09'){
+    const g=wgsToGcj(lat,lon);
+    if(crs==='gcj02')return g;
+    return gcjToBd(g[0],g[1]);
+  }
+  return [lat,lon]; /* WGS84 / CGCS2000 / 西安80 均按经纬度输出 */
+}
+function outOfChina(lat,lon){
+  return lon<72.004||lon>137.8347||lat<0.8293||lat>55.8271;
+}
+function wgsToGcj(lat,lon){
+  if(outOfChina(lat,lon))return [lat,lon];
+  const a=6378245.0,ee=0.00669342162296594323;
+  const dLat=transformLat(lon-105,lat-35),dLon=transformLon(lon-105,lat-35);
+  const radLat=lat/180*Math.PI;let magic=Math.sin(radLat);magic=1-ee*magic*magic;
+  const sqrtMagic=Math.sqrt(magic);
+  let mgLat=(dLat*180)/((a*(1-ee))/(magic*sqrtMagic)*Math.PI);
+  let mgLon=(dLon*180)/(a/sqrtMagic*Math.cos(radLat)*Math.PI);
+  return [lat+mgLat,lon+mgLon];
+}
+function transformLat(x,y){
+  let ret=-100+2*x+3*y+0.2*y*y+0.1*x*y+0.2*Math.sqrt(Math.abs(x));
+  ret+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;
+  ret+=(20*Math.sin(y*Math.PI)+40*Math.sin(y/3*Math.PI))*2/3;
+  ret+=(160*Math.sin(y/12*Math.PI)+320*Math.sin(y*Math.PI/30))*2/3;
+  return ret;
+}
+function transformLon(x,y){
+  let ret=300+x+2*y+0.1*x*x+0.1*x*y+0.1*Math.sqrt(Math.abs(x));
+  ret+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;
+  ret+=(20*Math.sin(x*Math.PI)+40*Math.sin(x/3*Math.PI))*2/3;
+  ret+=(150*Math.sin(x/12*Math.PI)+300*Math.sin(x/30*Math.PI))*2/3;
+  return ret;
+}
+function gcjToBd(lat,lon){
+  const z=Math.sqrt(lon*lon+lat*lat)+0.00002*Math.sin(lat*Math.PI*3000/180);
+  const theta=Math.atan2(lat,lon)+0.000003*Math.cos(lon*Math.PI*3000/180);
+  return [z*Math.sin(theta)+0.006,z*Math.cos(theta)+0.0065];
+}
+function crsLabel(crs){
+  return ({wgs84:'WGS84',cgcs2000:'CGCS2000',gcj02:'GCJ-02',bd09:'BD-09',xian80:'西安80'})[crs]||'WGS84';
+}
 function exportCSV(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
-  downloadBlob(new Blob(['\ufeff'+tableTSV(st).replace(/\t/g,',')],{type:'text/csv;charset=utf-8'}),'SudreTc_'+st.id+'_besttrack.csv');
-  toast('CSV 已导出','ok');
+  const crs=exportCrs();
+  let t=tableTSV(st);
+  if(crs!=='wgs84'&&crs!=='cgcs2000'&&crs!=='xian80'){
+    t=t.split('\n').map((line,i)=>{
+      if(i===0||!line)return line;
+      const f=line.split('\t');
+      if(f.length>3){
+        const q=crsPoint(+f[2],+f[3],crs);
+        f[2]=q[0].toFixed(5);f[3]=q[1].toFixed(5);
+      }
+      return f.join('\t');
+    }).join('\n');
+  }
+  downloadBlob(new Blob(['\ufeff'+t.replace(/\t/g,',')],{type:'text/csv;charset=utf-8'}),'SudreTc_'+st.id+'_besttrack_'+crs+'.csv');
+  toast('CSV 已导出 · '+crsLabel(crs),'ok');
 }
 function exportGeoJSON(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
-  const feats=[];
-  const coords=[];
-  let prev=null;
-  st.points.forEach(p=>{
-    let lon=p.lon;
-    if(prev!=null){let d=lon-prev;if(d>180)lon-=360;else if(d<-180)lon+=360;}
-    prev=lon;coords.push([lon,p.lat]);
+  const crs=exportCrs();
+  const pts=st.points.map(p=>{
+    const q=crsPoint(p.lat,p.lon,crs);
+    return Object.assign({},p,{lat:q[0],lon:wrapLon(q[1])});
   });
-  feats.push({type:'Feature',properties:{kind:'track',id:st.id,name:st.name},geometry:{type:'LineString',coordinates:coords}});
-  st.points.forEach((p,i)=>feats.push({type:'Feature',properties:{kind:'point',index:i,time:p.time,level:p.level,
+  const segs=splitLonSegments(pts);
+  const feats=[];
+  segs.forEach((seg,i)=>{
+    feats.push({type:'Feature',properties:{kind:'track',part:i+1,id:st.id,name:st.name},geometry:{type:'LineString',coordinates:seg.map(p=>[p.lon,p.lat])}});
+  });
+  pts.forEach((p,i)=>feats.push({type:'Feature',properties:{kind:'point',index:i,time:p.time,level:p.level,
     wind_kt:p.wind,mslp_hpa:p.mslp},geometry:{type:'Point',coordinates:[p.lon,p.lat]}}));
-  downloadBlob(new Blob([JSON.stringify({type:'FeatureCollection',name:st.name,crs:'WGS84',features:feats},null,1)],{type:'application/geo+json'}),
-    (st.name||st.id)+'.geojson');
-  toast('GeoJSON 已导出','ok');
+  downloadBlob(new Blob([JSON.stringify({type:'FeatureCollection',name:st.name,crs:crsLabel(crs),features:feats},null,1)],{type:'application/geo+json'}),
+    (st.name||st.id)+'_'+crs+'.geojson');
+  toast('GeoJSON 已导出 · '+crsLabel(crs),'ok');
 }
 function xmlEscape(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function exportKML(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
-  const coords=st.points.map(p=>p.lon+','+p.lat+',0').join(' ');
+  const crs=exportCrs();
+  const pts=st.points.map(p=>{
+    const q=crsPoint(p.lat,p.lon,crs);
+    return Object.assign({},p,{lat:q[0],lon:wrapLon(q[1])});
+  });
+  const segs=splitLonSegments(pts);
+  let lines='';
+  segs.forEach((seg,i)=>{
+    const coords=seg.map(p=>p.lon+','+p.lat+',0').join(' ');
+    lines+='<Placemark><name>'+xmlEscape((st.name||st.id)+' · '+crsLabel(crs)+' · part '+(i+1))+'</name>'+
+      '<styleUrl>#track</styleUrl><LineString><tessellate>1</tessellate><coordinates>'+coords+'</coordinates></LineString></Placemark>';
+  });
   let place='';
-  st.points.forEach(p=>{
+  pts.forEach(p=>{
     place+='<Placemark><name>'+xmlEscape(fmtUTC(p.time))+'</name><description>'+xmlEscape((p.level||classify(p.wind))+' '+Math.round(p.wind||0)+' kt · '+(p.mslp!=null?p.mslp+' hPa':'—'))+'</description>'+
       '<Point><coordinates>'+p.lon+','+p.lat+',0</coordinates></Point></Placemark>';
   });
-  const col=windColor(st.points[st.peak]?st.points[st.peak].level:'TD');
-  const kml='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>'+xmlEscape(st.name||st.id)+'</name>'+
+  const peakPt=st.points.reduce((a,p)=>(p.wind||0)>(a.wind||0)?p:a,st.points[0]);
+  const col=windColor(peakPt?peakPt.level:'TD');
+  const kml='<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>'+xmlEscape((st.name||st.id)+' · '+crsLabel(crs))+'</name>'+
     '<Style id="track"><LineStyle><color>ff'+col.replace('#','').slice(4,6)+col.replace('#','').slice(2,4)+col.replace('#','').slice(0,2)+'</color><width>3</width></LineStyle></Style>'+
-    '<Placemark><name>'+xmlEscape(st.id)+' Best Track</name><styleUrl>#track</styleUrl><LineString><tessellate>1</tessellate><coordinates>'+coords+'</coordinates></LineString></Placemark>'+
-    place+'</Document></kml>';
-  downloadBlob(new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}),(st.name||st.id)+'.kml');
-  toast('KML 已导出（Google Earth / GIS）','ok');
+    lines+place+'</Document></kml>';
+  downloadBlob(new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}),(st.name||st.id)+'_'+crs+'.kml');
+  toast('KML 已导出 · '+crsLabel(crs),'ok');
 }
 function exportGPX(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
+  const crs=exportCrs();
+  const pts=st.points.map(p=>{
+    const q=crsPoint(p.lat,p.lon,crs);
+    return Object.assign({},p,{lat:q[0],lon:wrapLon(q[1])});
+  });
+  const segs=splitLonSegments(pts);
   let trk='';
-  st.points.forEach(p=>{trk+='<trkpt lat="'+p.lat.toFixed(5)+'" lon="'+p.lon.toFixed(5)+'"><time>'+new Date(p.time).toISOString()+'</time>'+
-    '<desc>'+xmlEscape((p.level||classify(p.wind))+' '+Math.round(p.wind||0)+' kt '+(p.mslp!=null?p.mslp+'hPa':''))+'</desc></trkpt>';});
+  segs.forEach(seg=>{
+    trk+='<trkseg>';
+    seg.forEach(p=>{trk+='<trkpt lat="'+p.lat.toFixed(5)+'" lon="'+p.lon.toFixed(5)+'"><time>'+new Date(p.time).toISOString()+'</time>'+
+      '<desc>'+xmlEscape((p.level||classify(p.wind))+' '+Math.round(p.wind||0)+' kt '+(p.mslp!=null?p.mslp+'hPa':''))+'</desc></trkpt>';});
+    trk+='</trkseg>';
+  });
   const gpx='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Sudre.Tc" xmlns="http://www.topografix.com/GPX/1/1">'+
-    '<trk><name>'+xmlEscape(st.name||st.id)+'</name><trkseg>'+trk+'</trkseg></trk></gpx>';
-  downloadBlob(new Blob([gpx],{type:'application/gpx+xml'}),(st.name||st.id)+'.gpx');
-  toast('GPX 已导出','ok');
+    '<trk><name>'+xmlEscape((st.name||st.id)+' · '+crsLabel(crs))+'</name>'+trk+'</trk></gpx>';
+  downloadBlob(new Blob([gpx],{type:'application/gpx+xml'}),(st.name||st.id)+'_'+crs+'.gpx');
+  toast('GPX 已导出 · '+crsLabel(crs),'ok');
 }
 
 /* ---- 导出画布：矢量底图 + 路径，不依赖在线瓦片 ---- */
@@ -6539,6 +6666,8 @@ function makeExport(W,H,st,opts){
   const cv=document.createElement('canvas');cv.width=W;cv.height=H;
   const ctx=cv.getContext('2d');
   const b=exportBounds(st);
+  /* 日界线：内部路径使用连续经度，避免 PNG 上出现横跨全图的假线段 */
+  st=Object.assign({},st,{points:st.points.map((p,i)=>Object.assign({},p,{lon:b.lons[i]}))});
   const merc=lat=>Math.log(Math.tan(Math.PI/4+clamp(lat,-85,85)*Math.PI/360));
   const y0=merc(b.la0),y1=merc(b.la1);
   const sx=W/(b.lo1-b.lo0),sy=H/(y1-y0);
@@ -6566,12 +6695,13 @@ function makeExport(W,H,st,opts){
   const drawCity=()=>{
     if(!state.settings.showCities||!CITIES)return;
     const c=CITIES.find(x=>x.n===state.settings.cityName)||CITIES[0];if(!c)return;
+    const cLon=wrapLonNear(c.lon,(b.lo0+b.lo1)/2);
     [1000,500].forEach((rad,i)=>{
       ctx.beginPath();
-      for(let a=0;a<=360;a+=4){const q=destination(c.lat,c.lon,a,rad);const p=P(q[1],q[0]);a?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);}
+      for(let a=0;a<=360;a+=4){const q=destination(c.lat,cLon,a,rad);const p=P(q[1],wrapLonNear(q[0],cLon));a?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]);}
       ctx.closePath();ctx.strokeStyle='rgba(25,226,197,'+(i?.2:.12)+')';ctx.lineWidth=1.2;ctx.setLineDash([4,7]);ctx.stroke();ctx.setLineDash([]);
     });
-    const p=P(c.lat,c.lon);
+    const p=P(c.lat,cLon);
     ctx.beginPath();ctx.arc(p[0],p[1],3.2,0,7);ctx.fillStyle='#19e2c5';ctx.fill();
     ctx.font='9px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle='rgba(160,235,225,.85)';ctx.fillText(c.n,p[0]+6,p[1]-5);
   };
@@ -6671,7 +6801,7 @@ function makeExport(W,H,st,opts){
       if(!transparent){
         if(state.settings.showLandfall){
           (st.landfalls||[]).forEach(l=>{
-            const q=P(l.lat,l.lon);
+            const q=P(l.lat,wrapLonNear(l.lon,(b.lo0+b.lo1)/2));
             ctx.beginPath();ctx.moveTo(q[0],q[1]-8);ctx.lineTo(q[0]+8,q[1]+7);ctx.lineTo(q[0]-8,q[1]+7);ctx.closePath();
             ctx.fillStyle='#ff4d4d';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.2;ctx.stroke();
             ctx.font='9px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle='#ffb3b3';
@@ -6697,7 +6827,7 @@ function makeExport(W,H,st,opts){
           const r=rr[k];if(!r||!state.settings.wr[k])return;
           const quad=[[r.ne,0,90],[r.se,90,180],[r.sw,180,270],[r.nw,270,360]];
           ctx.beginPath();let started=false;
-          quad.forEach(([rad,a0,a1])=>{if(!rad)return;for(let a=a0;a<=a1;a+=5){const q=destination(cur.lat,cur.lon,a,rad);const p=P(q[1],q[0]);started?ctx.lineTo(p[0],p[1]):(ctx.moveTo(p[0],p[1]),started=true);}});
+          quad.forEach(([rad,a0,a1])=>{if(!rad)return;for(let a=a0;a<=a1;a+=5){const q=destination(cur.lat,cur.lon,a,rad);const p=P(q[1],wrapLonNear(q[0],cur.lon));started?ctx.lineTo(p[0],p[1]):(ctx.moveTo(p[0],p[1]),started=true);}});
           ctx.closePath();ctx.fillStyle=hexA(WR_COLOR[k],.16);ctx.fill();ctx.strokeStyle=hexA(WR_COLOR[k],.55);ctx.lineWidth=1.4;ctx.stroke();
         });
       }
@@ -7979,7 +8109,7 @@ else boot();
   const defaults = {
     bgm: true,
     bgmVol: 30,
-    bgmUrl: './bgm.mp3',
+    bgmUrl: './assets/bgm.mp3',
     sfx: true,
     sfxVol: 35,
     sfxOn: {
@@ -8094,7 +8224,7 @@ else boot();
   function applyUrl() {
     if (!audio) return;
     if (audio.getAttribute('src') !== cfg.bgmUrl) {
-      audio.src = cfg.bgmUrl || './bgm.mp3';
+      audio.src = cfg.bgmUrl || './assets/bgm.mp3';
       audio.load();
     }
   }
@@ -8123,7 +8253,7 @@ else boot();
     stop() { if (audio) { cancelAnimationFrame(fadeRaf); audio.pause(); } },
     set(on) { cfg.bgm = !!on; save(); if (!on) this.stop(); },
     setVolume(v) { cfg.bgmVol = Math.max(0, Math.min(100, +v || 0)); save(); if (audio && !audio.paused) audio.volume = cfg.bgmVol / 100; },
-    setUrl(u) { cfg.bgmUrl = u || './bgm.mp3'; save(); applyUrl(); if (audio && !audio.paused) this.start(); }
+    setUrl(u) { cfg.bgmUrl = u || './assets/bgm.mp3'; save(); applyUrl(); if (audio && !audio.paused) this.start(); }
   };
   window.BGM = BGM;
 
@@ -8483,7 +8613,11 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
   }
 
   function distanceNm(lat1, lon1, lat2, lon2) {
-    const p1 = lat1 * D2R, p2 = lat2 * D2R, dp = (lat2 - lat1) * D2R, dl = (lon2 - lon1) * D2R;
+    const p1 = lat1 * D2R, p2 = lat2 * D2R, dp = (lat2 - lat1) * D2R;
+    let dl = lon2 - lon1;
+    while (dl > 180) dl -= 360;
+    while (dl < -180) dl += 360;
+    dl *= D2R;
     const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
     return 2 * R_NM * Math.asin(Math.min(1, Math.sqrt(a)));
   }
@@ -8509,6 +8643,10 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
       String(d.getUTCDate()).padStart(2, '0') + String(d.getUTCHours()).padStart(2, '0');
   }
   function coordOf(v, isLat) {
+    if (!isLat) {
+      while (v > 180) v -= 360;
+      while (v < -180) v += 360;
+    }
     const neg = v < 0;
     const n = Math.round(Math.abs(v) * 10);
     return String(n).padStart(isLat ? 3 : 4, '0') + (isLat ? (neg ? 'S' : 'N') : (neg ? 'W' : 'E'));
@@ -8964,7 +9102,19 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
     g.addColorStop(0, '#071827'); g.addColorStop(.55, '#0a1e2f'); g.addColorStop(1, '#040e18');
     ctx.fillStyle = g; ctx.fillRect(0, 0, cssW, cssH);
 
-    const all = members.flatMap(m => m.points);
+    const viewMembers = members.map(m => {
+      let prev = null;
+      return Object.assign({}, m, { points: m.points.map(p => {
+        let lon = p.lon;
+        if (prev != null) {
+          while (lon - prev > 180) lon -= 360;
+          while (lon - prev < -180) lon += 360;
+        }
+        prev = lon;
+        return Object.assign({}, p, { lon });
+      }) });
+    });
+    const all = viewMembers.flatMap(m => m.points);
     if (!all.length) {
       ctx.fillStyle = 'rgba(150,190,205,.5)'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
       ctx.fillText('至少需要 2 个控制点', cssW / 2, cssH / 2);
@@ -8983,7 +9133,7 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
       lon: minLon + (x - 28) / (cssW - 56) * (maxLon - minLon),
       lat: maxLat - (y - 18) / (cssH - 62) * (maxLat - minLat)
     });
-    preview = { members, minLat, maxLat, minLon, maxLon, proj, inv, cssW, cssH };
+    preview = { members: viewMembers, minLat, maxLat, minLon, maxLon, proj, inv, cssW, cssH };
 
     /* 海岸线 / 陆地边界：让路径点有真实地理参照 */
     const geo = window.__landGeo;
@@ -9050,7 +9200,7 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
     ctx.fillText('SYNTHETIC TRACK · ' + (state ? state.opts.step : 6) + 'h', 30, cssH - 10);
     if (mode === 'custom') ctx.fillText('CLICK TO ADD CONTROL POINTS', Math.max(30, cssW - 315), cssH - 10);
 
-    members.forEach((m, mi) => {
+    viewMembers.forEach((m, mi) => {
       const alpha = mi === 0 ? 1 : .42;
       ctx.globalAlpha = alpha;
       const envStep = Math.max(1, Math.round(m.points.length / 18));
@@ -9089,7 +9239,10 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
     if (mode === 'custom' && custom.length) {
       const labelEvery = Math.max(1, Math.ceil(custom.length / 7));
       custom.forEach((cp, i) => {
-        const q = proj(cp.lat, cp.lon);
+        let clon = cp.lon;
+        while (clon < minLon - 180) clon += 360;
+        while (clon > maxLon + 180) clon -= 360;
+        const q = proj(cp.lat, clon);
         ctx.beginPath(); ctx.arc(q[0], q[1], 4.2, 0, Math.PI * 2);
         ctx.fillStyle = '#04121c'; ctx.fill();
         ctx.strokeStyle = '#f5d76e'; ctx.lineWidth = 1.4; ctx.stroke();
@@ -9100,15 +9253,15 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
       });
     }
 
-    if (typeof marker === 'number' && members[0] && members[0].points[marker]) {
-      const p = members[0].points[marker], q = proj(p.lat, p.lon);
+    if (typeof marker === 'number' && viewMembers[0] && viewMembers[0].points[marker]) {
+      const p = viewMembers[0].points[marker], q = proj(p.lat, p.lon);
       ctx.beginPath(); ctx.arc(q[0], q[1], 8, 0, Math.PI * 2); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
       ctx.beginPath(); ctx.arc(q[0], q[1], 3, 0, Math.PI * 2); ctx.fillStyle = windColor(p.wind); ctx.fill();
       ctx.fillStyle = '#eaf9ff'; ctx.font = '8px monospace';
       ctx.fillText('+' + p.t + 'h · ' + p.wind + 'kt', q[0] + 10, q[1] - 8);
     }
     ctx.strokeStyle = 'rgba(25,226,197,.16)'; ctx.strokeRect(1, 1, cssW - 2, cssH - 2);
-    drawProfile(members[0]);
+    drawProfile(viewMembers[0]);
   }
 
   function renderStats(members) {
