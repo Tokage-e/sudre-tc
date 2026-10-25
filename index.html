@@ -3069,6 +3069,41 @@ body.sim-playing #simPlay{color:#06121b;background:#19e2c5}
 .arena-frame{flex:1;width:100%;height:100%;border:0;background:#06101b;display:block}
 body.arena-open{overflow:hidden}
 @media(max-width:640px){.arena-modal{padding:0}.arena-shell{width:100vw;height:100dvh;max-height:none;border-radius:0;border:0}.arena-head{height:40px;flex-basis:40px}.arena-head small{display:none}}
+
+/* ---------------- Live feed ---------------- */
+.live-panel{width:min(1000px,94vw);max-height:90vh}
+.live-body{overflow:auto}
+.live-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+#liveStatus{font:9px var(--mono);letter-spacing:.05em;color:var(--txt3);padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:rgba(8,20,34,.55)}
+#liveStatus.ok{color:var(--teal);border-color:rgba(25,226,197,.3)}
+#liveStatus.loading{color:var(--amber);border-color:rgba(255,176,46,.3)}
+#liveStatus.warn{color:var(--amber)}
+#liveStatus.err{color:var(--red);border-color:rgba(255,83,83,.35)}
+#liveUpdated{margin-left:auto;font:8px var(--mono);letter-spacing:.06em;color:var(--txt3)}
+.live-grid{display:grid;grid-template-columns:290px minmax(0,1fr);gap:12px}
+.live-list{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:7px;background:rgba(5,15,26,.65);padding:5px;display:flex;flex-direction:column;gap:4px}
+.live-item{display:grid;grid-template-columns:34px minmax(0,1fr);grid-template-rows:auto auto auto;gap:2px 7px;text-align:left;padding:7px;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--txt2);cursor:pointer;transition:.15s}
+.live-item:hover{background:rgba(25,226,197,.05);border-color:rgba(25,226,197,.18)}
+.live-item.on{background:rgba(25,226,197,.08);border-color:rgba(25,226,197,.38)}
+.live-basin{grid-row:1/4;align-self:center;justify-self:center;font:8px var(--mono);color:var(--teal);border:1px solid rgba(25,226,197,.25);border-radius:4px;padding:3px 4px}
+.live-item b{font-size:11px;color:#e8f7ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-coord{font:8.5px var(--mono);color:var(--txt3)}
+.live-meta{display:flex;align-items:center;gap:5px;font:8.5px var(--mono);color:var(--txt2)}
+.live-meta .lv{font-style:normal;padding:1px 4px;border:1px solid var(--line);border-radius:3px}
+.live-empty{text-align:center;padding:30px 8px;color:var(--txt3);font-size:10px;line-height:1.8}
+.live-empty span{font:8px var(--mono);opacity:.7}
+.live-detail-wrap{min-width:0;display:flex;flex-direction:column;gap:8px}
+.live-selected{border:1px solid var(--line);border-radius:7px;background:rgba(8,20,34,.6);padding:9px 11px;min-height:48px}
+.live-detail-head{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.live-detail-head b{font-size:12px;color:#e8f7ff}
+.live-detail-head .lv{font:8px var(--mono);font-style:normal;padding:1px 4px;border:1px solid var(--line);border-radius:3px;color:var(--txt2)}
+.live-kv{display:flex;justify-content:space-between;gap:8px;font-size:9px;color:var(--txt3);line-height:1.7}
+.live-kv b{font:9px var(--mono);color:var(--txt2);font-weight:400}
+#liveCanvas{width:100%;min-height:210px;border:1px solid var(--line);border-radius:7px;background:#06101b}
+.live-load{width:100%;height:34px}
+.live-note{font-size:9px;color:var(--txt3);line-height:1.7;margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.lv.TD{color:#55b7ff}.lv.TS{color:#31d8b2}.lv.C1,.lv.C2{color:#ffd166}.lv.C3,.lv.C4,.lv.C5{color:#ff6f91}
+@media(max-width:760px){.live-grid{grid-template-columns:1fr}.live-list{max-height:210px}#liveCanvas{min-height:180px}}
 </style>
 </head>
 <body>
@@ -3155,10 +3190,10 @@ body.arena-open{overflow:hidden}
 
       <article class="mm-card is-back" data-action="realtime" data-index="2" tabindex="0">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-soon">[敬请期待]</span><span class="mm-no">04 / LIVE</span></div>
-          <h2 class="mm-card-title">实时播报</h2>
-          <p class="mm-card-desc">接入实时报文流，风圈、强度和预报锥随时间轴自动滚动更新。</p>
-          <div class="mm-card-foot"><span>LIVE FEED</span><button class="mm-card-btn" type="button">敬请期待</button></div>
+          <div class="mm-card-head"><span class="mm-tag tag-live">[已接入]</span><span class="mm-no">04 / LIVE</span></div>
+          <h2 class="mm-card-title">实时路径播报</h2>
+          <p class="mm-card-desc">连接 NOAA/NCEI ACTIVE 数据流，读取当前活动系统并载入工作台播报。</p>
+          <div class="mm-card-foot"><span>LIVE FEED</span><button class="mm-card-btn" type="button">打开实时播报</button></div>
         </div>
       </article>
 
@@ -3201,6 +3236,7 @@ body.arena-open{overflow:hidden}
   </div>
   <div class="hdr-actions" id="hdrActions">
     <button class="hbtn" id="homeBtn" title="返回主界面"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1v-8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>主页</span></button>
+    <button class="hbtn" id="hdrBgm" onclick="toggleSiteBgm()" title="背景音乐开关"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l10-2v13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="16" r="3" stroke="currentColor" stroke-width="1.7"/></svg><span>音乐</span></button>
     <button class="hbtn" data-act="table" title="数据表"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4" width="17" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 4v16M14 4v16M3.5 9.5h17M3.5 14.5h17" stroke="currentColor" stroke-width="1.4"/></svg><span>数据表</span></button>
     <button class="hbtn" data-act="intensity" title="强度曲线"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 20h18M6 16l4-5 3 3 5-7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18" cy="7" r="1.7" fill="currentColor"/></svg><span>强度</span></button>
     <button class="hbtn" data-act="layers" title="图层"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>图层</span></button>
@@ -3786,6 +3822,32 @@ body.arena-open{overflow:hidden}
   <div class="arena-shell" role="dialog" aria-modal="true" aria-label="台风对战竞技场">
     <button class="arena-close" id="arenaClose" type="button" aria-label="关闭台风对战">✕</button>
     <iframe class="arena-frame" id="arenaFrame" src="about:blank" title="台风对战竞技场"></iframe>
+  </div>
+</div>
+
+<div class="modal live-modal" id="liveModal" aria-hidden="true">
+  <div class="panel live-panel" role="dialog" aria-modal="true" aria-label="实时路径播报">
+    <div class="p-head">
+      <div><h3>实时路径播报 <span class="roadmap-tag tag-live">[NOAA ACTIVE]</span></h3><div class="sub">IBTrACS ACTIVE · 自动刷新 10 min</div></div>
+      <div class="sp"></div>
+      <button class="x" id="liveClose" type="button" aria-label="关闭实时播报">✕</button>
+    </div>
+    <div class="p-body live-body">
+      <div class="live-toolbar">
+        <button class="btn accent" id="liveRefresh" type="button">刷新数据</button>
+        <span id="liveStatus">正在连接 NOAA/NCEI…</span>
+        <span id="liveUpdated">—</span>
+      </div>
+      <div class="live-grid">
+        <div class="live-list" id="liveList"><div class="live-empty">正在载入活动系统…</div></div>
+        <div class="live-detail-wrap">
+          <div class="live-selected" id="liveSelected">选择左侧系统查看当前定位</div>
+          <canvas id="liveCanvas" width="520" height="300"></canvas>
+          <button class="btn accent live-load" id="liveLoad" type="button" disabled>载入工作台并播报</button>
+        </div>
+      </div>
+      <div class="live-note">数据源：NOAA/NCEI IBTrACS ACTIVE，最近观测时次为准；网络不可用时使用本地缓存。载入后会进入工作台并开始时间轴播放。</div>
+    </div>
   </div>
 </div>
 
@@ -7171,6 +7233,305 @@ else boot();
 })();
 
 /* ============================================================
+   Live track bulletin — NOAA/NCEI IBTrACS ACTIVE feed
+   ============================================================ */
+(function () {
+  'use strict';
+
+  const FEED_URL = 'https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ACTIVE.list.v04r01.csv';
+  const CACHE_KEY = 'sudre_live_ibtracs_v1';
+  let storms = [];
+  let selected = null;
+  let refreshTimer = 0;
+  let loading = false;
+
+  const $ = id => document.getElementById(id);
+  function classify(w){w=+w||0;if(w<34)return 'TD';if(w<64)return 'TS';if(w<83)return 'C1';if(w<96)return 'C2';if(w<113)return 'C3';if(w<137)return 'C4';return 'C5';}
+  function windColor(lv){return ({TD:'#55b7ff',TS:'#31d8b2',C1:'#ffd166',C2:'#ffb02e',C3:'#ff8a5b',C4:'#ff6f91',C5:'#d86bff'})[lv]||'#93a9c4';}
+  const num = v => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], cur = '', quote = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quote) {
+        if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') quote = false;
+        else cur += c;
+      } else if (c === '"') quote = true;
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+      else if (c !== '\r') cur += c;
+    }
+    if (cur.length || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  }
+
+  function stampOf(d) {
+    return d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') +
+      String(d.getUTCDate()).padStart(2, '0') + String(d.getUTCHours()).padStart(2, '0');
+  }
+  function coordOf(v, isLat) {
+    if (!isLat) { while (v > 180) v -= 360; while (v < -180) v += 360; }
+    const neg = v < 0, n = Math.round(Math.abs(v) * 10);
+    return String(n).padStart(isLat ? 3 : 4, '0') + (isLat ? (neg ? 'S' : 'N') : (neg ? 'W' : 'E'));
+  }
+  function fmtLat(v) { return Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'N' : 'S'); }
+  function fmtLon(v) { return Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'E' : 'W'); }
+
+  function parseFeed(text) {
+    const rows = parseCsv(text);
+    if (rows.length < 3) return [];
+    const header = rows[0].map(x => x.trim().toUpperCase());
+    const ix = name => header.indexOf(name);
+    const iSid = ix('SID'), iName = ix('NAME'), iBasin = ix('BASIN'), iTime = ix('ISO_TIME'),
+      iLat = ix('LAT'), iLon = ix('LON'), iUsaLat = ix('USA_LAT'), iUsaLon = ix('USA_LON'),
+      iWind = ix('USA_WIND'), iWmoWind = ix('WMO_WIND'), iPres = ix('USA_PRES'),
+      iWmoPres = ix('WMO_PRES'), iStatus = ix('USA_STATUS'), iNum = ix('NUMBER');
+    const map = new Map();
+    for (let r = 2; r < rows.length; r++) {
+      const f = rows[r];
+      if (!f || !f[iSid] || !f[iTime]) continue;
+      const sid = f[iSid].trim();
+      const iso = f[iTime].trim();
+      const t = Date.parse(iso.replace(' ', 'T') + (iso.endsWith('Z') ? '' : 'Z'));
+      if (!Number.isFinite(t)) continue;
+      let lat = num(f[iUsaLat]);
+      let lon = num(f[iUsaLon]);
+      if (lat == null || lon == null) { lat = num(f[iLat]); lon = num(f[iLon]); }
+      if (lat == null || lon == null) continue;
+      const wind = num(f[iWind]) != null ? num(f[iWind]) : (num(f[iWmoWind]) || 0);
+      const mslp = num(f[iPres]) != null ? num(f[iPres]) : num(f[iWmoPres]);
+      const st = map.get(sid) || {
+        sid, name: (f[iName] || 'UNNAMED').trim(), basin: (f[iBasin] || 'WP').trim(),
+        number: (f[iNum] || '1').trim(), points: []
+      };
+      st.points.push({
+        time: new Date(t), lat, lon, wind, mslp,
+        status: (f[iStatus] || '').trim() || (wind >= 64 ? 'TY' : wind >= 34 ? 'TS' : 'TD')
+      });
+      map.set(sid, st);
+    }
+    const out = [];
+    for (const st of map.values()) {
+      st.points.sort((a, b) => a.time - b.time);
+      st.last = st.points[st.points.length - 1];
+      st.peak = Math.max(...st.points.map(p => p.wind || 0));
+      out.push(st);
+    }
+    out.sort((a, b) => b.last.time - a.last.time);
+    return out;
+  }
+
+  function setStatus(text, kind) {
+    const el = $('liveStatus');
+    if (!el) return;
+    el.textContent = text;
+    el.className = kind || '';
+  }
+  function setUpdated(date) {
+    const el = $('liveUpdated');
+    if (el) el.textContent = date ? new Date(date).toLocaleString('zh-CN', { hour12: false }) : '—';
+  }
+
+  async function fetchFeed(force) {
+    if (loading) return;
+    loading = true;
+    setStatus('正在连接 NOAA/NCEI…', 'loading');
+    try {
+      const res = await fetch(FEED_URL, { cache: force ? 'reload' : 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const parsed = parseFeed(text);
+      if (!parsed.length) throw new Error('没有解析到 ACTIVE 路径');
+      storms = parsed;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), storms })); } catch (e) {}
+      setStatus('已连接 NOAA/NCEI · ' + storms.length + ' 个活动系统', 'ok');
+      setUpdated(Date.now());
+      renderList();
+    } catch (e) {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached && cached.storms && cached.storms.length) {
+            storms = cached.storms.map(s => Object.assign({}, s, {
+              points: s.points.map(p => Object.assign({}, p, { time: new Date(p.time) })),
+              last: Object.assign({}, s.last, { time: new Date(s.last.time) })
+            }));
+            setStatus('实时源不可用 · 使用缓存', 'warn');
+            setUpdated(cached.t);
+            renderList();
+            return;
+          }
+        }
+      } catch (e2) {}
+      setStatus('无法连接实时源：' + e.message, 'err');
+      setUpdated(null);
+    } finally {
+      loading = false;
+    }
+  }
+
+  function renderList() {
+    const box = $('liveList');
+    if (!box) return;
+    if (!storms.length) {
+      box.innerHTML = '<div class="live-empty">暂无活动系统<br><span>点击刷新重试</span></div>';
+      return;
+    }
+    box.innerHTML = storms.map((s, i) => {
+      const lv = classify(s.last.wind || 0);
+      return `<button class="live-item${selected && selected.sid === s.sid ? ' on' : ''}" data-i="${i}">
+        <span class="live-basin">${s.basin}</span>
+        <b>${s.name}</b>
+        <span class="live-coord">${fmtLat(s.last.lat)} ${fmtLon(s.last.lon)}</span>
+        <span class="live-meta"><em class="lv ${lv}">${lv}</em>${Math.round(s.last.wind || 0)} kt · ${s.points.length} 点</span>
+      </button>`;
+    }).join('');
+    box.querySelectorAll('.live-item').forEach(btn => btn.addEventListener('click', () => {
+      const s = storms[+btn.dataset.i];
+      if (!s) return;
+      selected = s;
+      renderList();
+      renderDetail();
+    }));
+    if (!selected && storms[0]) { selected = storms[0]; renderDetail(); }
+  }
+
+  function renderDetail() {
+    const box = $('liveSelected');
+    if (!box || !selected) return;
+    box.innerHTML = `<div class="live-detail-head"><span class="live-basin">${selected.basin}</span>
+      <b>${selected.name}</b><em class="lv ${classify(selected.last.wind || 0)}">${classify(selected.last.wind || 0)}</em></div>
+      <div class="live-kv"><span>最后定位</span><b>${fmtLat(selected.last.lat)} / ${fmtLon(selected.last.lon)}</b></div>
+      <div class="live-kv"><span>强度</span><b>${Math.round(selected.last.wind || 0)} kt</b></div>
+      <div class="live-kv"><span>气压</span><b>${selected.last.mslp != null ? selected.last.mslp + ' hPa' : '—'}</b></div>
+      <div class="live-kv"><span>峰值</span><b>${Math.round(selected.peak || 0)} kt</b></div>
+      <div class="live-kv"><span>观测时次</span><b>${selected.last.time.toISOString().slice(0, 16).replace('T', ' ')}Z</b></div>`;
+    const load = $('liveLoad');
+    if (load) load.disabled = false;
+    drawPreview();
+  }
+
+  function drawPreview() {
+    const cv = $('liveCanvas');
+    if (!cv || !selected) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = cv.clientWidth || 520, h = Math.max(210, Math.round(w * .56));
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#06101b'; ctx.fillRect(0, 0, w, h);
+    const pts = selected.points;
+    let minLat = Math.min(...pts.map(p => p.lat)), maxLat = Math.max(...pts.map(p => p.lat));
+    let minLon = Math.min(...pts.map(p => p.lon)), maxLon = Math.max(...pts.map(p => p.lon));
+    if (maxLon - minLon > 180) {
+      const ref = pts[0].lon;
+      minLon = minLon; maxLon = maxLon;
+    }
+    const padLat = Math.max(3, (maxLat - minLat) * .18), padLon = Math.max(3, (maxLon - minLon) * .18);
+    minLat -= padLat; maxLat += padLat; minLon -= padLon; maxLon += padLon;
+    const X = lon => 24 + (lon - minLon) / (maxLon - minLon || 1) * (w - 48);
+    const Y = lat => 16 + (maxLat - lat) / (maxLat - minLat || 1) * (h - 34);
+    ctx.strokeStyle = 'rgba(80,135,165,.18)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) { const y = 16 + i / 4 * (h - 34); ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(w - 24, y); ctx.stroke(); }
+    for (let i = 0; i < 5; i++) { const x = 24 + i / 4 * (w - 48); ctx.beginPath(); ctx.moveTo(x, 16); ctx.lineTo(x, h - 18); ctx.stroke(); }
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i];
+      ctx.strokeStyle = windColor(classify(b.wind || 0));
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(X(a.lon), Y(a.lat)); ctx.lineTo(X(b.lon), Y(b.lat)); ctx.stroke();
+    }
+    pts.forEach(p => {
+      ctx.beginPath(); ctx.arc(X(p.lon), Y(p.lat), 2.2, 0, 7);
+      ctx.fillStyle = windColor(classify(p.wind || 0)); ctx.fill();
+    });
+    const l = pts[pts.length - 1];
+    ctx.beginPath(); ctx.arc(X(l.lon), Y(l.lat), 6, 0, 7); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.fillStyle = '#9ff7e8'; ctx.font = '9px monospace';
+    ctx.fillText('LIVE · ' + selected.name, 26, h - 8);
+  }
+
+  function toBdeck(st) {
+    const b = (st.basin || 'WP').toUpperCase();
+    const cy = String(st.number || '1').padStart(2, '0');
+    return st.points.map(p => {
+      const wind = Math.round(p.wind || 0);
+      return b + ', ' + cy + ', ' + stampOf(p.time) + ',   , BEST,   0, ' +
+        coordOf(p.lat, true) + ', ' + coordOf(p.lon, false) + ', ' +
+        String(wind).padStart(3, ' ') + ', ' + (p.mslp != null ? Math.round(p.mslp) : 1000) + ', ' + (p.status || 'TD') +
+        ',  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, ' + selected.name + ', D,';
+    }).join('\n') + '\n';
+  }
+
+  function loadSelected() {
+    if (!selected) return;
+    if (typeof window.hideMainMenu === 'function') { try { window.hideMainMenu(true); } catch (e) {} }
+    document.body.classList.remove('menu-visible', 'main-menu-open');
+    document.body.classList.add('ui-entering');
+    closeLive();
+    try {
+      const list = window.SUDRE.ingest(toBdeck(selected), 'NOAA ACTIVE');
+      const found = (list || []).find(s => s.id.indexOf(selected.basin + String(selected.number).padStart(2, '0')) === 0) || (list || [])[0];
+      if (found) {
+        window.SUDRE.state.activeId = found.id;
+        window.SUDRE.state.frac = found.points.length - 1;
+        window.SUDRE.draw();
+        if (window.SUDRE.updateTimeline) window.SUDRE.updateTimeline();
+        if (window.SUDRE.flyToStorm) window.SUDRE.flyToStorm();
+        if (window.SUDRE.Anim) { try { window.SUDRE.Anim.frac = 0; window.SUDRE.Anim.play(); } catch (e) {} }
+      }
+      if (window.toast) window.toast('已载入实时路径：' + selected.name, 'ok');
+    } catch (e) {
+      if (window.toast) window.toast('载入实时路径失败：' + e.message, 'err');
+    }
+  }
+
+  function openLive() {
+    const m = $('liveModal');
+    if (!m) return;
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+    if (!storms.length) fetchFeed(false); else { renderList(); renderDetail(); }
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => { if (m.classList.contains('open')) fetchFeed(false); }, 600000);
+  }
+  function closeLive() {
+    const m = $('liveModal');
+    if (!m) return;
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+    clearInterval(refreshTimer);
+    refreshTimer = 0;
+  }
+
+  window.openLiveFeed = openLive;
+  window.closeLiveFeed = closeLive;
+
+  function initLive() {
+    const refresh = $('liveRefresh');
+    if (refresh) refresh.addEventListener('click', () => fetchFeed(true));
+    const close = $('liveClose');
+    if (close) close.addEventListener('click', closeLive);
+    const load = $('liveLoad');
+    if (load) load.addEventListener('click', loadSelected);
+    const m = $('liveModal');
+    if (m) m.addEventListener('click', e => { if (e.target === m) closeLive(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && m && m.classList.contains('open')) closeLive();
+    });
+    window.addEventListener('resize', () => { if (m && m.classList.contains('open')) drawPreview(); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initLive); else initLive();
+})();
+
+/* ============================================================
    V4.1 PATCH START — Roadmap / Diary / Advanced / Version
    ============================================================ */
 (function () {
@@ -7735,6 +8096,7 @@ else boot();
     const modal = document.getElementById('arenaModal');
     const frame = document.getElementById('arenaFrame');
     if (!modal || !frame) return;
+    if (window.BGM && typeof window.BGM.stop === 'function') { try { window.BGM.stop(); } catch (e) {} }
     frame.src = './typhoon_arena.html?v=' + Date.now();
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -7750,6 +8112,7 @@ else boot();
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('arena-open');
     setTimeout(() => { if (frame) frame.src = 'about:blank'; }, 180);
+    if (window.BGM && typeof window.BGM.start === 'function') { try { window.BGM.start(); } catch (e) {} }
     sfx('ui_close');
   }
 
@@ -7774,14 +8137,14 @@ else boot();
     if (action === 'builder') { enterSystem(); return; }
     if (action === 'simulator') { sfx('ui_open'); if (typeof window.openSimulator === 'function') window.openSimulator(); return; }
     if (action === 'arena') { sfx('ui_open'); if (typeof window.openGameArena === 'function') window.openGameArena(); return; }
-    if (action === 'realtime') { sfx('ui_error'); toast('实时抓取引擎正在调试，敬请期待', 'warn'); return; }
+    if (action === 'realtime') { sfx('ui_open'); if (typeof window.openLiveFeed === 'function') window.openLiveFeed(); return; }
     if (action === 'diary') { sfx('ui_open'); if (typeof window.openDiary === 'function') window.openDiary(); }
   }
 
   cards.forEach((card, i) => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.mm-card-btn')) return;
-      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); }, 420); return; }
       activateCard(card);
     });
     card.addEventListener('keydown', (e) => {
@@ -7793,7 +8156,7 @@ else boot();
     const btn = card.querySelector('.mm-card-btn');
     if (btn) btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); }, 420); return; }
       activateCard(card);
     });
   });
@@ -8256,6 +8619,14 @@ else boot();
     setUrl(u) { cfg.bgmUrl = u || './assets/bgm.mp3'; save(); applyUrl(); if (audio && !audio.paused) this.start(); }
   };
   window.BGM = BGM;
+  window.toggleSiteBgm = function(){
+    cfg.bgm = !cfg.bgm; save();
+    if(cfg.bgm){ try{ BGM.start(); }catch(e){} } else { BGM.stop(); }
+    const b=document.getElementById('hdrBgm');
+    if(b){ b.classList.toggle('on',!!cfg.bgm); b.querySelector('span').textContent=cfg.bgm?'音乐开':'音乐关'; }
+    updateMuteUI();
+    try{ toast(cfg.bgm?'背景音乐已开启':'背景音乐已关闭',cfg.bgm?'ok':'info'); }catch(e){}
+  };
 
   function updateMuteUI() {
     const btn = document.getElementById('muteBtn');

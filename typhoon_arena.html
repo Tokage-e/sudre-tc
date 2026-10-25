@@ -158,6 +158,30 @@ button{border:none;border-radius:6px;font-size:11px;padding:9px 12px;color:#fff;
   .operate-battle button{flex:1 1 42%}
 }
 
+
+/* --- Arena v4.3: field / combo / guard / transitions --- */
+.player-card,.ai-card{position:relative;overflow:visible}
+.field-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 9px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:rgba(8,21,36,.55);font:9px var(--mono);letter-spacing:.08em;color:var(--txt3)}
+.field-strip b{color:var(--teal);font-weight:600;letter-spacing:.06em}
+.field-kicker{color:var(--txt3);opacity:.7}
+#fieldDesc{color:var(--txt2);font-family:var(--sans);font-size:10px;letter-spacing:0}
+.combo-tag{margin-left:auto;color:var(--amber)!important;font-family:var(--mono)}
+.combo-tag:empty{display:none}
+.btn-guard{background:rgba(120,150,190,.12);border-color:rgba(160,190,220,.34)!important;color:#bcd6ee}
+.float-dmg{position:absolute;right:14%;top:38%;z-index:7;pointer-events:none;font:800 22px var(--mono);color:#ff8397;text-shadow:0 2px 10px rgba(0,0,0,.6);animation:floatDmg .95s cubic-bezier(.2,.8,.2,1) forwards}
+.float-dmg.heal{color:#7cf0c8}
+.float-dmg.combo{color:#ffd07a;font-size:15px}
+@keyframes floatDmg{0%{opacity:0;transform:translateY(12px) scale(.7)}18%{opacity:1;transform:translateY(0) scale(1.08)}100%{opacity:0;transform:translateY(-46px) scale(.92)}}
+.hit-shake{animation:hitShake .32s ease}
+@keyframes hitShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+.page-enter{animation:pageEnter .38s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pageEnter{from{opacity:0;transform:translateY(10px) scale(.995)}to{opacity:1;transform:none}}
+#resultPopup{animation:resultPop .38s cubic-bezier(.2,.8,.2,1) both}
+@keyframes resultPop{from{opacity:0;transform:translate(-50%,-46%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.card{animation:cardIn .4s cubic-bezier(.2,.8,.2,1) both}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.music-btn.on{color:var(--teal);border-color:rgba(25,226,197,.45);background:rgba(25,226,197,.06)}
+
 </style>
 </head>
 <body>
@@ -169,6 +193,7 @@ button{border:none;border-radius:6px;font-size:11px;padding:9px 12px;color:#fff;
         </div>
         <div class="top-actions">
             <button class="help-btn" onclick="playClick();openHelp()">玩法说明</button>
+            <button class="music-btn" id="musicBtn" onclick="toggleMusic()">🎵 音乐</button>
             <button class="skill-btn" onclick="playClick();openSkillView()">技能一览</button>
         </div>
     </div>
@@ -194,7 +219,13 @@ button{border:none;border-radius:6px;font-size:11px;padding:9px 12px;color:#fff;
         </ul>
         <h4>四、天灾系统</h4>
         <p>累计造成500伤害解锁1次抽取，单局最多3次，有概率触发稀有天灾。</p>
-        <h4>五、胜负条件</h4>
+        <h4>五、连击 / 防御 / 环境</h4>
+        <ul>
+            <li>连续造成伤害会累积连击，最多 6 层，每层提高 4% 伤害</li>
+            <li>受到伤害会清空连击；防御姿态下本回合受到伤害减半</li>
+            <li>每局随机一个环境：高海温 / 强风切 / 季风槽 / 干空气</li>
+        </ul>
+        <h4>六、胜负条件</h4>
         <p>敌方血量归零获胜，我方血量归零失败。</p>
         <button style="margin-top:16px;width:100%" onclick="playClick();closeHelp()">关闭</button>
     </div>
@@ -239,6 +270,7 @@ button{border:none;border-radius:6px;font-size:11px;padding:9px 12px;color:#fff;
 
     <div id="battlePage">
         <div class="battle-topline"><span>DUEL / ROUND <b id="turnTag">我方先手</b></span><button class="btn-select" onclick="playClick();showSelect()">重新选择</button></div>
+        <div class="field-strip"><span class="field-kicker">ENV</span><b id="fieldTag">高海温</b><span id="fieldDesc"></span><b id="comboTag" class="combo-tag"></b></div>
         <div class="battle-row">
             <div class="player-card glass">
                 <div class="card-title">我方台风</div>
@@ -270,6 +302,7 @@ button{border:none;border-radius:6px;font-size:11px;padding:9px 12px;color:#fff;
             <button class="btn-skill1" id="btnSkill1" onclick="skill1()">一技能 · 100</button>
             <button class="btn-skill2" id="btnSkill2" onclick="skill2()">二技能 · 200</button>
             <button class="btn-ult" id="btnUlt" onclick="ultSkill()">大招 · 300</button>
+            <button class="btn-guard" id="btnGuard" onclick="guard()">防御 · +40 能量</button>
             <button class="btn-event" id="eventBtn" onclick="drawEvent()">抽取天灾</button>
         </div>
         <div class="log-box" id="logBox"></div>
@@ -297,37 +330,31 @@ function playSkill(){playTone(520,0.2,"triangle",0.18);playTone(780,0.25,"triang
 function playUlt(){playTone(300,0.4,"sawtooth",0.2);setTimeout(()=>playTone(600,0.3,"square",0.15),150);}
 function playWin(){playTone(523,0.2);setTimeout(()=>playTone(659,0.2),200);setTimeout(()=>playTone(784,0.4),400);}
 function playLose(){playTone(300,0.3,"sawtooth",0.15);setTimeout(()=>playTone(200,0.5,"sawtooth",0.15),300);}
+function playHit(){playTone(120,.06,"square",.05);}
+function playGuard(){playTone(220,.12,"triangle",.12);playTone(330,.16,"sine",.08);}
+function playCombo(n){playTone(520+n*40,.08,"triangle",.08);}
 function playEvent(){playTone(440,0.15);setTimeout(()=>playTone(880,0.2),150);}
 function playRareEvent(){playTone(660,0.15);setTimeout(()=>playTone(990,0.2),120);setTimeout(()=>playTone(1320,0.25),240);}
 
-let bgmPlaying = false;
-let bgmOsc = null;
+let bgmAudio = null, bgmEnabled = true;
 function startBgm(){
-    if(bgmPlaying) return;
-    initAudio();
-    bgmOsc = audioCtx.createOscillator();
-    let g = audioCtx.createGain();
-    bgmOsc.type = 'sine';
-    bgmOsc.frequency.value = 80;
-    g.gain.value = 0.08;
-    bgmOsc.connect(g);g.connect(audioCtx.destination);
-    bgmOsc.start();
-    setInterval(()=>{
-        if(bgmPlaying && bgmOsc){
-            let freq = 65 + Math.random()*35;
-            bgmOsc.frequency.linearRampToValueAtTime(freq, audioCtx.currentTime + 2.5);
-        }
-    }, 2500);
-    bgmPlaying = true;
-    document.getElementById("musicBtn").innerText = "🎵 开";
+    if(!bgmEnabled) return;
+    if(!bgmAudio){ bgmAudio = new Audio('./bgm.mp3'); bgmAudio.loop = true; bgmAudio.volume = 0.16; }
+    const p = bgmAudio.play();
+    if(p && p.catch) p.catch(()=>{});
+    const b = document.getElementById('musicBtn');
+    if(b){ b.textContent = '🎵 音乐开'; b.classList.add('on'); }
 }
 function stopBgm(){
-    if(!bgmPlaying) return;
-    if(bgmOsc){bgmOsc.stop();bgmOsc = null;}
-    bgmPlaying = false;
-    document.getElementById("musicBtn").innerText = "🎵 关";
+    if(bgmAudio){ bgmAudio.pause(); }
+    const b = document.getElementById('musicBtn');
+    if(b){ b.textContent = '🎵 音乐关'; b.classList.remove('on'); }
 }
-function toggleMusic(){playClick();bgmPlaying?stopBgm():startBgm();}
+function toggleMusic(){
+    playClick();
+    bgmEnabled = !bgmEnabled;
+    if(bgmEnabled) startBgm(); else stopBgm();
+}
 
 // ========== 台风数据 ==========
 const typhoonList = [
@@ -347,6 +374,14 @@ const typhoonList = [
     {name:"台风莫拉克",year:"2009",rare:"SR",attr:"雨",atk:50,def:945,hp:1400,shortPassive:"每回合回血60",shortS1:"回血+提升防御",shortS2:"2回合流血",shortUlt:"大量回血+伤害"},
     {name:"台风贝碧嘉",year:"2018",rare:"N",attr:"浪",atk:45,def:955,hp:900,shortPassive:"15%闪避攻击",shortS1:"增伤+70固伤",shortS2:"追加90伤害",shortUlt:"200爆发伤害"},
     {name:"台风莲花",year:"2015",rare:"N",attr:"雨",atk:42,def:960,hp:850,shortPassive:"减伤10%",shortS1:"增伤+60固伤",shortS2:"追加80伤害",shortUlt:"180爆发伤害"},
+    {name:"台风莫兰蒂",year:"2016",rare:"UR",attr:"风",atk:86,def:865,hp:2050,shortPassive:"暴风眼：暴击率+18%",shortS1:"风眼爆发+220伤害",shortS2:"降防45+300伤害",shortUlt:"毁灭性登陆+斩杀"},
+    {name:"台风轩岚诺",year:"2022",rare:"UR",attr:"浪",atk:80,def:875,hp:2300,shortPassive:"大型环流：受伤-15%",shortS1:"巨浪+260伤害",shortS2:"降防50+300伤害",shortUlt:"跨洋爆发+回血"},
+    {name:"台风苏拉",year:"2023",rare:"SSR",attr:"风",atk:72,def:900,hp:1750,shortPassive:"眼墙置换：攻击+12%",shortS1:"强风+230伤害",shortS2:"二段风墙",shortUlt:"近岸爆发+破防"},
+    {name:"台风海葵",year:"2023",rare:"SSR",attr:"雨",atk:70,def:905,hp:1850,shortPassive:"季风补给：每回合回血80",shortS1:"暴雨+240伤害",shortS2:"持续降雨+回血",shortUlt:"极端暴雨+长流血"},
+    {name:"台风梅花",year:"2022",rare:"SSR",attr:"雨",atk:67,def:915,hp:1650,shortPassive:"螺旋雨带：伤害+10%",shortS1:"雨带+210伤害",shortS2:"降防35+250伤害",shortUlt:"登陆爆发+回血"},
+    {name:"台风灿都",year:"2021",rare:"SSR",attr:"浪",atk:71,def:900,hp:1800,shortPassive:"海温支撑：能量获取+10",shortS1:"狂浪+250伤害",shortS2:"破防+270伤害",shortUlt:"风暴潮+高伤"},
+    {name:"台风烟花",year:"2021",rare:"SR",attr:"雨",atk:60,def:925,hp:1450,shortPassive:"缓慢移动：每回合回血50",shortS1:"持续降雨+180伤害",shortS2:"2回合回血",shortUlt:"长时间降雨+伤害"},
+    {name:"台风黑格比",year:"2020",rare:"SR",attr:"风",atk:57,def:930,hp:1350,shortPassive:"近海增强：低血量攻击+25%",shortS1:"近海爆发+190伤害",shortS2:"降防30+210伤害",shortUlt:"登陆爆发伤害"},
     {name:"热带低压",year:"-",rare:"normal",attr:"风",atk:30,def:980,hp:600,shortPassive:"减伤5%",shortS1:"小幅增伤+50固伤",shortS2:"追加70伤害",shortUlt:"160伤害爆发"}
 ];
 
@@ -378,7 +413,26 @@ let myShield = 0, enShield = 0, totalDmg = 0;
 let bleedTurn = 0, myBleedTurn = 0, healTurn = 0, enHealTurn = 0;
 let enemyAtkDebuff = 0, myAtkDebuff = 0;
 let myDmgBonus = 0, myDmgTakenBonus = 0, freeUlt = false;
+let combo = 0, guarding = false, field = null;
+const fieldList = [
+  {name:"高海温", desc:"风系伤害 +15%", dmg:1.15, attr:"风"},
+  {name:"强风切", desc:"全部伤害 -8%", dmg:.92},
+  {name:"季风槽", desc:"每回合额外 +15 能量", dmg:1, energy:15},
+  {name:"干空气", desc:"治疗效果 -25%", dmg:1, heal:.75}
+];
 
+function floatDamage(side, text, type){
+    const card = document.querySelector(side === "enemy" ? ".ai-card" : ".player-card");
+    if(!card) return;
+    const el = document.createElement("div");
+    el.className = "float-dmg" + (type === "heal" ? " heal" : "") + (type === "combo" ? " combo" : "");
+    el.textContent = text;
+    card.appendChild(el);
+    card.classList.remove("hit-shake"); void card.offsetWidth; card.classList.add("hit-shake");
+    setTimeout(()=>{ el.remove(); card.classList.remove("hit-shake"); }, 1000);
+    if(type === "dmg") playHit();
+}
+function pageIn(el){ if(!el) return; el.classList.remove("page-enter"); void el.offsetWidth; el.classList.add("page-enter"); }
 function unlockLock(){lock=false;if(myTyphoon)refreshUI();}
 
 // ========== 页面切换 ==========
@@ -387,9 +441,9 @@ function hideAllPages(){
     document.getElementById("selectPage").style.display="none";
     document.getElementById("battlePage").style.display="none";
 }
-function backMenu(){unlockLock();hideAllPages();closeResult();document.getElementById("menuPage").style.display="block";}
-function showSelect(){unlockLock();hideAllPages();document.getElementById("selectPage").style.display="block";renderCard();}
-function showBattle(){unlockLock();hideAllPages();document.getElementById("battlePage").style.display="block";document.getElementById("logBox").innerHTML="";}
+function backMenu(){unlockLock();hideAllPages();closeResult();const p=document.getElementById("menuPage");p.style.display="block";pageIn(p);}
+function showSelect(){unlockLock();hideAllPages();const p=document.getElementById("selectPage");p.style.display="block";renderCard();pageIn(p);}
+function showBattle(){unlockLock();hideAllPages();const p=document.getElementById("battlePage");p.style.display="block";document.getElementById("logBox").innerHTML="";pageIn(p);}
 function closeResult(){document.getElementById("resultPopup").style.display="none";}
 function startGame(){showSelect();}
 
@@ -422,17 +476,20 @@ function pickTyphoon(idx){
     enemyAtkDebuff = 0; myAtkDebuff = 0;
     myDmgBonus = 0; myDmgTakenBonus = 0;
     totalDmg = 0; myShield = 0; enShield = 0; freeUlt = false;
+    combo = 0; guarding = false; field = fieldList[Math.floor(Math.random()*fieldList.length)];
 
     myTyphoon = JSON.parse(JSON.stringify(typhoonList[idx]));
     enemyTyphoon = JSON.parse(JSON.stringify(typhoonList[Math.floor(Math.random()*typhoonList.length)]));
 
     myHp = myTyphoon.hp; enHp = enemyTyphoon.hp;
     myEng = 0; enEng = 0;
+    startBgm();
 
     refreshUI();
     showBattle();
     log("战斗开始！","system");
     log(`我方派出 ${myTyphoon.name}，敌方派出 ${enemyTyphoon.name}`,"system");
+    log(`环境：${field.name} · ${field.desc}`,"event");
 }
 
 // ========== 伤害计算 ==========
@@ -476,16 +533,23 @@ function refreshUI(){
     if(enemyAtkDebuff>0) aStatus.innerHTML += `<span class="status-tag tag-debuff">攻击-${enemyAtkDebuff}</span>`;
     if(enShield>0) aStatus.innerHTML += `<span class="status-tag tag-buff">护盾 ${enShield}</span>`;
     if(enHealTurn>0) aStatus.innerHTML += `<span class="status-tag tag-buff">回血 ${enHealTurn}回合</span>`;
+    if(combo>0) pStatus.innerHTML += `<span class="status-tag tag-buff">连击 ${combo}</span>`;
+    if(guarding) pStatus.innerHTML += `<span class="status-tag tag-buff">防御姿态</span>`;
+    const ft=document.getElementById("fieldTag"),fd=document.getElementById("fieldDesc"),ct=document.getElementById("comboTag");
+    if(ft&&field) ft.textContent=field.name;
+    if(fd&&field) fd.textContent=field.desc;
+    if(ct) ct.textContent=combo>0?`COMBO ×${combo}`:"";
 
     let btn = document.getElementById("eventBtn");
     let canDraw = Math.floor(totalDmg / 500) > drawCount && drawCount < drawLimit;
     btn.disabled = !canDraw || lock;
     btn.innerText = drawCount >= drawLimit ? "天灾已达上限" : `抽取天灾 ${drawCount}/${drawLimit}`;
-    const b1 = document.getElementById("btnAttack"), b2 = document.getElementById("btnSkill1"), b3 = document.getElementById("btnSkill2"), b4 = document.getElementById("btnUlt");
+    const b1 = document.getElementById("btnAttack"), b2 = document.getElementById("btnSkill1"), b3 = document.getElementById("btnSkill2"), b4 = document.getElementById("btnUlt"), bg = document.getElementById("btnGuard");
     if (b1) b1.disabled = lock;
     if (b2) b2.disabled = lock || myEng < 100;
     if (b3) b3.disabled = lock || myEng < 200;
     if (b4) b4.disabled = lock || (!freeUlt && myEng < 300);
+    if (bg) bg.disabled = lock;
     const tt = document.getElementById("turnTag");
     if (tt) tt.textContent = lock ? "结算中" : "我方行动";
 }
@@ -518,19 +582,28 @@ function getRate(my,en){
 
 // ========== 伤害结算 ==========
 function dealDamageToEnemy(dmg){
+    let mult = 1;
+    if(field && field.dmg) mult *= field.dmg;
+    mult *= 1 + Math.min(combo, 6) * .04;
+    dmg = Math.max(1, Math.floor(dmg * mult));
     if(enShield > 0){
         if(enShield >= dmg){enShield -= dmg;log(`敌方护盾吸收 ${dmg} 点伤害`,"system");return 0;}
         else{dmg -= enShield;log(`敌方护盾破碎，吸收 ${enShield} 点伤害`,"system");enShield = 0;}
     }
-    enHp -= dmg; totalDmg += dmg;
+    enHp -= dmg; totalDmg += dmg; combo++;
+    floatDamage("enemy", dmg, "dmg");
+    if(combo === 3) log("连击升至 3 · 后续伤害提升", "combo");
     return dmg;
 }
 function dealDamageToMe(dmg){
+    if(guarding) dmg = Math.max(1, Math.floor(dmg * .5));
+    if(field && field.dmg) dmg = Math.floor(dmg * field.dmg);
     if(myShield > 0){
         if(myShield >= dmg){myShield -= dmg;log(`我方护盾吸收 ${dmg} 点伤害`,"system");return 0;}
         else{dmg -= myShield;log(`我方护盾破碎，吸收 ${myShield} 点伤害`,"system");myShield = 0;}
     }
-    myHp -= dmg;
+    myHp -= dmg; combo = 0;
+    floatDamage("player", dmg, "dmg");
     return dmg;
 }
 
@@ -564,10 +637,19 @@ function doAttack(){
     if(enHealTurn>0){enHp = Math.min(enemyTyphoon.hp, enHp + 120);log(`敌方持续恢复 120 点血量`,"heal");enHealTurn--;}
     if(myTyphoon.name==="台风莫拉克"){myHp = Math.min(myTyphoon.hp, myHp + 60);log(`暖池补给恢复 60 点血量`,"heal");}
 
-    myEng = Math.min(300, myEng + 30);
+    myEng = Math.min(300, myEng + 30 + (field && field.energy ? field.energy : 0));
     refreshUI();
     if(enHp<=0){winGame();return;}
     setTimeout(()=>{enemyTurn();},800);
+}
+
+function guard(){
+    if(lock) return;
+    lock = true; guarding = true;
+    myEng = Math.min(300, myEng + 40 + (field && field.energy ? field.energy : 0));
+    playGuard(); log("进入防御姿态 · 本回合受到伤害减半", "skill");
+    floatDamage("player", "GUARD", "heal");
+    refreshUI(); setTimeout(()=>enemyTurn(), 650);
 }
 
 // ========== 敌方AI ==========
@@ -591,6 +673,7 @@ function enemyTurn(){
     if(dodgeList.includes(myTyphoon.name) && Math.random()< (myTyphoon.name==="台风摩羯"?0.25:0.15)){
         log("我方闪避了敌方攻击！","passive");
         enEng = Math.min(300, enEng + 30);
+        guarding = false;
         refreshUI(); unlockLock(); return;
     }
 
@@ -603,6 +686,7 @@ function enemyTurn(){
     if(myBleedTurn>0){dealDamageToMe(120);log(`我方流血造成 120 点伤害`,"dmg");myBleedTurn--;}
     if(healTurn>0){myHp = Math.min(myTyphoon.hp, myHp + 120);log(`我方持续恢复 120 点血量`,"heal");healTurn--;}
 
+    guarding = false;
     refreshUI(); unlockLock();
     if(myHp<=0){loseGame();}
 }
