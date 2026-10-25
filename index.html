@@ -3104,6 +3104,12 @@ body.arena-open{overflow:hidden}
 .live-note{font-size:9px;color:var(--txt3);line-height:1.7;margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
 .lv.TD{color:#55b7ff}.lv.TS{color:#31d8b2}.lv.C1,.lv.C2{color:#ffd166}.lv.C3,.lv.C4,.lv.C5{color:#ff6f91}
 @media(max-width:760px){.live-grid{grid-template-columns:1fr}.live-list{max-height:210px}#liveCanvas{min-height:180px}}
+
+.live-toolbar select{height:27px;border:1px solid var(--line);border-radius:5px;background:#071522;color:var(--txt2);padding:0 6px;font-size:9px;outline:none}
+.live-playbar{display:flex;align-items:center;gap:7px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:rgba(8,20,34,.6)}
+.live-playbar button{flex:0 0 auto;height:27px;padding:0 10px;font-size:9px}
+.live-playbar input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:3px}
+#liveFrame{font:8px var(--mono);color:var(--txt3);white-space:nowrap;min-width:66px;text-align:right}
 </style>
 </head>
 <body>
@@ -3179,7 +3185,7 @@ body.arena-open{overflow:hidden}
         </div>
       </article>
 
-      <article class="mm-card is-back" data-action="arena" data-index="4" tabindex="0" aria-label="台风对战竞技场">
+      <article class="mm-card is-back" data-action="arena" data-index="2" tabindex="0" aria-label="台风对战竞技场">
         <div class="mm-card-inner">
           <div class="mm-card-head"><span class="mm-tag tag-done">[小游戏]</span><span class="mm-no">05 / ARENA</span></div>
           <h2 class="mm-card-title">台风对战</h2>
@@ -3188,9 +3194,9 @@ body.arena-open{overflow:hidden}
         </div>
       </article>
 
-      <article class="mm-card is-back" data-action="realtime" data-index="2" tabindex="0">
+      <article class="mm-card is-back" data-action="realtime" data-index="4" tabindex="0">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-live">[已接入]</span><span class="mm-no">04 / LIVE</span></div>
+          <div class="mm-card-head"><span class="mm-tag tag-live">[已接入]</span><span class="mm-no">03 / LIVE</span></div>
           <h2 class="mm-card-title">实时路径播报</h2>
           <p class="mm-card-desc">连接 NOAA/NCEI ACTIVE 数据流，读取当前活动系统并载入工作台播报。</p>
           <div class="mm-card-foot"><span>LIVE FEED</span><button class="mm-card-btn" type="button">打开实时播报</button></div>
@@ -3209,7 +3215,7 @@ body.arena-open{overflow:hidden}
   </div>
 
   <div class="mm-bottom">
-    <div class="mm-dots" id="mmDots"><button class="on" data-index="0" aria-label="路径制作器"></button><button data-index="1" aria-label="台风模拟器"></button><button data-index="4" aria-label="台风对战"></button><button data-index="2" aria-label="实时播报"></button><button data-index="3" aria-label="开发日记"></button></div>
+    <div class="mm-dots" id="mmDots"><button class="on" data-index="0" aria-label="路径制作器"></button><button data-index="1" aria-label="台风模拟器"></button><button data-index="2" aria-label="台风对战"></button><button data-index="4" aria-label="实时播报"></button><button data-index="3" aria-label="开发日记"></button></div>
     <div class="mm-hint"><span>← →</span> 切换模块 · 点击中央卡片进入</div>
     <div class="mm-foot-meta"><span>v4.2</span><span>SUDRE.TC</span></div>
   </div>
@@ -3835,6 +3841,13 @@ body.arena-open{overflow:hidden}
     <div class="p-body live-body">
       <div class="live-toolbar">
         <button class="btn accent" id="liveRefresh" type="button">刷新数据</button>
+        <select id="liveSource" aria-label="实时数据源">
+          <option value="all">NCEI · 全球</option>
+          <option value="WP">NCEI · 西北太平洋</option>
+          <option value="NA">NCEI · 北大西洋</option>
+          <option value="EP">NCEI · 东北太平洋</option>
+          <option value="GDACS">GDACS · 全球预警</option>
+        </select>
         <span id="liveStatus">正在连接 NOAA/NCEI…</span>
         <span id="liveUpdated">—</span>
       </div>
@@ -3843,7 +3856,11 @@ body.arena-open{overflow:hidden}
         <div class="live-detail-wrap">
           <div class="live-selected" id="liveSelected">选择左侧系统查看当前定位</div>
           <canvas id="liveCanvas" width="520" height="300"></canvas>
-          <button class="btn accent live-load" id="liveLoad" type="button" disabled>载入工作台并播报</button>
+          <div class="live-playbar">
+            <button class="btn accent" id="livePlay" type="button" disabled>▶ 播放</button>
+            <input type="range" id="liveRange" min="0" max="100" value="100" disabled>
+            <span id="liveFrame">—</span>
+          </div>
         </div>
       </div>
       <div class="live-note">数据源：NOAA/NCEI IBTrACS ACTIVE，最近观测时次为准；网络不可用时使用本地缓存。载入后会进入工作台并开始时间轴播放。</div>
@@ -7235,29 +7252,42 @@ else boot();
 window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"2026278N12269","name":"SIMON","basin":"EP","number":"80","points":[{"time":"2026-10-04 12:00:00","lat":11.8,"lon":-91.5,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 15:00:00","lat":11.8,"lon":-92.0,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 18:00:00","lat":11.9,"lon":-92.6,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 21:00:00","lat":12.0,"lon":-93.2,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 00:00:00","lat":12.0,"lon":-93.8,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 03:00:00","lat":12.0,"lon":-94.4,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 06:00:00","lat":12.0,"lon":-94.9,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 09:00:00","lat":12.1,"lon":-95.4,"wind":20,"mslp":null,"status":"DB"},{"time":"2026-10-05 12:00:00","lat":12.2,"lon":-95.8,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 15:00:00","lat":12.3,"lon":-96.1,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 18:00:00","lat":12.4,"lon":-96.4,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 21:00:00","lat":12.4,"lon":-96.7,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 00:00:00","lat":12.4,"lon":-97.0,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 03:00:00","lat":12.5,"lon":-97.4,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 06:00:00","lat":12.6,"lon":-97.7,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 09:00:00","lat":12.7,"lon":-98.0,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 12:00:00","lat":12.8,"lon":-98.2,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-06 15:00:00","lat":12.8,"lon":-98.4,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-06 18:00:00","lat":13.0,"lon":-98.7,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-06 21:00:00","lat":13.4,"lon":-99.0,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-07 00:00:00","lat":13.9,"lon":-99.4,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 03:00:00","lat":14.2,"lon":-99.7,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 06:00:00","lat":14.5,"lon":-100.0,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 09:00:00","lat":14.7,"lon":-100.3,"wind":28,"mslp":1006,"status":"DB"},{"time":"2026-10-07 12:00:00","lat":14.9,"lon":-100.6,"wind":30,"mslp":1006,"status":"TD"},{"time":"2026-10-07 15:00:00","lat":15.1,"lon":-100.9,"wind":33,"mslp":1005,"status":"TD"},{"time":"2026-10-07 18:00:00","lat":15.2,"lon":-101.3,"wind":35,"mslp":1004,"status":"TS"},{"time":"2026-10-07 21:00:00","lat":15.3,"lon":-101.7,"wind":38,"mslp":1003,"status":"TS"},{"time":"2026-10-08 00:00:00","lat":15.3,"lon":-102.1,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-08 03:00:00","lat":15.4,"lon":-102.4,"wind":43,"mslp":1001,"status":"TS"},{"time":"2026-10-08 06:00:00","lat":15.4,"lon":-102.7,"wind":45,"mslp":1000,"status":"TS"},{"time":"2026-10-08 09:00:00","lat":15.4,"lon":-103.0,"wind":50,"mslp":998,"status":"TS"},{"time":"2026-10-08 12:00:00","lat":15.4,"lon":-103.3,"wind":55,"mslp":995,"status":"TS"},{"time":"2026-10-08 15:00:00","lat":15.4,"lon":-103.6,"wind":58,"mslp":994,"status":"TS"},{"time":"2026-10-08 18:00:00","lat":15.4,"lon":-103.8,"wind":60,"mslp":992,"status":"TS"},{"time":"2026-10-08 21:00:00","lat":15.4,"lon":-104.0,"wind":63,"mslp":989,"status":"TS"},{"time":"2026-10-09 00:00:00","lat":15.5,"lon":-104.2,"wind":65,"mslp":985,"status":"HU"},{"time":"2026-10-09 03:00:00","lat":15.6,"lon":-104.3,"wind":73,"mslp":982,"status":"HU"},{"time":"2026-10-09 06:00:00","lat":15.7,"lon":-104.4,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-09 09:00:00","lat":15.7,"lon":-104.5,"wind":83,"mslp":977,"status":"HU"},{"time":"2026-10-09 12:00:00","lat":15.8,"lon":-104.5,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-09 15:00:00","lat":15.9,"lon":-104.6,"wind":88,"mslp":971,"status":"HU"},{"time":"2026-10-09 18:00:00","lat":16.0,"lon":-104.6,"wind":90,"mslp":966,"status":"HU"},{"time":"2026-10-09 21:00:00","lat":16.3,"lon":-104.6,"wind":98,"mslp":959,"status":"HU"},{"time":"2026-10-10 00:00:00","lat":16.6,"lon":-104.6,"wind":105,"mslp":952,"status":"HU"},{"time":"2026-10-10 03:00:00","lat":16.8,"lon":-104.6,"wind":113,"mslp":949,"status":"HU"},{"time":"2026-10-10 06:00:00","lat":17.0,"lon":-104.7,"wind":120,"mslp":945,"status":"HU"},{"time":"2026-10-10 09:00:00","lat":17.2,"lon":-104.8,"wind":125,"mslp":942,"status":"HU"},{"time":"2026-10-10 12:00:00","lat":17.3,"lon":-104.8,"wind":130,"mslp":938,"status":"HU"},{"time":"2026-10-10 15:00:00","lat":17.3,"lon":-104.8,"wind":130,"mslp":935,"status":"HU"},{"time":"2026-10-10 18:00:00","lat":17.4,"lon":-104.8,"wind":130,"mslp":932,"status":"HU"},{"time":"2026-10-10 21:00:00","lat":17.7,"lon":-104.8,"wind":133,"mslp":931,"status":"HU"},{"time":"2026-10-11 00:00:00","lat":18.0,"lon":-104.9,"wind":135,"mslp":930,"status":"HU"},{"time":"2026-10-11 03:00:00","lat":18.2,"lon":-104.9,"wind":135,"mslp":929,"status":"HU"},{"time":"2026-10-11 06:00:00","lat":18.4,"lon":-105.0,"wind":135,"mslp":928,"status":"HU"},{"time":"2026-10-11 09:00:00","lat":18.6,"lon":-105.1,"wind":133,"mslp":931,"status":"HU"},{"time":"2026-10-11 12:00:00","lat":18.9,"lon":-105.2,"wind":130,"mslp":933,"status":"HU"},{"time":"2026-10-11 15:00:00","lat":19.2,"lon":-105.4,"wind":123,"mslp":938,"status":"HU"},{"time":"2026-10-11 18:00:00","lat":19.4,"lon":-105.6,"wind":115,"mslp":943,"status":"HU"},{"time":"2026-10-11 21:00:00","lat":19.5,"lon":-105.7,"wind":108,"mslp":951,"status":"HU"},{"time":"2026-10-12 00:00:00","lat":19.6,"lon":-105.8,"wind":100,"mslp":958,"status":"HU"},{"time":"2026-10-12 03:00:00","lat":19.7,"lon":-105.9,"wind":98,"mslp":960,"status":"HU"},{"time":"2026-10-12 06:00:00","lat":19.8,"lon":-106.0,"wind":95,"mslp":961,"status":"HU"},{"time":"2026-10-12 09:00:00","lat":19.9,"lon":-106.2,"wind":95,"mslp":962,"status":"HU"},{"time":"2026-10-12 12:00:00","lat":20.0,"lon":-106.4,"wind":95,"mslp":962,"status":"HU"},{"time":"2026-10-12 15:00:00","lat":20.0,"lon":-106.6,"wind":93,"mslp":964,"status":"HU"},{"time":"2026-10-12 18:00:00","lat":20.1,"lon":-106.7,"wind":90,"mslp":966,"status":"HU"},{"time":"2026-10-12 21:00:00","lat":20.2,"lon":-106.8,"wind":88,"mslp":968,"status":"HU"},{"time":"2026-10-13 00:00:00","lat":20.3,"lon":-106.9,"wind":85,"mslp":969,"status":"HU"},{"time":"2026-10-13 03:00:00","lat":20.3,"lon":-107.0,"wind":83,"mslp":973,"status":"HU"},{"time":"2026-10-13 06:00:00","lat":20.3,"lon":-107.1,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 09:00:00","lat":20.3,"lon":-107.1,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 12:00:00","lat":20.3,"lon":-107.2,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 15:00:00","lat":20.3,"lon":-107.3,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 18:00:00","lat":20.2,"lon":-107.4,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 21:00:00","lat":20.2,"lon":-107.4,"wind":85,"mslp":973,"status":"HU"},{"time":"2026-10-14 00:00:00","lat":20.2,"lon":-107.5,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 03:00:00","lat":20.1,"lon":-107.6,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 06:00:00","lat":20.0,"lon":-107.7,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 09:00:00","lat":19.9,"lon":-107.9,"wind":88,"mslp":971,"status":"HU"},{"time":"2026-10-14 12:00:00","lat":19.8,"lon":-108.0,"wind":85,"mslp":972,"status":"HU"},{"time":"2026-10-14 15:00:00","lat":19.7,"lon":-108.1,"wind":80,"mslp":976,"status":"HU"},{"time":"2026-10-14 18:00:00","lat":19.5,"lon":-108.2,"wind":75,"mslp":980,"status":"HU"},{"time":"2026-10-14 21:00:00","lat":19.3,"lon":-108.3,"wind":65,"mslp":986,"status":"HU"},{"time":"2026-10-15 00:00:00","lat":19.2,"lon":-108.4,"wind":55,"mslp":991,"status":"TS"},{"time":"2026-10-15 03:00:00","lat":19.1,"lon":-108.4,"wind":55,"mslp":992,"status":"TS"},{"time":"2026-10-15 06:00:00","lat":19.1,"lon":-108.3,"wind":55,"mslp":992,"status":"TS"},{"time":"2026-10-15 09:00:00","lat":19.1,"lon":-108.2,"wind":53,"mslp":994,"status":"TS"},{"time":"2026-10-15 12:00:00","lat":19.1,"lon":-108.1,"wind":50,"mslp":996,"status":"TS"},{"time":"2026-10-15 15:00:00","lat":19.1,"lon":-108.1,"wind":48,"mslp":998,"status":"TS"},{"time":"2026-10-15 18:00:00","lat":19.2,"lon":-108.2,"wind":45,"mslp":999,"status":"TS"},{"time":"2026-10-15 21:00:00","lat":19.3,"lon":-108.2,"wind":43,"mslp":1001,"status":"TS"},{"time":"2026-10-16 00:00:00","lat":19.4,"lon":-108.2,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-16 03:00:00","lat":19.5,"lon":-108.3,"wind":38,"mslp":1002,"status":"TS"},{"time":"2026-10-16 06:00:00","lat":19.7,"lon":-108.5,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 09:00:00","lat":20.0,"lon":-108.8,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 12:00:00","lat":20.4,"lon":-109.2,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 15:00:00","lat":20.8,"lon":-109.6,"wind":33,"mslp":1004,"status":"TS"},{"time":"2026-10-16 18:00:00","lat":21.3,"lon":-110.0,"wind":30,"mslp":1006,"status":"DB"}]},{"sid":"2026284N08272","name":"TRUDY","basin":"EP","number":"82","points":[{"time":"2026-10-11 06:00:00","lat":7.6,"lon":-88.0,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 09:00:00","lat":7.5,"lon":-88.6,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 12:00:00","lat":7.4,"lon":-89.2,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 15:00:00","lat":7.3,"lon":-89.8,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 18:00:00","lat":7.2,"lon":-90.4,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 21:00:00","lat":7.2,"lon":-90.9,"wind":20,"mslp":null,"status":"DB"},{"time":"2026-10-12 00:00:00","lat":7.3,"lon":-91.4,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 03:00:00","lat":7.5,"lon":-91.7,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 06:00:00","lat":7.7,"lon":-92.1,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 09:00:00","lat":7.8,"lon":-92.6,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 12:00:00","lat":7.9,"lon":-93.1,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-12 15:00:00","lat":8.0,"lon":-93.5,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-12 18:00:00","lat":8.1,"lon":-93.9,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-12 21:00:00","lat":8.3,"lon":-94.3,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 00:00:00","lat":8.6,"lon":-94.7,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 03:00:00","lat":8.9,"lon":-94.9,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 06:00:00","lat":9.1,"lon":-95.1,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 09:00:00","lat":9.3,"lon":-95.3,"wind":28,"mslp":1007,"status":"DB"},{"time":"2026-10-13 12:00:00","lat":9.5,"lon":-95.5,"wind":30,"mslp":1006,"status":"TD"},{"time":"2026-10-13 15:00:00","lat":9.9,"lon":-95.7,"wind":33,"mslp":1006,"status":"TD"},{"time":"2026-10-13 18:00:00","lat":10.3,"lon":-96.0,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-13 21:00:00","lat":10.4,"lon":-96.4,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-14 00:00:00","lat":10.5,"lon":-96.9,"wind":35,"mslp":1004,"status":"TS"},{"time":"2026-10-14 03:00:00","lat":10.7,"lon":-97.7,"wind":38,"mslp":1003,"status":"TS"},{"time":"2026-10-14 06:00:00","lat":10.9,"lon":-98.4,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-14 09:00:00","lat":11.1,"lon":-98.8,"wind":45,"mslp":1001,"status":"TS"},{"time":"2026-10-14 12:00:00","lat":11.3,"lon":-99.1,"wind":50,"mslp":999,"status":"TS"},{"time":"2026-10-14 15:00:00","lat":11.5,"lon":-99.4,"wind":53,"mslp":998,"status":"TS"},{"time":"2026-10-14 18:00:00","lat":11.7,"lon":-99.7,"wind":55,"mslp":997,"status":"TS"},{"time":"2026-10-14 21:00:00","lat":12.0,"lon":-100.1,"wind":58,"mslp":996,"status":"TS"},{"time":"2026-10-15 00:00:00","lat":12.3,"lon":-100.5,"wind":60,"mslp":994,"status":"TS"},{"time":"2026-10-15 03:00:00","lat":12.5,"lon":-100.9,"wind":65,"mslp":989,"status":"TS"},{"time":"2026-10-15 06:00:00","lat":12.6,"lon":-101.2,"wind":70,"mslp":983,"status":"HU"},{"time":"2026-10-15 09:00:00","lat":12.7,"lon":-101.4,"wind":75,"mslp":981,"status":"HU"},{"time":"2026-10-15 12:00:00","lat":12.8,"lon":-101.5,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-15 15:00:00","lat":13.1,"lon":-101.6,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-15 18:00:00","lat":13.5,"lon":-101.6,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-15 21:00:00","lat":13.8,"lon":-101.7,"wind":85,"mslp":974,"status":"HU"},{"time":"2026-10-16 00:00:00","lat":14.0,"lon":-101.9,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-16 03:00:00","lat":14.0,"lon":-102.2,"wind":98,"mslp":963,"status":"HU"},{"time":"2026-10-16 06:00:00","lat":14.0,"lon":-102.4,"wind":105,"mslp":956,"status":"HU"},{"time":"2026-10-16 09:00:00","lat":14.1,"lon":-102.5,"wind":98,"mslp":963,"status":"HU"},{"time":"2026-10-16 12:00:00","lat":14.2,"lon":-102.5,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-16 15:00:00","lat":14.4,"lon":-102.4,"wind":83,"mslp":976,"status":"HU"},{"time":"2026-10-16 18:00:00","lat":14.6,"lon":-102.4,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-16 21:00:00","lat":14.8,"lon":-102.5,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-17 00:00:00","lat":15.1,"lon":-102.7,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-17 03:00:00","lat":15.4,"lon":-102.9,"wind":78,"mslp":981,"status":"HU"},{"time":"2026-10-17 06:00:00","lat":15.7,"lon":-103.2,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 09:00:00","lat":15.9,"lon":-103.6,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 12:00:00","lat":16.2,"lon":-104.0,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 15:00:00","lat":16.6,"lon":-104.5,"wind":83,"mslp":978,"status":"HU"},{"time":"2026-10-17 18:00:00","lat":17.0,"lon":-105.0,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-17 21:00:00","lat":17.4,"lon":-105.3,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-18 00:00:00","lat":17.8,"lon":-105.6,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-18 03:00:00","lat":18.1,"lon":-105.9,"wind":88,"mslp":973,"status":"HU"},{"time":"2026-10-18 06:00:00","lat":18.4,"lon":-106.2,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 09:00:00","lat":18.7,"lon":-106.4,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 12:00:00","lat":18.9,"lon":-106.6,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 15:00:00","lat":19.1,"lon":-106.7,"wind":88,"mslp":972,"status":"HU"},{"time":"2026-10-18 18:00:00","lat":19.3,"lon":-106.9,"wind":85,"mslp":974,"status":"HU"},{"time":"2026-10-18 21:00:00","lat":19.5,"lon":-107.1,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-19 00:00:00","lat":19.6,"lon":-107.4,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-19 03:00:00","lat":19.7,"lon":-107.6,"wind":65,"mslp":989,"status":"HU"},{"time":"2026-10-19 06:00:00","lat":19.7,"lon":-107.8,"wind":55,"mslp":995,"status":"TS"},{"time":"2026-10-19 09:00:00","lat":19.7,"lon":-107.9,"wind":53,"mslp":997,"status":"TS"},{"time":"2026-10-19 12:00:00","lat":19.6,"lon":-108.0,"wind":50,"mslp":999,"status":"TS"},{"time":"2026-10-19 15:00:00","lat":19.6,"lon":-108.0,"wind":45,"mslp":1002,"status":"TS"},{"time":"2026-10-19 18:00:00","lat":19.5,"lon":-107.9,"wind":40,"mslp":1004,"status":"TS"},{"time":"2026-10-19 21:00:00","lat":19.5,"lon":-107.9,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-20 00:00:00","lat":19.4,"lon":-108.0,"wind":30,"mslp":1005,"status":"TD"}]},{"sid":"2026285N16151","name":"UNNAMED","basin":"WP","number":"83","points":[{"time":"2026-10-12 00:00:00","lat":16.4,"lon":150.8,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 03:00:00","lat":16.6,"lon":150.3,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 06:00:00","lat":16.8,"lon":149.8,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 09:00:00","lat":16.9,"lon":149.4,"wind":27,"mslp":1006,"status":""},{"time":"2026-10-12 12:00:00","lat":17.1,"lon":149.1,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 15:00:00","lat":17.3,"lon":148.7,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 18:00:00","lat":17.5,"lon":148.2,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 21:00:00","lat":17.7,"lon":147.8,"wind":27,"mslp":1008,"status":""},{"time":"2026-10-13 00:00:00","lat":18.0,"lon":147.3,"wind":25,"mslp":1010,"status":""},{"time":"2026-10-13 03:00:00","lat":18.4,"lon":146.8,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-13 06:00:00","lat":18.8,"lon":146.3,"wind":25,"mslp":1007,"status":""},{"time":"2026-10-13 09:00:00","lat":19.1,"lon":145.8,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 12:00:00","lat":19.4,"lon":145.4,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 15:00:00","lat":19.7,"lon":145.0,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 18:00:00","lat":20.1,"lon":144.5,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 21:00:00","lat":20.4,"lon":144.0,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-14 00:00:00","lat":20.7,"lon":143.5,"wind":25,"mslp":1010,"status":""},{"time":"2026-10-14 03:00:00","lat":21.0,"lon":143.1,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-14 06:00:00","lat":21.3,"lon":142.8,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-14 09:00:00","lat":21.6,"lon":142.5,"wind":27,"mslp":1008,"status":""},{"time":"2026-10-14 12:00:00","lat":22.0,"lon":142.1,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 15:00:00","lat":22.4,"lon":141.6,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 18:00:00","lat":22.7,"lon":141.1,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 21:00:00","lat":22.5,"lon":140.8,"wind":27,"mslp":1007,"status":""},{"time":"2026-10-15 00:00:00","lat":22.3,"lon":140.6,"wind":25,"mslp":1007,"status":""},{"time":"2026-10-15 03:00:00","lat":22.3,"lon":140.2,"wind":22,"mslp":1008,"status":""},{"time":"2026-10-15 06:00:00","lat":22.5,"lon":139.7,"wind":19,"mslp":1009,"status":""},{"time":"2026-10-15 09:00:00","lat":22.7,"lon":139.2,"wind":19,"mslp":1011,"status":""},{"time":"2026-10-15 12:00:00","lat":22.9,"lon":138.6,"wind":19,"mslp":1012,"status":""}]},{"sid":"2026288N10161","name":"CHAMPI","basin":"WP","number":"84","points":[{"time":"2026-10-14 12:00:00","lat":9.6,"lon":161.2,"wind":29,"mslp":1003,"status":""},{"time":"2026-10-14 15:00:00","lat":10.0,"lon":160.9,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-14 18:00:00","lat":10.4,"lon":160.5,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-14 21:00:00","lat":10.6,"lon":160.0,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-15 00:00:00","lat":10.7,"lon":159.4,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-15 03:00:00","lat":10.8,"lon":158.9,"wind":29,"mslp":1003,"status":""},{"time":"2026-10-15 06:00:00","lat":10.9,"lon":158.4,"wind":29,"mslp":1002,"status":""},{"time":"2026-10-15 09:00:00","lat":10.9,"lon":157.9,"wind":32,"mslp":1002,"status":""},{"time":"2026-10-15 12:00:00","lat":11.0,"lon":157.4,"wind":35,"mslp":1001,"status":""},{"time":"2026-10-15 15:00:00","lat":11.3,"lon":157.1,"wind":37,"mslp":1000,"status":""},{"time":"2026-10-15 18:00:00","lat":11.5,"lon":156.5,"wind":39,"mslp":999,"status":""},{"time":"2026-10-15 21:00:00","lat":11.4,"lon":155.3,"wind":42,"mslp":999,"status":""},{"time":"2026-10-16 00:00:00","lat":11.3,"lon":154.0,"wind":45,"mslp":998,"status":""},{"time":"2026-10-16 03:00:00","lat":11.3,"lon":153.3,"wind":48,"mslp":996,"status":""},{"time":"2026-10-16 06:00:00","lat":11.4,"lon":152.7,"wind":51,"mslp":993,"status":""},{"time":"2026-10-16 09:00:00","lat":11.4,"lon":152.0,"wind":56,"mslp":993,"status":""},{"time":"2026-10-16 12:00:00","lat":11.4,"lon":151.4,"wind":60,"mslp":992,"status":""},{"time":"2026-10-16 15:00:00","lat":11.6,"lon":150.8,"wind":67,"mslp":988,"status":""},{"time":"2026-10-16 18:00:00","lat":11.9,"lon":150.2,"wind":74,"mslp":984,"status":""},{"time":"2026-10-16 21:00:00","lat":12.2,"lon":149.4,"wind":79,"mslp":983,"status":""},{"time":"2026-10-17 00:00:00","lat":12.4,"lon":148.6,"wind":84,"mslp":981,"status":""},{"time":"2026-10-17 03:00:00","lat":12.5,"lon":147.9,"wind":100,"mslp":965,"status":""},{"time":"2026-10-17 06:00:00","lat":12.5,"lon":147.3,"wind":115,"mslp":948,"status":""},{"time":"2026-10-17 09:00:00","lat":12.5,"lon":146.7,"wind":117,"mslp":947,"status":""},{"time":"2026-10-17 12:00:00","lat":12.6,"lon":146.1,"wind":119,"mslp":945,"status":""},{"time":"2026-10-17 15:00:00","lat":12.9,"lon":145.5,"wind":124,"mslp":940,"status":""},{"time":"2026-10-17 18:00:00","lat":13.1,"lon":144.8,"wind":128,"mslp":934,"status":""},{"time":"2026-10-17 21:00:00","lat":13.1,"lon":144.1,"wind":128,"mslp":934,"status":""},{"time":"2026-10-18 00:00:00","lat":13.1,"lon":143.4,"wind":128,"mslp":934,"status":""},{"time":"2026-10-18 03:00:00","lat":13.1,"lon":142.8,"wind":128,"mslp":933,"status":""},{"time":"2026-10-18 06:00:00","lat":13.1,"lon":142.3,"wind":128,"mslp":931,"status":""},{"time":"2026-10-18 09:00:00","lat":13.3,"lon":141.9,"wind":124,"mslp":937,"status":""},{"time":"2026-10-18 12:00:00","lat":13.5,"lon":141.4,"wind":119,"mslp":943,"status":""},{"time":"2026-10-18 15:00:00","lat":13.7,"lon":140.8,"wind":119,"mslp":943,"status":""},{"time":"2026-10-18 18:00:00","lat":13.8,"lon":140.2,"wind":119,"mslp":942,"status":""},{"time":"2026-10-18 21:00:00","lat":13.9,"lon":139.7,"wind":127,"mslp":934,"status":""},{"time":"2026-10-19 00:00:00","lat":14.0,"lon":139.2,"wind":134,"mslp":926,"status":""},{"time":"2026-10-19 03:00:00","lat":14.1,"lon":138.8,"wind":136,"mslp":922,"status":""},{"time":"2026-10-19 06:00:00","lat":14.3,"lon":138.4,"wind":138,"mslp":917,"status":""},{"time":"2026-10-19 09:00:00","lat":14.5,"lon":138.0,"wind":138,"mslp":918,"status":""},{"time":"2026-10-19 12:00:00","lat":14.8,"lon":137.6,"wind":138,"mslp":919,"status":""},{"time":"2026-10-19 15:00:00","lat":15.1,"lon":137.2,"wind":136,"mslp":919,"status":""},{"time":"2026-10-19 18:00:00","lat":15.4,"lon":136.7,"wind":134,"mslp":919,"status":""},{"time":"2026-10-19 21:00:00","lat":15.6,"lon":136.2,"wind":131,"mslp":924,"status":""},{"time":"2026-10-20 00:00:00","lat":15.9,"lon":135.6,"wind":128,"mslp":929,"status":""},{"time":"2026-10-20 03:00:00","lat":16.2,"lon":135.0,"wind":131,"mslp":926,"status":""},{"time":"2026-10-20 06:00:00","lat":16.5,"lon":134.4,"wind":134,"mslp":922,"status":""},{"time":"2026-10-20 09:00:00","lat":16.8,"lon":133.7,"wind":144,"mslp":912,"status":""},{"time":"2026-10-20 12:00:00","lat":17.0,"lon":133.0,"wind":154,"mslp":902,"status":""},{"time":"2026-10-20 15:00:00","lat":17.2,"lon":132.2,"wind":157,"mslp":899,"status":""},{"time":"2026-10-20 18:00:00","lat":17.4,"lon":131.5,"wind":159,"mslp":895,"status":""},{"time":"2026-10-20 21:00:00","lat":17.7,"lon":130.8,"wind":157,"mslp":899,"status":""},{"time":"2026-10-21 00:00:00","lat":18.1,"lon":130.1,"wind":154,"mslp":902,"status":""},{"time":"2026-10-21 03:00:00","lat":18.4,"lon":129.5,"wind":151,"mslp":903,"status":""},{"time":"2026-10-21 06:00:00","lat":18.7,"lon":128.9,"wind":148,"mslp":904,"status":""},{"time":"2026-10-21 09:00:00","lat":19.0,"lon":128.4,"wind":146,"mslp":908,"status":""},{"time":"2026-10-21 12:00:00","lat":19.3,"lon":127.9,"wind":144,"mslp":911,"status":""},{"time":"2026-10-21 15:00:00","lat":19.6,"lon":127.4,"wind":139,"mslp":916,"status":""},{"time":"2026-10-21 18:00:00","lat":19.9,"lon":126.9,"wind":134,"mslp":920,"status":""},{"time":"2026-10-21 21:00:00","lat":20.1,"lon":126.4,"wind":125,"mslp":930,"status":""},{"time":"2026-10-22 00:00:00","lat":20.3,"lon":126.0,"wind":115,"mslp":940,"status":""}]},{"sid":"2026289S11197","name":"WATI","basin":"SP","number":"85","points":[{"time":"2026-10-16 06:00:00","lat":-10.8,"lon":-163.3,"wind":35,"mslp":999,"status":""},{"time":"2026-10-16 09:00:00","lat":-11.1,"lon":-163.2,"wind":37,"mslp":998,"status":""},{"time":"2026-10-16 12:00:00","lat":-11.6,"lon":-163.1,"wind":39,"mslp":997,"status":""},{"time":"2026-10-16 15:00:00","lat":-12.2,"lon":-163.2,"wind":39,"mslp":996,"status":""},{"time":"2026-10-16 18:00:00","lat":-12.7,"lon":-163.4,"wind":39,"mslp":995,"status":""},{"time":"2026-10-16 21:00:00","lat":-12.6,"lon":-163.6,"wind":42,"mslp":995,"status":""},{"time":"2026-10-17 00:00:00","lat":-12.4,"lon":-163.7,"wind":45,"mslp":994,"status":""},{"time":"2026-10-17 03:00:00","lat":-12.7,"lon":-163.5,"wind":53,"mslp":990,"status":""},{"time":"2026-10-17 06:00:00","lat":-13.2,"lon":-163.2,"wind":60,"mslp":986,"status":""},{"time":"2026-10-17 09:00:00","lat":-13.8,"lon":-163.0,"wind":60,"mslp":986,"status":""},{"time":"2026-10-17 12:00:00","lat":-14.4,"lon":-163.0,"wind":60,"mslp":985,"status":""},{"time":"2026-10-17 15:00:00","lat":-14.6,"lon":-163.1,"wind":62,"mslp":985,"status":""},{"time":"2026-10-17 18:00:00","lat":-14.8,"lon":-163.2,"wind":64,"mslp":985,"status":""},{"time":"2026-10-17 21:00:00","lat":-15.3,"lon":-162.9,"wind":64,"mslp":985,"status":""},{"time":"2026-10-18 00:00:00","lat":-15.7,"lon":-162.6,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 03:00:00","lat":-15.9,"lon":-162.5,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 06:00:00","lat":-16.1,"lon":-162.4,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 09:00:00","lat":-16.7,"lon":-162.2,"wind":62,"mslp":986,"status":""},{"time":"2026-10-18 12:00:00","lat":-17.4,"lon":-161.8,"wind":60,"mslp":988,"status":""},{"time":"2026-10-18 15:00:00","lat":-18.0,"lon":-161.0,"wind":57,"mslp":990,"status":""},{"time":"2026-10-18 18:00:00","lat":-18.6,"lon":-160.2,"wind":54,"mslp":992,"status":""},{"time":"2026-10-18 21:00:00","lat":-19.2,"lon":-159.6,"wind":54,"mslp":992,"status":""},{"time":"2026-10-19 00:00:00","lat":-19.7,"lon":-159.0,"wind":54,"mslp":992,"status":""},{"time":"2026-10-19 03:00:00","lat":-20.2,"lon":-158.0,"wind":50,"mslp":996,"status":""},{"time":"2026-10-19 06:00:00","lat":-20.7,"lon":-156.8,"wind":45,"mslp":999,"status":""}]},{"sid":"2026292N11271","name":"VANCE","basin":"EP","number":"86","points":[{"time":"2026-10-18 18:00:00","lat":10.6,"lon":-89.2,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-18 21:00:00","lat":10.7,"lon":-89.8,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 00:00:00","lat":10.7,"lon":-90.3,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 03:00:00","lat":10.7,"lon":-90.8,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 06:00:00","lat":10.7,"lon":-91.2,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 09:00:00","lat":10.7,"lon":-91.6,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 12:00:00","lat":10.7,"lon":-92.1,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 15:00:00","lat":10.7,"lon":-92.5,"wind":18,"mslp":1010,"status":"DB"},{"time":"2026-10-19 18:00:00","lat":10.6,"lon":-93.0,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-19 21:00:00","lat":10.5,"lon":-93.5,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-20 00:00:00","lat":10.3,"lon":-94.0,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-20 03:00:00","lat":10.1,"lon":-94.4,"wind":23,"mslp":1008,"status":"DB"},{"time":"2026-10-20 06:00:00","lat":10.0,"lon":-94.8,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 09:00:00","lat":10.0,"lon":-95.2,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 12:00:00","lat":10.0,"lon":-95.6,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 15:00:00","lat":9.9,"lon":-95.9,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 18:00:00","lat":9.8,"lon":-96.2,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 21:00:00","lat":9.7,"lon":-96.5,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 00:00:00","lat":9.7,"lon":-96.9,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 03:00:00","lat":9.6,"lon":-97.3,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 06:00:00","lat":9.6,"lon":-97.8,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 09:00:00","lat":9.5,"lon":-98.2,"wind":28,"mslp":1006,"status":"DB"},{"time":"2026-10-21 12:00:00","lat":9.5,"lon":-98.7,"wind":30,"mslp":1005,"status":"TD"},{"time":"2026-10-21 15:00:00","lat":9.4,"lon":-99.2,"wind":33,"mslp":1004,"status":"TD"},{"time":"2026-10-21 18:00:00","lat":9.4,"lon":-99.6,"wind":35,"mslp":1003,"status":"TS"},{"time":"2026-10-21 21:00:00","lat":9.4,"lon":-100.0,"wind":35,"mslp":1003,"status":"TS"},{"time":"2026-10-22 00:00:00","lat":9.5,"lon":-100.5,"wind":35,"mslp":1003,"status":"TS"}]},{"sid":"2026292N31289","name":"JOSEPHINE","basin":"NA","number":"87","points":[{"time":"2026-10-18 18:00:00","lat":31.0,"lon":-71.4,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-18 21:00:00","lat":31.4,"lon":-71.2,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-19 00:00:00","lat":31.8,"lon":-71.0,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-19 03:00:00","lat":32.1,"lon":-70.9,"wind":43,"mslp":1009,"status":"EX"},{"time":"2026-10-19 06:00:00","lat":32.4,"lon":-70.9,"wind":45,"mslp":1008,"status":"EX"},{"time":"2026-10-19 09:00:00","lat":32.6,"lon":-70.9,"wind":45,"mslp":1008,"status":"EX"},{"time":"2026-10-19 12:00:00","lat":32.9,"lon":-70.8,"wind":45,"mslp":1007,"status":"EX"},{"time":"2026-10-19 15:00:00","lat":33.3,"lon":-70.7,"wind":45,"mslp":1005,"status":"EX"},{"time":"2026-10-19 18:00:00","lat":33.8,"lon":-70.6,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-19 21:00:00","lat":34.6,"lon":-70.8,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 00:00:00","lat":35.3,"lon":-70.9,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 03:00:00","lat":35.4,"lon":-70.7,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 06:00:00","lat":35.3,"lon":-70.5,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 09:00:00","lat":35.4,"lon":-70.4,"wind":45,"mslp":1001,"status":"EX"},{"time":"2026-10-20 12:00:00","lat":35.6,"lon":-70.2,"wind":45,"mslp":1000,"status":"EX"},{"time":"2026-10-20 15:00:00","lat":36.0,"lon":-69.8,"wind":45,"mslp":999,"status":"EX"},{"time":"2026-10-20 18:00:00","lat":36.3,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-20 21:00:00","lat":36.5,"lon":-69.3,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 00:00:00","lat":36.6,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 03:00:00","lat":36.7,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 06:00:00","lat":36.8,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 09:00:00","lat":36.9,"lon":-69.4,"wind":48,"mslp":995,"status":"EX"},{"time":"2026-10-21 12:00:00","lat":36.9,"lon":-69.5,"wind":50,"mslp":992,"status":"EX"},{"time":"2026-10-21 15:00:00","lat":37.0,"lon":-69.6,"wind":53,"mslp":991,"status":"EX"},{"time":"2026-10-21 18:00:00","lat":37.1,"lon":-69.6,"wind":55,"mslp":990,"status":"SS"},{"time":"2026-10-21 21:00:00","lat":37.3,"lon":-69.6,"wind":55,"mslp":989,"status":"SS"},{"time":"2026-10-22 00:00:00","lat":37.5,"lon":-69.5,"wind":55,"mslp":988,"status":"SS"}]},{"sid":"2026293S05054","name":"AGUEDA","basin":"SI","number":"88","points":[{"time":"2026-10-20 06:00:00","lat":-4.5,"lon":53.8,"wind":35,"mslp":1006,"status":""},{"time":"2026-10-20 09:00:00","lat":-4.6,"lon":53.5,"wind":37,"mslp":1005,"status":""},{"time":"2026-10-20 12:00:00","lat":-4.7,"lon":53.2,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 15:00:00","lat":-4.9,"lon":53.0,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 18:00:00","lat":-5.1,"lon":52.7,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 21:00:00","lat":-5.3,"lon":52.3,"wind":42,"mslp":1003,"status":""},{"time":"2026-10-21 00:00:00","lat":-5.4,"lon":52.0,"wind":45,"mslp":1003,"status":""},{"time":"2026-10-21 03:00:00","lat":-5.3,"lon":52.1,"wind":45,"mslp":1002,"status":""},{"time":"2026-10-21 06:00:00","lat":-5.3,"lon":52.2,"wind":45,"mslp":1000,"status":""},{"time":"2026-10-21 09:00:00","lat":-5.5,"lon":51.9,"wind":48,"mslp":999,"status":""},{"time":"2026-10-21 12:00:00","lat":-5.7,"lon":51.4,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 15:00:00","lat":-5.9,"lon":51.0,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 18:00:00","lat":-6.0,"lon":50.8,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 21:00:00","lat":-6.0,"lon":50.9,"wind":45,"mslp":999,"status":""},{"time":"2026-10-22 00:00:00","lat":-5.9,"lon":51.1,"wind":39,"mslp":1001,"status":""}]}]};
 
 /* ============================================================
-   Live track bulletin — NOAA/NCEI IBTrACS ACTIVE feed
+   Live track bulletin — standalone feed player
+   Sources: NOAA/NCEI IBTrACS ACTIVE, GDACS tropical cyclones
    ============================================================ */
 (function () {
   'use strict';
 
-  const FEED_URL = 'https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ACTIVE.list.v04r01.csv';
-  const CACHE_KEY = 'sudre_live_ibtracs_v1';
-  let storms = [];
-  let selected = null;
-  let refreshTimer = 0;
-  let loading = false;
-
+  const NCEI = 'https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ACTIVE.list.v04r01.csv';
+  const GDACS = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC&pagesize=30';
+  const CACHE_KEY = 'sudre_live_ibtracs_v2';
   const $ = id => document.getElementById(id);
-  function classify(w){w=+w||0;if(w<34)return 'TD';if(w<64)return 'TS';if(w<83)return 'C1';if(w<96)return 'C2';if(w<113)return 'C3';if(w<137)return 'C4';return 'C5';}
-  function windColor(lv){return ({TD:'#55b7ff',TS:'#31d8b2',C1:'#ffd166',C2:'#ffb02e',C3:'#ff8a5b',C4:'#ff6f91',C5:'#d86bff'})[lv]||'#93a9c4';}
+  let allStorms = [], storms = [], selected = null, source = 'all';
+  let loading = false, refreshTimer = 0;
+  let liveFrac = 1, livePlaying = false, liveRaf = 0;
+  let gdacsStorms = [];
+
   const num = v => {
     const n = parseFloat(v);
     return Number.isFinite(n) ? n : null;
   };
+  const classify = w => {
+    w = +w || 0;
+    if (w < 34) return 'TD';
+    if (w < 64) return 'TS';
+    if (w < 83) return 'C1';
+    if (w < 96) return 'C2';
+    if (w < 113) return 'C3';
+    if (w < 137) return 'C4';
+    return 'C5';
+  };
+  const windColor = lv => ({ TD: '#55b7ff', TS: '#31d8b2', C1: '#ffd166', C2: '#ffb02e', C3: '#ff8a5b', C4: '#ff6f91', C5: '#d86bff' }[lv] || '#93a9c4');
+  const fmtLat = v => Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'N' : 'S');
+  const fmtLon = v => Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'E' : 'W');
+  const fmtTime = d => d ? new Date(d).toISOString().slice(0, 16).replace('T', ' ') + 'Z' : '—';
 
   function parseCsv(text) {
-    const rows = [];
-    let row = [], cur = '', quote = false;
+    const rows = []; let row = [], cur = '', quote = false;
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
       if (quote) {
@@ -7273,33 +7303,13 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     return rows;
   }
 
-  function stampOf(d) {
-    return d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') +
-      String(d.getUTCDate()).padStart(2, '0') + String(d.getUTCHours()).padStart(2, '0');
-  }
-  function coordOf(v, isLat) {
-    if (!isLat) { while (v > 180) v -= 360; while (v < -180) v += 360; }
-    const neg = v < 0, n = Math.round(Math.abs(v) * 10);
-    return String(n).padStart(isLat ? 3 : 4, '0') + (isLat ? (neg ? 'S' : 'N') : (neg ? 'W' : 'E'));
-  }
-  function fmtLat(v) { return Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'N' : 'S'); }
-  function fmtLon(v) { return Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'E' : 'W'); }
-
-  function useSnapshot() {
-    const snap = window.LIVE_SNAPSHOT;
-    if (!snap || !snap.storms || !snap.storms.length) return false;
-    storms = snap.storms.map(st => {
-      const points = st.points.map(p => Object.assign({}, p, { time: new Date(p.time.replace(' ', 'T') + (p.time.endsWith('Z') ? '' : 'Z')) }));
-      return Object.assign({}, st, { points, last: points[points.length - 1], peak: Math.max(...points.map(p => p.wind || 0)) });
-    });
-    selected = storms[0];
-    setStatus('本地快照 · 正在向 NOAA 刷新…', 'warn');
-    setUpdated(snap.t);
-    renderList();
-    return true;
+  function normalize(st) {
+    const pts = (st.points || []).map(p => Object.assign({}, p, { time: p.time instanceof Date ? p.time : new Date(String(p.time).replace(' ', 'T') + (String(p.time).endsWith('Z') ? '' : 'Z')) }));
+    pts.sort((a, b) => a.time - b.time);
+    return Object.assign({}, st, { points: pts, last: pts[pts.length - 1], peak: Math.max(...pts.map(p => p.wind || 0)) });
   }
 
-  function parseFeed(text) {
+  function parseNcei(text) {
     const rows = parseCsv(text);
     if (rows.length < 3) return [];
     const header = rows[0].map(x => x.trim().toUpperCase());
@@ -7312,35 +7322,38 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     for (let r = 2; r < rows.length; r++) {
       const f = rows[r];
       if (!f || !f[iSid] || !f[iTime]) continue;
-      const sid = f[iSid].trim();
-      const iso = f[iTime].trim();
+      const sid = f[iSid].trim(), iso = f[iTime].trim();
       const t = Date.parse(iso.replace(' ', 'T') + (iso.endsWith('Z') ? '' : 'Z'));
       if (!Number.isFinite(t)) continue;
-      let lat = num(f[iUsaLat]);
-      let lon = num(f[iUsaLon]);
+      let lat = num(f[iUsaLat]), lon = num(f[iUsaLon]);
       if (lat == null || lon == null) { lat = num(f[iLat]); lon = num(f[iLon]); }
       if (lat == null || lon == null) continue;
       const wind = num(f[iWind]) != null ? num(f[iWind]) : (num(f[iWmoWind]) || 0);
       const mslp = num(f[iPres]) != null ? num(f[iPres]) : num(f[iWmoPres]);
       const st = map.get(sid) || {
         sid, name: (f[iName] || 'UNNAMED').trim(), basin: (f[iBasin] || 'WP').trim(),
-        number: (f[iNum] || '1').trim(), points: []
+        number: (f[iNum] || '1').trim(), origin: 'NCEI', points: []
       };
-      st.points.push({
-        time: new Date(t), lat, lon, wind, mslp,
-        status: (f[iStatus] || '').trim() || (wind >= 64 ? 'TY' : wind >= 34 ? 'TS' : 'TD')
-      });
+      st.points.push({ time: new Date(t), lat, lon, wind, mslp, status: (f[iStatus] || '').trim() || (wind >= 64 ? 'TY' : wind >= 34 ? 'TS' : 'TD') });
       map.set(sid, st);
     }
-    const out = [];
-    for (const st of map.values()) {
-      st.points.sort((a, b) => a.time - b.time);
-      st.last = st.points[st.points.length - 1];
-      st.peak = Math.max(...st.points.map(p => p.wind || 0));
-      out.push(st);
-    }
-    out.sort((a, b) => b.last.time - a.last.time);
-    return out;
+    return [...map.values()].map(normalize).sort((a, b) => b.last.time - a.last.time);
+  }
+
+  function parseGdacs(json) {
+    const feats = (json && json.features) || [];
+    return feats.map(f => {
+      const p = f.properties || {};
+      const c = (f.geometry && f.geometry.coordinates) || [0, 0];
+      const t = Date.parse(p.todate || p.fromdate || new Date().toISOString());
+      const wind = num(p.maxwind || p.wind || 0) || 0;
+      return normalize({
+        sid: 'GDACS-' + (p.eventid || p.eventname || Math.random()),
+        name: (p.eventname || p.name || 'TC').replace(/-26$/, ''),
+        basin: 'GDACS', number: p.eventid || '—', origin: 'GDACS',
+        points: [{ time: new Date(Number.isFinite(t) ? t : Date.now()), lat: c[1], lon: c[0], wind, mslp: null, status: (p.alertlevel || 'TC').toUpperCase() }]
+      });
+    }).sort((a, b) => b.last.time - a.last.time);
   }
 
   function setStatus(text, kind) {
@@ -7354,85 +7367,142 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     if (el) el.textContent = date ? new Date(date).toLocaleString('zh-CN', { hour12: false }) : '—';
   }
 
-  async function fetchFeed(force) {
-    if (loading) return;
-    loading = true;
+  function applySource(pickFirst) {
+    if (source === 'GDACS') storms = gdacsStorms.slice();
+    else if (source === 'all') storms = allStorms.slice();
+    else storms = allStorms.filter(s => s.basin === source);
+    if (selected) {
+      const again = storms.find(s => s.sid === selected.sid);
+      selected = again || null;
+    }
+    if (!selected && storms.length && pickFirst !== false) selected = storms[0];
+    stopLive();
+    renderList();
+    renderDetail();
+  }
+
+  function useSnapshot() {
+    const snap = window.LIVE_SNAPSHOT;
+    if (!snap || !snap.storms || !snap.storms.length) return false;
+    allStorms = snap.storms.map(normalize);
+    setUpdated(snap.t);
+    applySource(true);
+    return true;
+  }
+
+  async function fetchNcei(force) {
     setStatus('正在连接 NOAA/NCEI…', 'loading');
     try {
-      const res = await fetch(FEED_URL, { cache: force ? 'reload' : 'no-store' });
+      const res = await fetch(NCEI, { cache: force ? 'reload' : 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      const text = await res.text();
-      const parsed = parseFeed(text);
+      const parsed = parseNcei(await res.text());
       if (!parsed.length) throw new Error('没有解析到 ACTIVE 路径');
-      storms = parsed;
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), storms })); } catch (e) {}
-      setStatus('已连接 NOAA/NCEI · ' + storms.length + ' 个活动系统', 'ok');
+      allStorms = parsed;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), storms: parsed })); } catch (e) {}
+      setStatus('已连接 NOAA/NCEI · ' + allStorms.length + ' 个系统', 'ok');
       setUpdated(Date.now());
-      renderList();
+      applySource(false);
     } catch (e) {
       try {
         const raw = localStorage.getItem(CACHE_KEY);
         if (raw) {
-          const cached = JSON.parse(raw);
-          if (cached && cached.storms && cached.storms.length) {
-            storms = cached.storms.map(s => Object.assign({}, s, {
-              points: s.points.map(p => Object.assign({}, p, { time: new Date(p.time) })),
-              last: Object.assign({}, s.last, { time: new Date(s.last.time) })
-            }));
-            setStatus('实时源不可用 · 使用缓存', 'warn');
-            setUpdated(cached.t);
-            renderList();
+          const c = JSON.parse(raw);
+          if (c && c.storms && c.storms.length) {
+            allStorms = c.storms.map(normalize);
+            setStatus('实时源不可用 · 使用本地缓存', 'warn');
+            setUpdated(c.t);
+            applySource(false);
             return;
           }
         }
       } catch (e2) {}
-      if (!storms.length) useSnapshot();
-      if (!storms.length) setStatus('无法连接实时源：' + e.message, 'err');
-      setUpdated(null);
-    } finally {
-      loading = false;
-    }
+      if (!allStorms.length) useSnapshot();
+      if (!allStorms.length) setStatus('无法连接 NOAA：' + e.message, 'err');
+      else setStatus('NOAA 刷新失败 · 保留现有数据', 'warn');
+    } finally { loading = false; }
+  }
+
+  async function fetchGdacs() {
+    setStatus('正在连接 GDACS…', 'loading');
+    try {
+      const res = await fetch(GDACS, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      gdacsStorms = parseGdacs(await res.json());
+      setStatus('已连接 GDACS · ' + gdacsStorms.length + ' 个热带气旋预警', 'ok');
+      setUpdated(Date.now());
+      applySource(true);
+    } catch (e) {
+      setStatus('GDACS 连接失败：' + e.message, 'err');
+      if (!gdacsStorms.length) { storms = []; renderList(); renderDetail(); }
+    } finally { loading = false; }
+  }
+
+  function refresh(force) {
+    if (loading) return;
+    loading = true;
+    if (source === 'GDACS') fetchGdacs();
+    else fetchNcei(force);
   }
 
   function renderList() {
     const box = $('liveList');
     if (!box) return;
     if (!storms.length) {
-      box.innerHTML = '<div class="live-empty">暂无活动系统<br><span>点击刷新重试</span></div>';
+      box.innerHTML = '<div class="live-empty">当前数据源没有系统<br><span>点击刷新重试</span></div>';
       return;
     }
     box.innerHTML = storms.map((s, i) => {
-      const lv = classify(s.last.wind || 0);
+      const lv = s.origin === 'GDACS' ? (s.last.status || 'TC') : classify(s.last.wind || 0);
+      const cls = s.origin === 'GDACS' ? 'GDACS' : lv;
       return `<button class="live-item${selected && selected.sid === s.sid ? ' on' : ''}" data-i="${i}">
-        <span class="live-basin">${s.basin}</span>
+        <span class="live-basin">${s.origin === 'GDACS' ? 'GDACS' : s.basin}</span>
         <b>${s.name}</b>
         <span class="live-coord">${fmtLat(s.last.lat)} ${fmtLon(s.last.lon)}</span>
-        <span class="live-meta"><em class="lv ${lv}">${lv}</em>${Math.round(s.last.wind || 0)} kt · ${s.points.length} 点</span>
+        <span class="live-meta"><em class="lv ${cls}">${lv}</em>${Math.round(s.last.wind || 0)} kt · ${s.points.length} 点</span>
       </button>`;
     }).join('');
     box.querySelectorAll('.live-item').forEach(btn => btn.addEventListener('click', () => {
       const s = storms[+btn.dataset.i];
       if (!s) return;
-      selected = s;
-      renderList();
-      renderDetail();
+      selected = s; liveFrac = 1; stopLive();
+      renderList(); renderDetail();
     }));
-    if (!selected && storms[0]) { selected = storms[0]; renderDetail(); }
   }
 
   function renderDetail() {
     const box = $('liveSelected');
-    if (!box || !selected) return;
-    box.innerHTML = `<div class="live-detail-head"><span class="live-basin">${selected.basin}</span>
-      <b>${selected.name}</b><em class="lv ${classify(selected.last.wind || 0)}">${classify(selected.last.wind || 0)}</em></div>
+    const play = $('livePlay'), range = $('liveRange');
+    if (!box) return;
+    if (!selected) {
+      box.textContent = '选择左侧系统查看当前定位';
+      if (play) play.disabled = true;
+      if (range) range.disabled = true;
+      return;
+    }
+    const lv = selected.origin === 'GDACS' ? (selected.last.status || 'TC') : classify(selected.last.wind || 0);
+    box.innerHTML = `<div class="live-detail-head"><span class="live-basin">${selected.origin === 'GDACS' ? 'GDACS' : selected.basin}</span>
+      <b>${selected.name}</b><em class="lv ${lv}">${lv}</em></div>
       <div class="live-kv"><span>最后定位</span><b>${fmtLat(selected.last.lat)} / ${fmtLon(selected.last.lon)}</b></div>
       <div class="live-kv"><span>强度</span><b>${Math.round(selected.last.wind || 0)} kt</b></div>
       <div class="live-kv"><span>气压</span><b>${selected.last.mslp != null ? selected.last.mslp + ' hPa' : '—'}</b></div>
       <div class="live-kv"><span>峰值</span><b>${Math.round(selected.peak || 0)} kt</b></div>
-      <div class="live-kv"><span>观测时次</span><b>${selected.last.time.toISOString().slice(0, 16).replace('T', ' ')}Z</b></div>`;
-    const load = $('liveLoad');
-    if (load) load.disabled = false;
+      <div class="live-kv"><span>观测时次</span><b>${fmtTime(selected.last.time)}</b></div>`;
+    if (play) { play.disabled = selected.points.length < 2; play.textContent = '▶ 播放'; }
+    if (range) {
+      range.disabled = selected.points.length < 2;
+      range.max = Math.max(1, selected.points.length - 1);
+      range.value = Math.max(0, Math.round(liveFrac * (selected.points.length - 1)));
+    }
+    updateFrame();
     drawPreview();
+  }
+
+  function updateFrame() {
+    const f = $('liveFrame'), r = $('liveRange');
+    if (!selected) return;
+    const idx = Math.round(liveFrac * Math.max(1, selected.points.length - 1));
+    if (r) r.value = idx;
+    if (f) f.textContent = (idx + 1) + ' / ' + selected.points.length;
   }
 
   function drawPreview() {
@@ -7446,68 +7516,65 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = '#06101b'; ctx.fillRect(0, 0, w, h);
     const pts = selected.points;
+    if (!pts.length) return;
     let minLat = Math.min(...pts.map(p => p.lat)), maxLat = Math.max(...pts.map(p => p.lat));
     let minLon = Math.min(...pts.map(p => p.lon)), maxLon = Math.max(...pts.map(p => p.lon));
     if (maxLon - minLon > 180) {
       const ref = pts[0].lon;
-      minLon = minLon; maxLon = maxLon;
+      const u = pts.map(p => { let l = p.lon; while (l - ref > 180) l -= 360; while (l - ref < -180) l += 360; return l; });
+      minLon = Math.min(...u); maxLon = Math.max(...u);
     }
     const padLat = Math.max(3, (maxLat - minLat) * .18), padLon = Math.max(3, (maxLon - minLon) * .18);
     minLat -= padLat; maxLat += padLat; minLon -= padLon; maxLon += padLon;
     const X = lon => 24 + (lon - minLon) / (maxLon - minLon || 1) * (w - 48);
     const Y = lat => 16 + (maxLat - lat) / (maxLat - minLat || 1) * (h - 34);
-    ctx.strokeStyle = 'rgba(80,135,165,.18)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(80,135,165,.16)'; ctx.lineWidth = 1;
     for (let i = 0; i < 5; i++) { const y = 16 + i / 4 * (h - 34); ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(w - 24, y); ctx.stroke(); }
     for (let i = 0; i < 5; i++) { const x = 24 + i / 4 * (w - 48); ctx.beginPath(); ctx.moveTo(x, 16); ctx.lineTo(x, h - 18); ctx.stroke(); }
-    for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1], b = pts[i];
-      ctx.strokeStyle = windColor(classify(b.wind || 0));
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(X(a.lon), Y(a.lat)); ctx.lineTo(X(b.lon), Y(b.lat)); ctx.stroke();
+    const fi = Math.max(0, Math.min(pts.length - 1, Math.floor(liveFrac * (pts.length - 1))));
+    if (pts.length > 1) {
+      ctx.strokeStyle = 'rgba(150,190,215,.24)'; ctx.lineWidth = 2;
+      ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(X(p.lon), Y(p.lat)) : ctx.moveTo(X(p.lon), Y(p.lat))); ctx.stroke();
+      for (let i = 1; i <= fi; i++) {
+        const a = pts[i - 1], b = pts[i];
+        ctx.strokeStyle = windColor(classify(b.wind || 0)); ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(X(a.lon), Y(a.lat)); ctx.lineTo(X(b.lon), Y(b.lat)); ctx.stroke();
+      }
     }
-    pts.forEach(p => {
+    for (let i = 0; i <= fi; i++) {
+      const p = pts[i];
       ctx.beginPath(); ctx.arc(X(p.lon), Y(p.lat), 2.2, 0, 7);
       ctx.fillStyle = windColor(classify(p.wind || 0)); ctx.fill();
-    });
-    const l = pts[pts.length - 1];
+    }
+    const l = pts[fi];
     ctx.beginPath(); ctx.arc(X(l.lon), Y(l.lat), 6, 0, 7); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
     ctx.fillStyle = '#9ff7e8'; ctx.font = '9px monospace';
-    ctx.fillText('LIVE · ' + selected.name, 26, h - 8);
+    ctx.fillText('LIVE · ' + selected.name + ' · ' + fmtTime(l.time), 26, h - 8);
   }
 
-  function toBdeck(st) {
-    const b = (st.basin || 'WP').toUpperCase();
-    const cy = String(st.number || '1').padStart(2, '0');
-    return st.points.map(p => {
-      const wind = Math.round(p.wind || 0);
-      return b + ', ' + cy + ', ' + stampOf(p.time) + ',   , BEST,   0, ' +
-        coordOf(p.lat, true) + ', ' + coordOf(p.lon, false) + ', ' +
-        String(wind).padStart(3, ' ') + ', ' + (p.mslp != null ? Math.round(p.mslp) : 1000) + ', ' + (p.status || 'TD') +
-        ',  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, ' + selected.name + ', D,';
-    }).join('\n') + '\n';
+  function stopLive() {
+    livePlaying = false;
+    cancelAnimationFrame(liveRaf);
+    const b = $('livePlay');
+    if (b) b.textContent = '▶ 播放';
   }
 
-  function loadSelected() {
-    if (!selected) return;
-    if (typeof window.hideMainMenu === 'function') { try { window.hideMainMenu(true); } catch (e) {} }
-    document.body.classList.remove('menu-visible', 'main-menu-open');
-    document.body.classList.add('ui-entering');
-    closeLive();
-    try {
-      const list = window.SUDRE.ingest(toBdeck(selected), 'NOAA ACTIVE');
-      const found = (list || []).find(s => s.id.indexOf(selected.basin + String(selected.number).padStart(2, '0')) === 0) || (list || [])[0];
-      if (found) {
-        window.SUDRE.state.activeId = found.id;
-        window.SUDRE.state.frac = found.points.length - 1;
-        window.SUDRE.draw();
-        if (window.SUDRE.updateTimeline) window.SUDRE.updateTimeline();
-        if (window.SUDRE.flyToStorm) window.SUDRE.flyToStorm();
-        if (window.SUDRE.Anim) { try { window.SUDRE.Anim.frac = 0; window.SUDRE.Anim.play(); } catch (e) {} }
-      }
-      if (window.toast) window.toast('已载入实时路径：' + selected.name, 'ok');
-    } catch (e) {
-      if (window.toast) window.toast('载入实时路径失败：' + e.message, 'err');
-    }
+  function toggleLive() {
+    if (!selected || selected.points.length < 2) return;
+    if (livePlaying) { stopLive(); return; }
+    livePlaying = true;
+    liveFrac = 0;
+    const b = $('livePlay');
+    if (b) b.textContent = '❚❚ 暂停';
+    const t0 = performance.now(), dur = Math.max(1800, selected.points.length * 80);
+    const tick = now => {
+      if (!livePlaying) return;
+      liveFrac = Math.min(1, (now - t0) / dur);
+      updateFrame(); drawPreview();
+      if (liveFrac < 1) liveRaf = requestAnimationFrame(tick);
+      else stopLive();
+    };
+    liveRaf = requestAnimationFrame(tick);
   }
 
   function openLive() {
@@ -7515,10 +7582,10 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     if (!m) return;
     m.classList.add('open');
     m.setAttribute('aria-hidden', 'false');
-    if (!storms.length) useSnapshot();
-    if (!storms.length) fetchFeed(false); else { renderList(); renderDetail(); fetchFeed(false); }
+    if (!allStorms.length) useSnapshot();
+    if (!allStorms.length) refresh(false); else { applySource(false); refresh(false); }
     clearInterval(refreshTimer);
-    refreshTimer = setInterval(() => { if (m.classList.contains('open')) fetchFeed(false); }, 600000);
+    refreshTimer = setInterval(() => { if (m.classList.contains('open')) refresh(false); }, 600000);
   }
   function closeLive() {
     const m = $('liveModal');
@@ -7527,18 +7594,32 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     m.setAttribute('aria-hidden', 'true');
     clearInterval(refreshTimer);
     refreshTimer = 0;
+    stopLive();
   }
 
   window.openLiveFeed = openLive;
   window.closeLiveFeed = closeLive;
 
   function initLive() {
-    const refresh = $('liveRefresh');
-    if (refresh) refresh.addEventListener('click', () => fetchFeed(true));
+    const refreshBtn = $('liveRefresh');
+    if (refreshBtn) refreshBtn.addEventListener('click', () => refresh(true));
     const close = $('liveClose');
     if (close) close.addEventListener('click', closeLive);
-    const load = $('liveLoad');
-    if (load) load.addEventListener('click', loadSelected);
+    const play = $('livePlay');
+    if (play) play.addEventListener('click', toggleLive);
+    const range = $('liveRange');
+    if (range) range.addEventListener('input', () => {
+      if (!selected) return;
+      stopLive();
+      liveFrac = +range.value / Math.max(1, selected.points.length - 1);
+      updateFrame(); drawPreview();
+    });
+    const src = $('liveSource');
+    if (src) src.addEventListener('change', () => {
+      source = src.value;
+      if (source === 'GDACS' && !gdacsStorms.length) { loading = false; refresh(true); }
+      else { setStatus(source === 'GDACS' ? 'GDACS · 全球预警' : 'NCEI · ' + (source === 'all' ? '全球' : source), 'ok'); setUpdated(Date.now()); applySource(true); }
+    });
     const m = $('liveModal');
     if (m) m.addEventListener('click', e => { if (e.target === m) closeLive(); });
     document.addEventListener('keydown', e => {
@@ -8114,7 +8195,6 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     const modal = document.getElementById('arenaModal');
     const frame = document.getElementById('arenaFrame');
     if (!modal || !frame) return;
-    if (window.BGM && typeof window.BGM.stop === 'function') { try { window.BGM.stop(); } catch (e) {} }
     frame.src = './typhoon_arena.html?v=' + Date.now();
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -8130,7 +8210,6 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('arena-open');
     setTimeout(() => { if (frame) frame.src = 'about:blank'; }, 180);
-    if (window.BGM && typeof window.BGM.start === 'function') { try { window.BGM.start(); } catch (e) {} }
     sfx('ui_close');
   }
 
@@ -8197,6 +8276,9 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   const brand = document.querySelector('#hdr .brand');
   if (brand) { brand.style.cursor = 'pointer'; brand.title = '返回主界面'; brand.addEventListener('click', showMainMenu); }
 
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'sudre:bgm-toggle' && typeof window.toggleSiteBgm === 'function') { try { window.toggleSiteBgm(); } catch (err) {} }
+  });
   const arenaClose = document.getElementById('arenaClose');
   if (arenaClose) arenaClose.addEventListener('click', closeGameArena);
   const arenaModal = document.getElementById('arenaModal');
@@ -8637,6 +8719,9 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     setUrl(u) { cfg.bgmUrl = u || './assets/bgm.mp3'; save(); applyUrl(); if (audio && !audio.paused) this.start(); }
   };
   window.BGM = BGM;
+  document.addEventListener('pointerdown', () => {
+    if(cfg.bgm && audio && audio.paused){ try{ BGM.start(); }catch(e){} }
+  }, {once:true});
   window.toggleSiteBgm = function(){
     cfg.bgm = !cfg.bgm; save();
     if(cfg.bgm){ try{ BGM.start(); }catch(e){} } else { BGM.stop(); }

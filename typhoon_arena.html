@@ -336,24 +336,19 @@ function playCombo(n){playTone(520+n*40,.08,"triangle",.08);}
 function playEvent(){playTone(440,0.15);setTimeout(()=>playTone(880,0.2),150);}
 function playRareEvent(){playTone(660,0.15);setTimeout(()=>playTone(990,0.2),120);setTimeout(()=>playTone(1320,0.25),240);}
 
-let bgmAudio = null, bgmEnabled = true;
+let bgmEnabled = true;
 function startBgm(){
-    if(!bgmEnabled) return;
-    if(!bgmAudio){ bgmAudio = new Audio('./bgm.mp3'); bgmAudio.loop = true; bgmAudio.volume = 0.16; }
-    const p = bgmAudio.play();
-    if(p && p.catch) p.catch(()=>{});
-    const b = document.getElementById('musicBtn');
-    if(b){ b.textContent = '🎵 音乐开'; b.classList.add('on'); }
+    try { if(window.parent && window.parent !== window) window.parent.postMessage({type:'sudre:bgm-on'},'*'); } catch(e) {}
+    const b=document.getElementById('musicBtn'); if(b){b.textContent='🎵 音乐开';b.classList.add('on');}
 }
 function stopBgm(){
-    if(bgmAudio){ bgmAudio.pause(); }
-    const b = document.getElementById('musicBtn');
-    if(b){ b.textContent = '🎵 音乐关'; b.classList.remove('on'); }
+    try { if(window.parent && window.parent !== window) window.parent.postMessage({type:'sudre:bgm-off'},'*'); } catch(e) {}
+    const b=document.getElementById('musicBtn'); if(b){b.textContent='🎵 音乐关';b.classList.remove('on');}
 }
 function toggleMusic(){
-    playClick();
-    bgmEnabled = !bgmEnabled;
-    if(bgmEnabled) startBgm(); else stopBgm();
+    playClick(); bgmEnabled=!bgmEnabled;
+    try { if(window.parent && window.parent !== window) window.parent.postMessage({type:'sudre:bgm-toggle'},'*'); } catch(e) {}
+    const b=document.getElementById('musicBtn'); if(b){b.textContent=bgmEnabled?'🎵 音乐开':'🎵 音乐关';b.classList.toggle('on',bgmEnabled);}
 }
 
 // ========== 台风数据 ==========
@@ -483,7 +478,6 @@ function pickTyphoon(idx){
 
     myHp = myTyphoon.hp; enHp = enemyTyphoon.hp;
     myEng = 0; enEng = 0;
-    startBgm();
 
     refreshUI();
     showBattle();
