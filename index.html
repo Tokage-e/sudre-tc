@@ -3110,6 +3110,12 @@ body.arena-open{overflow:hidden}
 .live-playbar button{flex:0 0 auto;height:27px;padding:0 10px;font-size:9px}
 .live-playbar input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:3px}
 #liveFrame{font:8px var(--mono);color:var(--txt3);white-space:nowrap;min-width:66px;text-align:right}
+
+/* quick access above dots */
+.mm-quick{position:relative;z-index:60;display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;margin:-4px auto 4px;width:min(680px,90vw)}
+.mm-quick button{border:1px solid rgba(42,77,112,.85);border-radius:999px;background:rgba(8,22,36,.72);color:var(--txt2);padding:6px 12px;font-size:10px;letter-spacing:.04em;transition:.15s;backdrop-filter:blur(8px)}
+.mm-quick button b{font-family:var(--mono);font-size:8px;color:var(--teal);margin-right:4px;letter-spacing:.08em}
+.mm-quick button:hover{border-color:rgba(25,226,197,.55);color:#eaf7ff;background:rgba(25,226,197,.08)}
 </style>
 </head>
 <body>
@@ -3198,7 +3204,7 @@ body.arena-open{overflow:hidden}
         <div class="mm-card-inner">
           <div class="mm-card-head"><span class="mm-tag tag-live">[已接入]</span><span class="mm-no">03 / LIVE</span></div>
           <h2 class="mm-card-title">实时路径播报</h2>
-          <p class="mm-card-desc">连接 NOAA/NCEI ACTIVE 数据流，读取当前活动系统并载入工作台播报。</p>
+          <p class="mm-card-desc">CMA 中央气象台为主源，独立播放实时路径，不进入路径制作器。</p>
           <div class="mm-card-foot"><span>LIVE FEED</span><button class="mm-card-btn" type="button">打开实时播报</button></div>
         </div>
       </article>
@@ -3212,6 +3218,12 @@ body.arena-open{overflow:hidden}
         </div>
       </article>
     </div>
+  </div>
+
+  <div class="mm-quick">
+    <button type="button" data-quick="realtime"><b>LIVE</b> 实时播报</button>
+    <button type="button" data-quick="arena"><b>ARENA</b> 台风对战</button>
+    <button type="button" data-quick="simulator"><b>SIM</b> 路径模拟</button>
   </div>
 
   <div class="mm-bottom">
@@ -3242,6 +3254,7 @@ body.arena-open{overflow:hidden}
   </div>
   <div class="hdr-actions" id="hdrActions">
     <button class="hbtn" id="homeBtn" title="返回主界面"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7v8a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1v-8z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>主页</span></button>
+    <button class="hbtn" id="hdrLive" onclick="if(window.openLiveFeed) openLiveFeed()" title="实时路径播报"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M5.6 5.6a9 9 0 000 12.8M18.4 5.6a9 9 0 010 12.8M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span>实时</span></button>
     <button class="hbtn" id="hdrBgm" onclick="toggleSiteBgm()" title="背景音乐开关"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 18V5l10-2v13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="1.7"/><circle cx="16" cy="16" r="3" stroke="currentColor" stroke-width="1.7"/></svg><span>音乐</span></button>
     <button class="hbtn" data-act="table" title="数据表"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4" width="17" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 4v16M14 4v16M3.5 9.5h17M3.5 14.5h17" stroke="currentColor" stroke-width="1.4"/></svg><span>数据表</span></button>
     <button class="hbtn" data-act="intensity" title="强度曲线"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 20h18M6 16l4-5 3 3 5-7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18" cy="7" r="1.7" fill="currentColor"/></svg><span>强度</span></button>
@@ -3842,6 +3855,7 @@ body.arena-open{overflow:hidden}
       <div class="live-toolbar">
         <button class="btn accent" id="liveRefresh" type="button">刷新数据</button>
         <select id="liveSource" aria-label="实时数据源">
+          <option value="CMA" selected>CMA · 中央气象台（主）</option>
           <option value="all">NCEI · 全球</option>
           <option value="WP">NCEI · 西北太平洋</option>
           <option value="NA">NCEI · 北大西洋</option>
@@ -7260,12 +7274,14 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
 
   const NCEI = 'https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ACTIVE.list.v04r01.csv';
   const GDACS = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC&pagesize=30';
+  const CMA_LIST = 'https://typhoon.nmc.cn/weatherservice/typhoon/jsons/list_default';
+  const CMA_VIEW = 'https://typhoon.nmc.cn/weatherservice/typhoon/jsons/view_';
   const CACHE_KEY = 'sudre_live_ibtracs_v2';
   const $ = id => document.getElementById(id);
-  let allStorms = [], storms = [], selected = null, source = 'all';
+  let allStorms = [], storms = [], selected = null, source = 'CMA';
   let loading = false, refreshTimer = 0;
   let liveFrac = 1, livePlaying = false, liveRaf = 0;
-  let gdacsStorms = [];
+  let gdacsStorms = [], cmaStorms = [];
 
   const num = v => {
     const n = parseFloat(v);
@@ -7356,6 +7372,78 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     }).sort((a, b) => b.last.time - a.last.time);
   }
 
+  function parseJsonp(text) {
+    const a = Math.min(...['{','['].map(c => text.indexOf(c)).filter(i => i >= 0));
+    const b = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
+    if (!Number.isFinite(a) || b <= a) throw new Error('JSONP 结构异常');
+    return JSON.parse(text.slice(a, b + 1));
+  }
+
+  function cmaTime(p) {
+    if (p[2] && Number.isFinite(+p[2])) return new Date(+p[2]);
+    const m = String(p[1] || '').match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
+    return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : null;
+  }
+
+  function parseCmaView(payload) {
+    const t = payload && payload.typhoon;
+    if (!Array.isArray(t) || !Array.isArray(t[8])) return null;
+    const points = [];
+    t[8].forEach(p => {
+      if (!Array.isArray(p) || p.length < 8) return;
+      const time = cmaTime(p);
+      const lon = +p[4], lat = +p[5];
+      if (!time || !Number.isFinite(lon) || !Number.isFinite(lat)) return;
+      const windMs = +p[7] || 0;
+      const wind = Math.round(windMs * 1.94384);
+      points.push({ time, lat, lon, wind, mslp: +p[6] || null, status: p[3] || (wind >= 64 ? 'TY' : wind >= 34 ? 'TS' : 'TD') });
+    });
+    if (!points.length) return null;
+    const en = t[1] || 'CMA', cn = t[2] || en;
+    return normalize({
+      sid: 'CMA-' + (t[0] || en), name: cn === en ? en : cn + ' / ' + en,
+      basin: 'WP', number: t[3] || '—', origin: 'CMA', points
+    });
+  }
+
+  async function fetchCma() {
+    setStatus('正在连接 CMA / 中央气象台…', 'loading');
+    try {
+      const listRes = await fetch(CMA_LIST, { cache: 'no-store' });
+      if (!listRes.ok) throw new Error('列表 HTTP ' + listRes.status);
+      const list = parseJsonp(await listRes.text());
+      let rows = (list.typhoonList || []).filter(t => t[7] === 'start');
+      if (!rows.length) rows = (list.typhoonList || []).slice(0, 4);
+      rows = rows.slice(0, 8);
+      const tracks = await Promise.all(rows.map(async t => {
+        try {
+          const r = await fetch(CMA_VIEW + t[0], { cache: 'no-store' });
+          if (!r.ok) return null;
+          return parseCmaView(parseJsonp(await r.text()));
+        } catch (e) { return null; }
+      }));
+      cmaStorms = tracks.filter(Boolean).sort((a, b) => b.last.time - a.last.time);
+      if (!cmaStorms.length) throw new Error('没有解析到 CMA 路径');
+      try { localStorage.setItem('sudre_live_cma_v1', JSON.stringify({ t: Date.now(), storms: cmaStorms })); } catch (e) {}
+      setStatus('已连接 CMA · ' + cmaStorms.length + ' 个活动系统', 'ok');
+      setUpdated(Date.now());
+      applySource(false);
+    } catch (e) {
+      try {
+        const c = JSON.parse(localStorage.getItem('sudre_live_cma_v1') || 'null');
+        if (c && c.storms && c.storms.length) {
+          cmaStorms = c.storms.map(normalize);
+          setStatus('CMA 不可用 · 使用本地缓存', 'warn');
+          setUpdated(c.t);
+          applySource(false);
+          return;
+        }
+      } catch (e2) {}
+      if (!allStorms.length) useSnapshot();
+      setStatus('CMA 连接失败：' + e.message, 'err');
+    } finally { loading = false; }
+  }
+
   function setStatus(text, kind) {
     const el = $('liveStatus');
     if (!el) return;
@@ -7368,14 +7456,15 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   }
 
   function applySource(pickFirst) {
-    if (source === 'GDACS') storms = gdacsStorms.slice();
+    if (source === 'CMA') storms = cmaStorms.slice();
+    else if (source === 'GDACS') storms = gdacsStorms.slice();
     else if (source === 'all') storms = allStorms.slice();
     else storms = allStorms.filter(s => s.basin === source);
     if (selected) {
       const again = storms.find(s => s.sid === selected.sid);
       selected = again || null;
     }
-    if (!selected && storms.length && pickFirst !== false) selected = storms[0];
+    if (!selected && storms.length) selected = storms[0];
     stopLive();
     renderList();
     renderDetail();
@@ -7440,7 +7529,8 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   function refresh(force) {
     if (loading) return;
     loading = true;
-    if (source === 'GDACS') fetchGdacs();
+    if (source === 'CMA') fetchCma();
+    else if (source === 'GDACS') fetchGdacs();
     else fetchNcei(force);
   }
 
@@ -7582,8 +7672,10 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     if (!m) return;
     m.classList.add('open');
     m.setAttribute('aria-hidden', 'false');
-    if (!allStorms.length) useSnapshot();
-    if (!allStorms.length) refresh(false); else { applySource(false); refresh(false); }
+    if (!allStorms.length && !cmaStorms.length) useSnapshot();
+    if (source === 'CMA' && !cmaStorms.length) refresh(false);
+    else if (!allStorms.length) refresh(false);
+    else { applySource(false); refresh(false); }
     clearInterval(refreshTimer);
     refreshTimer = setInterval(() => { if (m.classList.contains('open')) refresh(false); }, 600000);
   }
@@ -7617,8 +7709,9 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     const src = $('liveSource');
     if (src) src.addEventListener('change', () => {
       source = src.value;
-      if (source === 'GDACS' && !gdacsStorms.length) { loading = false; refresh(true); }
-      else { setStatus(source === 'GDACS' ? 'GDACS · 全球预警' : 'NCEI · ' + (source === 'all' ? '全球' : source), 'ok'); setUpdated(Date.now()); applySource(true); }
+      if (source === 'CMA' && !cmaStorms.length) { loading = false; refresh(true); }
+      else if (source === 'GDACS' && !gdacsStorms.length) { loading = false; refresh(true); }
+      else { setStatus(source === 'CMA' ? 'CMA · 中央气象台' : source === 'GDACS' ? 'GDACS · 全球预警' : 'NCEI · ' + (source === 'all' ? '全球' : source), 'ok'); setUpdated(Date.now()); applySource(true); }
     });
     const m = $('liveModal');
     if (m) m.addEventListener('click', e => { if (e.target === m) closeLive(); });
@@ -8276,6 +8369,19 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
       }
     });
   }
+  document.querySelectorAll('.mm-quick [data-quick]').forEach((b) => {
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const act = b.dataset.quick;
+      const i = cards.findIndex((c) => c.getAttribute('data-action') === act);
+      if (i >= 0) {
+        focusCard(i);
+        if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed();
+        else if (act === 'arena' && window.openGameArena) window.openGameArena();
+        else if (act === 'simulator' && window.openSimulator) window.openSimulator();
+      }
+    });
+  });
   dots.forEach((d) => d.addEventListener('click', () => focusCard(+d.dataset.index)));
   document.getElementById('mmVersion').textContent = 'v4.2';
 
