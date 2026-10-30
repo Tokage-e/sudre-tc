@@ -74,7 +74,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 </head>
 <body>
 <header id="hdr">
-  <div class="brand"><div class="mark">S</div><div><b>Sudre<i>.Tc</i></b><small>TC ANIMATION STUDIO</small></div><span class="tag">v4.2 · B2</span></div>
+  <div class="brand"><div class="mark">S</div><div><b>Sudre<i>.Tc</i></b><small>TC ANIMATION STUDIO</small></div><span class="tag">v1.0</span></div>
   <div class="spacer"></div>
   <button class="hbtn" id="btnLeft">数据</button>
   <button class="hbtn" id="btnRight">参数</button>
@@ -142,6 +142,8 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
         <div class="lbl"><label>Y 偏移</label><input id="iconY" type="range" min="-100" max="100" step="1" value="0"><span id="iconYV">0</span></div>
         <div class="lbl"><label>旋转</label><input id="iconSpin" type="range" min="0" max="5" step=".1" value="0"><span id="iconSpinV">0</span></div>
         <label class="chk"><input type="checkbox" id="maskNum">遮挡原生数字</label>
+        <div class="lbl"><label>去黑底</label><select id="keyingMode"><option value="none" selected>不去除</option><option value="screen">滤色 Screen</option><option value="threshold">阈值抠像</option></select></div>
+        <div class="lbl"><label>阈值</label><input id="keyingThreshold" type="range" min="0" max="50" step="1" value="20" disabled><span id="keyingThresholdV">20</span></div>
       </div>
       <div class="sec"><h5>导出 <em>EXPORT</em></h5>
         <div class="lbl"><label>画质</label><select id="res"><option value="1080" selected>1080p</option><option value="2k">2K</option><option value="4k">4K</option></select></div>
@@ -179,7 +181,7 @@ const state = {
   palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
   W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0, view:'2d',
   fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,clouds:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
-  lineW:4, logo:null, icon:null, iconUrl:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
+  lineW:4, logo:null, icon:null, iconUrl:null, keyingMode:'none', keyingThreshold:20, keyCache:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
@@ -445,7 +447,42 @@ function drawParticles(ctx,W,H,cam,frac){
   }
   ctx.restore();
 }
-function drawIcon(ctx,W,H,cam,frac){
+function processKeyPixels(cv,threshold){
+  const c=cv.getContext('2d'),img=c.getImageData(0,0,cv.width,cv.height),d=img.data,cut=Math.max(0,Math.min(50,threshold));
+  for(let i=0;i<d.length;i+=4){
+    const mx=Math.max(d[i],d[i+1],d[i+2]);
+    if(mx<=cut){d[i+3]=0;}
+    else if(mx<cut+12){d[i+3]=Math.round(d[i+3]*((mx-cut)/12));}
+  }
+  c.putImageData(img,0,0);
+}
+function keyedSource(el,type){
+  if(!el)return null;
+  const mode=state.keyingMode,th=state.keyingThreshold;
+  if(mode==='screen')return el;
+  if(mode!=='threshold')return el;
+  const now=performance.now();
+  let cache=state.keyCache;
+  const elW=type==='video'?el.videoWidth:el.naturalWidth;
+  const elH=type==='video'?el.videoHeight:el.naturalHeight;
+  if(!elW||!elH)return el;
+  if(!cache||cache.el!==el||cache.threshold!==th||cache.type!==type){
+    const maxSide=type==='video'?640:Math.max(elW,elH);
+    const scale=Math.min(1,maxSide/Math.max(elW,elH));
+    const cv=document.createElement('canvas');cv.width=Math.max(2,Math.round(elW*scale));cv.height=Math.max(2,Math.round(elH*scale));
+    cache={el,type,threshold:th,canvas:cv,last:0};
+    state.keyCache=cache;
+  }
+  const interval=type==='video'?120:1000000;
+  if(type==='image'&&cache.ready)return cache.canvas;
+  if(type==='video'&&now-cache.last<interval)return cache.canvas;
+  const c=cache.canvas.getContext('2d');c.clearRect(0,0,cache.canvas.width,cache.canvas.height);
+  try{c.drawImage(el,0,0,cache.canvas.width,cache.canvas.height);}catch(e){return el;}
+  processKeyPixels(cache.canvas,th);
+  cache.last=now;cache.ready=true;
+  return cache.canvas;
+}
+function drawIntensityIcon(ctx,W,H,cam,frac){
   const cur=pointAt(frac);if(!cur)return;
   const p=project(cur.lat,cur.lon,cam,W,H);
   const col=colorOf(cur.wind);
@@ -453,11 +490,22 @@ function drawIcon(ctx,W,H,cam,frac){
     const el=state.icon.el;if(state.icon.type==='video'&&el.readyState<2)return;
     const base=Math.max(38,H*.062),iw=base*state.iconScale*3,ih=iw*((el.videoHeight||el.naturalHeight||256)/(el.videoWidth||el.naturalWidth||256));
     const x=p[0]+state.iconX,y=p[1]+state.iconY;
-    ctx.save();ctx.translate(x,y);if(state.iconSpin)ctx.rotate(frac*state.iconSpin);ctx.drawImage(el,-iw/2,-ih/2,iw,ih);ctx.restore();
-    if(state.maskNum){const mr=Math.max(8,base*.45);ctx.beginPath();ctx.arc(x,y,mr,0,7);ctx.fillStyle=col;ctx.fill();ctx.strokeStyle='rgba(2,8,14,.85)';ctx.lineWidth=2;ctx.stroke();ctx.font='700 '+Math.round(mr*.95)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(shortLevel(cur.wind),x,y);}
+    const src=keyedSource(el,state.icon.type);
+    ctx.save();ctx.translate(x,y);if(state.iconSpin)ctx.rotate(frac*state.iconSpin);
+    if(state.keyingMode==='screen')ctx.globalCompositeOperation='screen';
+    ctx.drawImage(src||el,-iw/2,-ih/2,iw,ih);
+    ctx.restore();
+    if(state.maskNum){
+      const mr=Math.max(8,base*.45);
+      ctx.save();ctx.globalCompositeOperation='source-over';
+      ctx.beginPath();ctx.arc(x,y,mr,0,7);ctx.fillStyle=col;ctx.fill();
+      ctx.strokeStyle='rgba(2,8,14,.85)';ctx.lineWidth=2;ctx.stroke();
+      ctx.font='700 '+Math.round(mr*.95)+'px '+getComputedStyle(document.body).fontFamily;
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';
+      ctx.fillText(shortLevel(cur.wind),x,y);ctx.restore();
+    }
     return;
   }
-  // native typhoon glyph
   const R=Math.max(11,H*.018),t=frac*3;
   ctx.save();ctx.translate(p[0],p[1]);
   const g=ctx.createRadialGradient(0,0,1,0,0,R*2.5);g.addColorStop(0,hexA(col,.55));g.addColorStop(.4,hexA(col,.15));g.addColorStop(1,hexA(col,0));
@@ -465,8 +513,9 @@ function drawIcon(ctx,W,H,cam,frac){
   ctx.rotate(t);ctx.strokeStyle=col;ctx.lineWidth=Math.max(2,R*.14);ctx.shadowColor=col;ctx.shadowBlur=16;
   for(let a=0;a<3;a++){ctx.beginPath();for(let i=0;i<=18;i++){const rr=R*(.25+.65*i/18),ang=a*2.094+i*.12;const x=Math.cos(ang)*rr,y=Math.sin(ang)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}
   ctx.restore();
-  ctx.save();ctx.font='700 '+Math.round(R*.9)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';ctx.textBaseline='middle';ctx.strokeStyle='rgba(2,8,14,.9)';ctx.lineWidth=3;ctx.strokeText(levelOf(cur.wind),p[0],p[1]);ctx.fillStyle='#fff';ctx.fillText(shortLevel(cur.wind),p[0],p[1]);ctx.restore();
+  ctx.save();ctx.font='700 '+Math.round(R*.9)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';ctx.textBaseline='middle';ctx.strokeStyle='rgba(2,8,14,.9)';ctx.lineWidth=3;ctx.strokeText(shortLevel(cur.wind),p[0],p[1]);ctx.fillStyle='#fff';ctx.fillText(shortLevel(cur.wind),p[0],p[1]);ctx.restore();
 }
+function drawIcon(ctx,W,H,cam,frac){drawIntensityIcon(ctx,W,H,cam,frac);}
 function drawLabels(ctx,W,H,cam,frac,pal){
   if(!state.fx.labels)return;
   const pts=state.points;ctx.save();ctx.font='10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='left';ctx.textBaseline='middle';
@@ -743,6 +792,8 @@ function bindUI(){
   $('iconY').oninput=e=>{state.iconY=+e.target.value;$('iconYV').textContent=state.iconY;drawPreview();};
   $('iconSpin').oninput=e=>{state.iconSpin=+e.target.value;$('iconSpinV').textContent=state.iconSpin.toFixed(1);drawPreview();};
   $('maskNum').onchange=e=>{state.maskNum=e.target.checked;drawPreview();};
+  $('keyingMode').onchange=e=>{state.keyingMode=e.target.value;state.keyCache=null;$('keyingThreshold').disabled=e.target.value!=='threshold';drawPreview();};
+  $('keyingThreshold').oninput=e=>{state.keyingThreshold=+e.target.value;$('keyingThresholdV').textContent=e.target.value;state.keyCache=null;drawPreview();};
   $('iconFile').onchange=e=>loadIcon(e.target.files[0]);
   $('logoFile').onchange=e=>loadLogo(e.target.files[0]);
   document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{sfx('preset');state.palette=b.dataset.preset;buildWorldTexture();drawPreview();});
