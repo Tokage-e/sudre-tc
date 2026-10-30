@@ -8700,6 +8700,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   }
 
   function showMainMenu() {
+    if (typeof window.exitAnimationMode === 'function') { try { window.exitAnimationMode(); } catch (e) {} }
     hideHomeLayer();
     closeOverlays();
     document.body.classList.remove('ui-entering');
@@ -8908,7 +8909,62 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     el.style.color = kind === 'err' ? '#ff8fa3' : kind === 'ok' ? '#7ce8d6' : '';
   }
 
+  let sandbox = null;
+
+  function saveSandbox() {
+    if (!window.SUDRE) return;
+    const st = window.SUDRE.state;
+    let center = null, zoom = null;
+    try { center = window.SUDRE.map.getCenter(); zoom = window.SUDRE.map.getZoom(); } catch (e) {}
+    sandbox = {
+      mode: st.settings.mode,
+      view: st.settings.view,
+      settings: JSON.parse(JSON.stringify(st.settings)),
+      activeId: st.activeId,
+      frac: st.frac,
+      playing: !!(window.SUDRE.Anim && window.SUDRE.Anim.playing),
+      center, zoom
+    };
+  }
+
+  function forceAnimationMap() {
+    if (!window.SUDRE) return;
+    const st = window.SUDRE.state;
+    st.settings.mode = 'normal';
+    st.settings.view = '2d';
+    document.body.classList.remove('pro', 'pro-mode', 'view-3d');
+    document.querySelectorAll('#modes [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === 'normal'));
+    const inner = document.getElementById('stageInner'), gl = document.getElementById('glView');
+    if (inner) inner.style.visibility = '';
+    if (gl) gl.classList.remove('show');
+    try { window.SUDRE.setView('2d'); } catch (e) {}
+  }
+
+  function restoreSandbox() {
+    if (!sandbox || !window.SUDRE) return;
+    const st = window.SUDRE.state;
+    try { if (window.SUDRE.Anim) { window.SUDRE.Anim.pause(); window.SUDRE.Anim.frac = 0; } } catch (e) {}
+    Object.keys(st.settings).forEach(k => { delete st.settings[k]; });
+    Object.assign(st.settings, sandbox.settings);
+    st.settings.mode = sandbox.mode;
+    st.settings.view = sandbox.view;
+    st.appMode = 'builder';
+    st.activeId = sandbox.activeId;
+    st.frac = sandbox.frac;
+    document.body.classList.toggle('pro', sandbox.mode === 'pro');
+    document.querySelectorAll('#modes [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === sandbox.mode));
+    try {
+      if (window.SUDRE.setView) window.SUDRE.setView(sandbox.view);
+      if (sandbox.center && window.SUDRE.map) window.SUDRE.map.setView([sandbox.center.lat, sandbox.center.lng], sandbox.zoom, { animate: false });
+      window.SUDRE.draw();
+      window.SUDRE.updateTimeline();
+      if (sandbox.playing && window.SUDRE.Anim) window.SUDRE.Anim.play();
+    } catch (e) {}
+    sandbox = null;
+  }
+
   function enterAnimationMode() {
+    if (isAnimation()) return;
     if (typeof window.hideMainMenu === 'function') {
       try { window.hideMainMenu(true); } catch (e) {}
     }
@@ -8917,6 +8973,8 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     document.body.classList.remove('menu-visible', 'main-menu-open', 'home-open', 'ui-leaving');
     document.body.classList.add('mode-animation', 'ui-entering');
     try { window.SUDRE.state.appMode = 'animation'; } catch (e) {}
+    saveSandbox();
+    forceAnimationMap();
     const panel = $('animControlPanel');
     if (panel) panel.setAttribute('aria-hidden', 'false');
     const dataPanel = $('animDataPanel');
@@ -8939,11 +8997,11 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   function exitAnimationMode() {
     if (!isAnimation()) return;
     document.body.classList.remove('mode-animation', 'anim-trail');
-    try { window.SUDRE.state.appMode = 'builder'; } catch (e) {}
     const panel = $('animControlPanel');
     if (panel) panel.setAttribute('aria-hidden', 'true');
     const dataPanel = $('animDataPanel');
     if (dataPanel) dataPanel.setAttribute('aria-hidden', 'true');
+    restoreSandbox();
     if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
   }
 
