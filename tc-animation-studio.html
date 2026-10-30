@@ -164,7 +164,7 @@ const state = {
   W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'follow', camPush:1.25,
   fx:{particles:true,vignette:true,grain:true,rings:true,hudTitle:true,grid:true,labels:true},
   lineW:4, icon:null, iconUrl:null, iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
-  land:null, cam:{lat:0,lon:0,scale:20}, exporting:false
+  land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
 WP, 01, 2026100106, , BEST, 0, 110N, 1485E, 70, 985, TY, 34, NEQ, 125, 85, 75, 105
@@ -264,23 +264,32 @@ function drawGrid(ctx,W,H,cam,pal){
   for(let lat=-80;lat<=80;lat+=10){const y=project(lat,0,cam,W,H)[1];ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   ctx.restore();
 }
-function drawLand(ctx,W,H,cam,pal){
+function buildWorldTexture(){
   const geo=state.land;if(!geo)return;
-  ctx.save();ctx.fillStyle=pal.land;ctx.strokeStyle=pal.coast;ctx.lineWidth=Math.max(.6,W/2400);ctx.lineJoin='round';
+  const TW=4096,TH=2048,c=document.createElement('canvas');c.width=TW;c.height=TH;
+  const x=c.getContext('2d'),pal=PALETTES[state.palette]||PALETTES.hcc;
+  x.fillStyle=pal.land;x.strokeStyle=pal.coast;x.lineWidth=1.5;x.lineJoin='round';
   for(const f of geo.features){
     const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[];
     for(const poly of polys)for(const ring of poly){
-      ctx.beginPath();let started=false,prev=null;
-      for(const c of ring){
-        let lon=c[0];while(lon-cam.lon>180)lon-=360;while(lon-cam.lon<-180)lon+=360;
-        const p=project(c[1],lon,cam,W,H);
-        if(prev&&Math.abs(p[0]-prev)>W*.55)started=false;
-        if(!started){ctx.moveTo(p[0],p[1]);started=true;}else ctx.lineTo(p[0],p[1]);
-        prev=p[0];
-      }
-      ctx.closePath();ctx.fill();ctx.stroke();
+      x.beginPath();let started=false;
+      for(const p of ring){const px=(p[0]+180)/360*TW,py=(90-p[1])/180*TH;started?x.lineTo(px,py):(x.moveTo(px,py),started=true);}
+      x.closePath();x.fill();x.stroke();
     }
   }
+  state.worldTex=c;state.worldPalette=state.palette;
+}
+function drawLand(ctx,W,H,cam,pal){
+  if(!state.worldTex||state.worldPalette!==state.palette)buildWorldTexture();
+  const tex=state.worldTex;if(!tex)return;
+  const TW=tex.width,TH=tex.height;
+  const sw=(W/cam.scale)/360*TW,sh=(H/(cam.scale*1.02))/180*TH;
+  const cx=(cam.lon+180)/360*TW,cy=(90-cam.lat)/180*TH;
+  let sx=cx-sw/2,sy=cy-sh/2;
+  ctx.save();ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(tex,sx,sy,sw,sh,0,0,W,H);
+  if(sx<0)ctx.drawImage(tex,sx+TW,sy,sw,sh,0,0,W,H);
+  if(sx+sw>TW)ctx.drawImage(tex,sx-TW,sy,sw,sh,0,0,W,H);
   ctx.restore();
 }
 function drawRadii(ctx,W,H,cam,frac,pal){
@@ -486,7 +495,7 @@ function bindUI(){
   $('iconSpin').oninput=e=>{state.iconSpin=+e.target.value;$('iconSpinV').textContent=state.iconSpin.toFixed(1);drawPreview();};
   $('maskNum').onchange=e=>{state.maskNum=e.target.checked;drawPreview();};
   $('iconFile').onchange=e=>loadIcon(e.target.files[0]);
-  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{state.palette=b.dataset.preset;drawPreview();});
+  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{state.palette=b.dataset.preset;buildWorldTexture();drawPreview();});
   $('btnLeft').onclick=()=>$('left').classList.toggle('open');$('btnRight').onclick=()=>$('right').classList.toggle('open');
   window.addEventListener('resize',()=>{resizeCanvas();drawPreview();});
 }
@@ -543,7 +552,7 @@ async function exportMP4(){
 async function loadLand(){
   try{
     const topo=await (await fetch('https://unpkg.com/world-atlas@2.0.2/countries-110m.json')).json();
-    state.land=topojson.feature(topo,topo.objects.countries);
+    state.land=topojson.feature(topo,topo.objects.countries);buildWorldTexture();
   }catch(e){toast('地图数据加载失败，使用经纬网',true);}
   $('splash').classList.add('hide');
 }
