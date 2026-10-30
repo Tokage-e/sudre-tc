@@ -46,6 +46,8 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 .lbl select{flex:1;height:25px;border:1px solid var(--line);border-radius:4px;background:#071522;color:var(--txt2);font-size:9px;padding:0 5px;min-width:0}
 .lbl input[type=range]{flex:1;min-width:0;accent-color:var(--teal);height:3px}
 .lbl span{width:30px;text-align:right;font:8px var(--mono);color:var(--txt2)}
+.txt{flex:1;min-width:0;height:25px;border:1px solid var(--line);border-radius:4px;background:#071522;color:var(--txt);font:9px var(--mono);padding:0 6px;outline:none}
+.txt:focus{border-color:rgba(25,226,197,.55)}
 .chk{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--txt2);margin:5px 0}
 .chk input{accent-color:var(--teal)}
 .iconfile{width:100%;font:8px var(--mono);color:var(--txt3);border:1px dashed var(--line);border-radius:4px;padding:5px;margin:4px 0}
@@ -72,7 +74,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 </head>
 <body>
 <header id="hdr">
-  <div class="brand"><div class="mark">S</div><div><b>Sudre<i>.Tc</i></b><small>TC ANIMATION STUDIO</small></div><span class="tag">v4.2 · B</span></div>
+  <div class="brand"><div class="mark">S</div><div><b>Sudre<i>.Tc</i></b><small>TC ANIMATION STUDIO</small></div><span class="tag">v4.2 · B2</span></div>
   <div class="spacer"></div>
   <button class="hbtn" id="btnLeft">数据</button>
   <button class="hbtn" id="btnRight">参数</button>
@@ -91,13 +93,15 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
       </div>
       <div class="sec"><h5>气旋列表 <em>STORMS</em></h5><div class="list" id="stormList"></div></div>
       <div class="sec"><h5>项目预设 <em>PRESET</em></h5>
-        <div class="row"><button data-preset="hcc">HCC</button><button data-preset="takagi">高菊</button><button data-preset="cinema">电影蓝</button></div>
+        <div class="row"><button data-preset="deepsea">深海</button><button data-preset="aurora">极光</button><button data-preset="silver">银幕</button></div>
         <div class="stat">预设改变配色、辉光、粒子密度，不改变数据。</div>
       </div>
       <div class="sec"><h5>信息 <em>HUD</em></h5>
         <label class="chk"><input type="checkbox" id="hudTitle" checked>标题 / 强度 HUD</label>
         <label class="chk"><input type="checkbox" id="hudGrid" checked>经纬网</label>
         <label class="chk"><input type="checkbox" id="hudLabels" checked>路径时间标签</label>
+        <div class="lbl"><label>标题</label><input class="txt" id="titleText" value="POLO"></div>
+        <div class="lbl"><label>副标题</label><input class="txt" id="subtitleText" value="WP01 / BEST TRACK"></div>
       </div>
       <div class="stat">独立 Canvas 渲染内核。预览与导出共用 renderScene()，不依赖 Leaflet。</div>
     </div>
@@ -109,19 +113,26 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
     <div class="p-head"><div><b>导演参数</b><small>DIRECTOR · CAMERA · FX</small></div><span class="tag">LIVE</span></div>
     <div class="p-body">
       <div class="sec"><h5>镜头 <em>CAMERA</em></h5>
-        <div class="lbl"><label>模式</label><select id="camMode"><option value="follow" selected>跟随</option><option value="wide">广角</option><option value="lock">中心锁死</option></select></div>
+        <div class="lbl"><label>模式</label><select id="camMode"><option value="director" selected>导演自动</option><option value="follow">跟随</option><option value="wide">广角</option><option value="lock">中心锁死</option></select></div>
         <div class="lbl"><label>强度</label><input id="camPush" type="range" min=".8" max="2.2" step=".05" value="1.25"><span id="camPushV">1.25</span></div>
         <div class="lbl"><label>速度</label><input id="speed" type="range" min=".1" max="5" step=".1" value="1"><span id="speedV">1.0×</span></div>
+        <div class="lbl"><label>环绕</label><input id="camOrbit" type="range" min="0" max="1" step=".01" value="0"><span id="camOrbitV">0</span></div>
+        <div class="lbl"><label>滚转</label><input id="camRoll" type="range" min="-12" max="12" step=".5" value="0"><span id="camRollV">0</span></div>
+        <div class="row"><button id="keyAdd">＋ 镜头关键帧</button><button id="keyClear">清空</button></div>
+        <div class="stat" id="keyList">无关键帧 · 使用导演自动</div>
       </div>
       <div class="sec"><h5>视觉 <em>STYLE</em></h5>
         <label class="chk"><input type="checkbox" id="fxParticles" checked>风场粒子</label>
         <label class="chk"><input type="checkbox" id="fxVignette" checked>电影暗角</label>
         <label class="chk"><input type="checkbox" id="fxGrain" checked>胶片颗粒</label>
         <label class="chk"><input type="checkbox" id="fxRings" checked>动态风圈</label>
+        <label class="chk"><input type="checkbox" id="fxBloom" checked>辉光 Bloom</label>
         <div class="lbl"><label>路径</label><input id="lineW" type="range" min="1" max="10" step=".5" value="4"><span id="lineWV">4</span></div>
+        <div class="lbl"><label>调色</label><select id="grade"><option value="none" selected>原色</option><option value="cool">冷青</option><option value="warm">暖橙</option><option value="mono">低饱和</option></select></div>
       </div>
       <div class="sec"><h5>自定义图标 <em>ICON</em></h5>
         <input class="iconfile" type="file" id="iconFile" accept="image/*,video/*">
+        <input class="iconfile" type="file" id="logoFile" accept="image/*">
         <div class="lbl"><label>缩放</label><input id="iconScale" type="range" min=".3" max="3" step=".05" value="1"><span id="iconScaleV">1.0</span></div>
         <div class="lbl"><label>X 偏移</label><input id="iconX" type="range" min="-100" max="100" step="1" value="0"><span id="iconXV">0</span></div>
         <div class="lbl"><label>Y 偏移</label><input id="iconY" type="range" min="-100" max="100" step="1" value="0"><span id="iconYV">0</span></div>
@@ -154,16 +165,16 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 const $ = id => document.getElementById(id);
 const D2R = Math.PI / 180;
 const PALETTES = {
-  hcc: { bg:'#03101b', ocean1:'#071b2b', ocean2:'#02080f', land:'rgba(18,44,64,.92)', coast:'rgba(80,140,175,.55)', grid:'rgba(70,125,155,.14)', text:'#dff7ff', accent:'#62e8d2', track:'#57e5d0', warm:'#ffb86b' },
-  takagi: { bg:'#070a12', ocean1:'#0b1322', ocean2:'#03060c', land:'rgba(28,34,50,.95)', coast:'rgba(115,145,185,.55)', grid:'rgba(105,130,165,.13)', text:'#f2f7ff', accent:'#7aa7ff', track:'#89b8ff', warm:'#ffd479' },
-  cinema: { bg:'#02100f', ocean1:'#061b22', ocean2:'#010608', land:'rgba(12,45,52,.92)', coast:'rgba(80,175,165,.55)', grid:'rgba(80,170,160,.14)', text:'#e9fff9', accent:'#43ffd2', track:'#43ffd2', warm:'#ffbf6b' }
+  deepsea: { bg:'#03101b', ocean1:'#071b2b', ocean2:'#02080f', land:'rgba(18,44,64,.92)', coast:'rgba(80,140,175,.55)', grid:'rgba(70,125,155,.14)', text:'#dff7ff', accent:'#62e8d2', track:'#57e5d0', warm:'#ffb86b' },
+  aurora: { bg:'#070a12', ocean1:'#0b1322', ocean2:'#03060c', land:'rgba(28,34,50,.95)', coast:'rgba(115,145,185,.55)', grid:'rgba(105,130,165,.13)', text:'#f2f7ff', accent:'#7aa7ff', track:'#89b8ff', warm:'#ffd479' },
+  silver: { bg:'#02100f', ocean1:'#061b22', ocean2:'#010608', land:'rgba(12,45,52,.92)', coast:'rgba(80,175,165,.55)', grid:'rgba(80,170,160,.14)', text:'#e9fff9', accent:'#43ffd2', track:'#43ffd2', warm:'#ffbf6b' }
 };
 const C = { 34:'#56d8ff', 50:'#ffd166', 64:'#ff6b81', TD:'#5bb8ff', TS:'#19e2c5', TY:'#ffd166', STY:'#ff9f43', SuperTY:'#ff5d73' };
 const state = {
-  palette:'hcc', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
-  W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'follow', camPush:1.25,
-  fx:{particles:true,vignette:true,grain:true,rings:true,hudTitle:true,grid:true,labels:true},
-  lineW:4, icon:null, iconUrl:null, iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
+  palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
+  W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0,
+  fx:{particles:true,vignette:true,grain:true,rings:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
+  lineW:4, logo:null, icon:null, iconUrl:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
@@ -246,9 +257,23 @@ function cameraFor(frac,W,H){
   const intro=1.8-.8*ease(frac/6);
   const windBoost=1+clamp((cur.wind-65)/260,0,.35);
   let sc=fit*intro*windBoost*push;
+  let centerLat=cur.lat,centerLon=cur.lon;
   if(state.camMode==='wide')sc=fit*.92;
   if(state.camMode==='lock')sc=fit*push*1.12;
-  return {lat:cur.lat,lon:cur.lon,scale:sc};
+  if(state.camMode==='director'||state.camMode==='follow'){
+    const ai=Math.max(0,frac-1.6),bi=Math.min(state.points.length-1,frac+1.6),a=pointAt(ai),b=pointAt(bi);
+    const lead=state.camMode==='director'?.22:.1;
+    if(a&&b){centerLon=cur.lon+(b.lon-a.lon)*lead;centerLat=cur.lat+(b.lat-a.lat)*lead;}
+    if(state.camMode==='director')sc=fit*(1.55-.45*ease(frac/8))*windBoost*push;
+  }
+  if(state.keys.length){
+    const p=frac/Math.max(1,state.points.length-1);let a=state.keys[0],b=state.keys[state.keys.length-1];
+    for(let i=0;i<state.keys.length-1;i++){if(p>=state.keys[i].p&&p<=state.keys[i+1].p){a=state.keys[i];b=state.keys[i+1];break;}}
+    const t=b.p===a.p?0:clamp((p-a.p)/(b.p-a.p),0,1);
+    sc=fit*lerp(a.zoom,b.zoom,ease(t))*windBoost;
+  }
+  if(state.camOrbit){centerLon+=Math.sin(frac*.62)*state.camOrbit*4;centerLat+=Math.cos(frac*.48)*state.camOrbit*1.8;}
+  return {lat:centerLat,lon:centerLon,scale:sc,roll:state.camRoll*D2R};
 }
 function drawBase(ctx,W,H,pal){
   const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,pal.ocean1);g.addColorStop(.55,pal.ocean2);g.addColorStop(1,pal.ocean1);
@@ -267,7 +292,7 @@ function drawGrid(ctx,W,H,cam,pal){
 function buildWorldTexture(){
   const geo=state.land;if(!geo)return;
   const TW=4096,TH=2048,c=document.createElement('canvas');c.width=TW;c.height=TH;
-  const x=c.getContext('2d'),pal=PALETTES[state.palette]||PALETTES.hcc;
+  const x=c.getContext('2d'),pal=PALETTES[state.palette]||PALETTES.deepsea;
   x.fillStyle=pal.land;x.strokeStyle=pal.coast;x.lineWidth=1.5;x.lineJoin='round';
   for(const f of geo.features){
     const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[];
@@ -370,7 +395,7 @@ function drawIcon(ctx,W,H,cam,frac){
     const el=state.icon.el;if(state.icon.type==='video'&&el.readyState<2)return;
     const base=Math.max(38,H*.062),iw=base*state.iconScale*3,ih=iw*((el.videoHeight||el.naturalHeight||256)/(el.videoWidth||el.naturalWidth||256));
     const x=p[0]+state.iconX,y=p[1]+state.iconY;
-    ctx.save();ctx.translate(x,y);if(state.iconSpin)ctx.rotate(performance.now()/1000*state.iconSpin);ctx.drawImage(el,-iw/2,-ih/2,iw,ih);ctx.restore();
+    ctx.save();ctx.translate(x,y);if(state.iconSpin)ctx.rotate(frac*state.iconSpin);ctx.drawImage(el,-iw/2,-ih/2,iw,ih);ctx.restore();
     if(state.maskNum){const mr=Math.max(8,base*.45);ctx.beginPath();ctx.arc(x,y,mr,0,7);ctx.fillStyle=col;ctx.fill();ctx.strokeStyle='rgba(2,8,14,.85)';ctx.lineWidth=2;ctx.stroke();ctx.font='700 '+Math.round(mr*.95)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(shortLevel(cur.wind),x,y);}
     return;
   }
@@ -399,12 +424,12 @@ function drawHUD(ctx,W,H,pal,frac){
   const cur=pointAt(frac),st=state.storm;
   ctx.save();
   ctx.fillStyle='rgba(225,250,255,.9)';ctx.font='600 '+Math.round(H*.026)+'px '+getComputedStyle(document.body).fontFamily;
-  ctx.fillText('TC ANIMATION',W*.026,H*.045);
-  ctx.fillStyle=pal.accent;ctx.font='8px '+getComputedStyle(document.body).fontFamily;ctx.fillText('SUDRE.TC  /  BEST TRACK  /  2026',W*.026,H*.061);
+  ctx.fillText('TC ANIMATION',W*.026,H*.07);
+  ctx.fillStyle=pal.accent;ctx.font='8px '+getComputedStyle(document.body).fontFamily;ctx.fillText('SUDRE.TC  /  BEST TRACK  /  2026',W*.026,H*.088);
   ctx.fillStyle='rgba(225,250,255,.95)';ctx.font='700 '+Math.round(H*.052)+'px '+getComputedStyle(document.body).fontFamily;
-  ctx.fillText((st.name||'TC').toUpperCase(),W*.026,H*.115);
+  ctx.fillText((state.titleText||st.name||'TC').toUpperCase(),W*.026,H*.15);
   ctx.fillStyle='rgba(160,205,225,.75)';ctx.font=Math.round(H*.015)+'px '+getComputedStyle(document.body).fontFamily;
-  ctx.fillText(st.id+'  ·  '+levelOf(cur.wind)+'  ·  '+Math.round(cur.wind)+' kt  ·  '+Math.round(cur.mslp)+' hPa',W*.026,H*.145);
+  ctx.fillText((state.subtitleText||st.id)+'  ·  '+levelOf(cur.wind)+'  ·  '+Math.round(cur.wind)+' kt  ·  '+Math.round(cur.mslp)+' hPa',W*.026,H*.185);
   // time
   ctx.fillStyle='rgba(220,245,255,.9)';ctx.font='600 '+Math.round(H*.02)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillText(fmtUTC(cur.time),W*.026,H*.9);
   ctx.fillStyle='rgba(120,170,195,.65)';ctx.font=Math.round(H*.012)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillText('UTC  ·  WGS84  ·  SUDRE.TC ANIMATION',W*.026,H*.925);
@@ -412,6 +437,36 @@ function drawHUD(ctx,W,H,pal,frac){
   const keys=['TD','TS','TY','STY','SuperTY'];let x=W*.72;
   ctx.font=Math.round(H*.012)+'px '+getComputedStyle(document.body).fontFamily;
   keys.forEach(k=>{ctx.fillStyle=colorOf(k==='SuperTY'?140:k==='STY'?120:k==='TY'?80:k==='TS'?50:25);ctx.fillRect(x,H*.915,8,8);ctx.fillStyle='rgba(165,200,220,.75)';ctx.fillText(k,x+12,H*.921);x+=Math.max(55,W*.05);});
+  ctx.restore();
+}
+function applyBloom(ctx,W,H){
+  if(!state.fx.bloom)return;
+  const tw=Math.max(2,Math.round(W/2)),th=Math.max(2,Math.round(H/2));
+  const tmp=document.createElement('canvas');tmp.width=tw;tmp.height=th;const t=tmp.getContext('2d');
+  t.filter='blur(6px)';t.drawImage(ctx.canvas,0,0,tw,th);
+  ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.32;ctx.drawImage(tmp,0,0,W,H);ctx.restore();
+}
+function drawLogo(ctx,W,H){
+  if(!state.logo)return;
+  const img=state.logo,iw=Math.min(W*.11,H*.08),ih=iw*((img.naturalHeight||1)/(img.naturalWidth||1));
+  ctx.save();ctx.globalAlpha=.78;ctx.drawImage(img,W-iw-W*.025,H-ih-H*.045,iw,ih);ctx.restore();
+}
+function drawCinema(ctx,W,H,frac){
+  if(!state.fx.cinema)return;
+  const n=Math.max(2,state.points.length),p=frac/(n-1);
+  const intro=clamp(1-p/.12,0,1),outro=clamp((p-.88)/.12,0,1);
+  const bar=Math.round(H*.045);
+  ctx.save();ctx.fillStyle='rgba(0,0,0,.92)';ctx.fillRect(0,0,W,bar);ctx.fillRect(0,H-bar,W,bar);
+  if(intro>0){ctx.fillStyle='rgba(0,0,0,'+(intro*.38)+')';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(235,252,255,'+(intro*.94)+')';ctx.font='700 '+Math.round(H*.07)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillText((state.titleText||state.storm.name).toUpperCase(),W*.5,H*.46);ctx.font=Math.round(H*.018)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle='rgba(130,210,215,'+(intro*.75)+')';ctx.fillText(state.subtitleText,W*.5,H*.5);}
+  if(outro>0){ctx.fillStyle='rgba(0,0,0,'+(outro*.55)+')';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(230,250,255,'+(outro*.8)+')';ctx.font='600 '+Math.round(H*.035)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';ctx.fillText('TRACK COMPLETE',W/2,H*.52);ctx.font=Math.round(H*.012)+'px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle='rgba(150,210,225,'+(outro*.7)+')';ctx.fillText('SUDRE.TC  /  TC ANIMATION',W/2,H*.55);}
+  ctx.restore();
+}
+function drawGrade(ctx,W,H){
+  if(state.grade==='none')return;
+  ctx.save();ctx.globalCompositeOperation='overlay';
+  if(state.grade==='cool'){ctx.fillStyle='rgba(10,90,125,.18)';ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='multiply';ctx.fillStyle='rgba(120,205,235,.12)';ctx.fillRect(0,0,W,H);}
+  if(state.grade==='warm'){ctx.fillStyle='rgba(145,75,25,.16)';ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='screen';ctx.fillStyle='rgba(255,185,90,.08)';ctx.fillRect(0,0,W,H);}
+  if(state.grade==='mono'){ctx.globalCompositeOperation='saturation';ctx.fillStyle='rgba(128,128,128,.55)';ctx.fillRect(0,0,W,H);}
   ctx.restore();
 }
 function drawPost(ctx,W,H,pal,frac){
@@ -427,11 +482,15 @@ function drawPost(ctx,W,H,pal,frac){
   }
 }
 function renderScene(ctx,W,H,frac){
-  const pal=PALETTES[state.palette]||PALETTES.hcc;
+  const pal=PALETTES[state.palette]||PALETTES.deepsea;
   const cam=cameraFor(frac,W,H);state.cam=cam;
   ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,W,H);
+  ctx.save();
+  if(cam.roll){ctx.translate(W/2,H/2);ctx.rotate(cam.roll);ctx.translate(-W/2,-H/2);}
   drawBase(ctx,W,H,pal);drawGrid(ctx,W,H,cam,pal);drawLand(ctx,W,H,cam,pal);
-  drawRadii(ctx,W,H,cam,frac,pal);drawParticles(ctx,W,H,cam,frac);drawTrack(ctx,W,H,cam,frac,pal);drawLabels(ctx,W,H,cam,frac,pal);drawIcon(ctx,W,H,cam,frac);drawHUD(ctx,W,H,pal,frac);drawPost(ctx,W,H,pal,frac);
+  drawRadii(ctx,W,H,cam,frac,pal);drawParticles(ctx,W,H,cam,frac);drawTrack(ctx,W,H,cam,frac,pal);drawLabels(ctx,W,H,cam,frac,pal);applyBloom(ctx,W,H);
+  ctx.restore();
+  drawIcon(ctx,W,H,cam,frac);drawHUD(ctx,W,H,pal,frac);drawLogo(ctx,W,H);drawPost(ctx,W,H,pal,frac);drawGrade(ctx,W,H);
 }
 function dimsFor(res){
   if(res==='4k')return[3840,2160];if(res==='2k')return[2560,1440];return[1920,1080];
@@ -458,6 +517,7 @@ function tick(ts){
   if(state.frac>=n-1){state.frac=n-1;setFrac(state.frac);setPlaying(false);return;}
   setFrac(state.frac);state.raf=requestAnimationFrame(tick);
 }
+function renderKeys(){const el=$('keyList');if(!el)return;el.textContent=state.keys.length?state.keys.map(k=>Math.round(k.p*100)+'% → '+k.zoom.toFixed(2)+'×').join('  ·  '):'无关键帧 · 使用导演自动';}
 function loadStorm(st){
   if(!st||!st.points.length)return;
   state.storm=st;state.points=st.points;state.frac=0;
@@ -482,9 +542,11 @@ function bindUI(){
   $('speed').oninput=e=>{state.speed=+e.target.value;$('speedV').textContent=state.speed.toFixed(1)+'×';};
   $('camMode').onchange=e=>{state.camMode=e.target.value;drawPreview();};
   $('camPush').oninput=e=>{state.camPush=+e.target.value;$('camPushV').textContent=state.camPush.toFixed(2);drawPreview();};
+  $('camOrbit').oninput=e=>{state.camOrbit=+e.target.value;$('camOrbitV').textContent=state.camOrbit.toFixed(2);drawPreview();};
+  $('camRoll').oninput=e=>{state.camRoll=+e.target.value;$('camRollV').textContent=state.camRoll.toFixed(1);drawPreview();};
   $('lineW').oninput=e=>{state.lineW=+e.target.value;$('lineWV').textContent=state.lineW.toFixed(1);drawPreview();};
-  ['fxParticles','fxVignette','fxGrain','fxRings','hudTitle','hudGrid','hudLabels'].forEach((id,i)=>{
-    const key=['particles','vignette','grain','rings','hudTitle','grid','labels'][i];$(id).onchange=e=>{state.fx[key]=e.target.checked;drawPreview();};
+  ['fxParticles','fxVignette','fxGrain','fxRings','fxBloom','hudTitle','hudGrid','hudLabels'].forEach((id,i)=>{
+    const key=['particles','vignette','grain','rings','bloom','hudTitle','grid','labels'][i];$(id).onchange=e=>{state.fx[key]=e.target.checked;drawPreview();};
   });
   $('res').onchange=e=>{state.res=e.target.value;resizeCanvas();drawPreview();};
   $('fps').onchange=e=>{state.fps=+e.target.value;drawPreview();};
@@ -495,10 +557,18 @@ function bindUI(){
   $('iconSpin').oninput=e=>{state.iconSpin=+e.target.value;$('iconSpinV').textContent=state.iconSpin.toFixed(1);drawPreview();};
   $('maskNum').onchange=e=>{state.maskNum=e.target.checked;drawPreview();};
   $('iconFile').onchange=e=>loadIcon(e.target.files[0]);
+  $('logoFile').onchange=e=>loadLogo(e.target.files[0]);
   document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{state.palette=b.dataset.preset;buildWorldTexture();drawPreview();});
+  const tt=$('titleText'),ts=$('subtitleText');
+  if(tt)tt.oninput=e=>{state.titleText=e.target.value;drawPreview();};
+  if(ts)ts.oninput=e=>{state.subtitleText=e.target.value;drawPreview();};
+  $('grade').onchange=e=>{state.grade=e.target.value;drawPreview();};
+  $('keyAdd').onclick=()=>{state.keys.push({p:state.frac/Math.max(1,state.points.length-1),zoom:state.camPush});state.keys.sort((a,b)=>a.p-b.p);renderKeys();drawPreview();};
+  $('keyClear').onclick=()=>{state.keys=[];renderKeys();drawPreview();};
   $('btnLeft').onclick=()=>$('left').classList.toggle('open');$('btnRight').onclick=()=>$('right').classList.toggle('open');
   window.addEventListener('resize',()=>{resizeCanvas();drawPreview();});
 }
+function loadLogo(file){if(!file)return;const url=URL.createObjectURL(file);const img=new Image();img.onload=()=>{state.logo=img;toast('品牌 Logo 已载入');drawPreview();};img.src=url;}
 function loadIcon(file){
   if(!file)return;
   if(state.iconUrl)URL.revokeObjectURL(state.iconUrl);
@@ -552,7 +622,7 @@ async function exportMP4(){
 async function loadLand(){
   try{
     const topo=await (await fetch('https://unpkg.com/world-atlas@2.0.2/countries-110m.json')).json();
-    state.land=topojson.feature(topo,topo.objects.countries);buildWorldTexture();
+    state.land=topojson.feature(topo,topo.objects.countries);try{buildWorldTexture();}catch(e){console.warn(e);}
   }catch(e){toast('地图数据加载失败，使用经纬网',true);}
   $('splash').classList.add('hide');
 }
