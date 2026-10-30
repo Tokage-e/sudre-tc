@@ -4871,6 +4871,7 @@ function draw(){
   updateWindArea(primary);
   updateTitle();
   updateLegend();
+  if(state.appMode==='animation'&&!pro){ if(s.animParticles!==false)drawAtmosphere(w,h); drawVignette(w,h); }
   maybeFollow(performance.now());
 }
 function drawAgencyForecast(st,w,h){
@@ -5128,7 +5129,76 @@ function ringPolygon(lat,lon,r){
   }
   return pts;
 }
+function drawAtmosphere(w,h){
+  const st=activeStorm();if(!st)return;
+  const cur=pointAt(st,state.frac);if(!cur)return;
+  const c=project(cur.lat,cur.lon);
+  const t=performance.now()/1000;
+  fctx.save();
+  fctx.globalCompositeOperation='lighter';
+  for(let i=0;i<52;i++){
+    const a=t*(.18+(i%5)*.018)+i*2.399;
+    const rad=26+(i%9)*17+Math.sin(t*.9+i*1.7)*9;
+    const x=c[0]+Math.cos(a)*rad,y=c[1]+Math.sin(a)*rad*.58;
+    const al=.045+(i%6)*.018;
+    fctx.fillStyle='rgba(110,245,222,'+al+')';
+    fctx.beginPath();fctx.arc(x,y,.55+(i%3)*.38,0,7);fctx.fill();
+  }
+  for(let i=0;i<22;i++){
+    const y=(t*10+i*41)%h;
+    const x=(i*137+Math.sin(t*.35+i)*70)%w;
+    fctx.strokeStyle='rgba(95,210,235,.055)';fctx.lineWidth=.6;
+    fctx.beginPath();fctx.moveTo(x,y);fctx.lineTo(x-12,y+3);fctx.stroke();
+  }
+  fctx.restore();
+}
+function drawVignette(w,h){
+  const g=fctx.createRadialGradient(w*.5,h*.48,Math.min(w,h)*.22,w*.5,h*.5,Math.max(w,h)*.76);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(.62,'rgba(0,0,0,.05)');
+  g.addColorStop(.86,'rgba(0,0,0,.28)');
+  g.addColorStop(1,'rgba(0,0,0,.62)');
+  fctx.save();fctx.fillStyle=g;fctx.fillRect(0,0,w,h);fctx.restore();
+}
+function drawAnimationRadii(P,w,h){
+  const s=state.settings;
+  const cur=P.cur;if(!cur||!cur.radii)return;
+  const c=project(cur.lat,cur.lon);
+  const pulse=1+Math.sin(performance.now()/850)*.018;
+  for(const k of [64,50,34]){
+    if(!s.wr[k])continue;
+    const rr=cur.radii[k];
+    if(!rr||!(rr.ne>0||rr.se>0||rr.sw>0||rr.nw>0))continue;
+    const ring=ringPolygon(cur.lat,cur.lon,rr);if(ring.length<3)continue;
+    const pts=ring.map(q=>project(q[1],q[0]));
+    const col=WR_COLOR[k];
+    const R=(rr.ne+rr.se+rr.sw+rr.nw)/4;
+    const radPx=Math.max(20,(R/60)*Math.min(w,h)/6);
+    const grad=fctx.createRadialGradient(c[0],c[1],0,c[0],c[1],radPx*pulse);
+    grad.addColorStop(0,hexA(col,.015));
+    grad.addColorStop(.56,hexA(col,.065));
+    grad.addColorStop(.86,hexA(col,.14));
+    grad.addColorStop(1,hexA(col,0));
+    fctx.save();
+    fctx.beginPath();
+    let prevX=null,broken=false;
+    pts.forEach((p,i)=>{
+      if(prevX!=null&&Math.abs(p[0]-prevX)>fx.width/dpr*.55)broken=true;
+      if(i===0||broken){fctx.moveTo(p[0],p[1]);broken=false;}else fctx.lineTo(p[0],p[1]);
+      prevX=p[0];
+    });
+    fctx.closePath();
+    fctx.fillStyle=grad;fctx.fill();
+    fctx.strokeStyle=hexA(col,.5);fctx.lineWidth=1.2;
+    fctx.shadowColor=hexA(col,.75);fctx.shadowBlur=12;
+    fctx.stroke();
+    fctx.restore();
+  }
+}
 function drawRadii(P,w,h){
+  if(state.appMode==='animation'&&state.settings.mode!=='pro'){
+    drawAnimationRadii(P,w,h);return;
+  }
   const s=state.settings;
   const all=s.radiiMode==='all';
   const list=all?P.pts.slice(0,Math.max(1,P.fi+1)).filter((_,i)=>i%2===0):[P.cur];
@@ -5195,7 +5265,60 @@ function smoothPts(pts){
   }
   return out;
 }
+function drawAnimationTrack(P,w,h){
+  const pts=P.pts,fi=P.fi;
+  const past=pts.slice(0,fi+1);
+  const lineW=Math.max(2.2,(state.settings.lineWidth||3)*1.05);
+  const segs=[];
+  for(let i=1;i<past.length;i++){
+    const a=past[i-1],b=past[i];
+    const lv=classify(Math.max(a.wind||0,b.wind||0));
+    const g=segs[segs.length-1];
+    if(g&&g.lv===lv)g.pts.push(b);else segs.push({lv,pts:[a,b]});
+  }
+  /* soft light under the whole grown track */
+  fctx.save();fctx.globalCompositeOperation='lighter';
+  for(const s of segs){
+    const route=state.settings.smooth?smoothPts(s.pts):s.pts;
+    strokeSegment(route,0,0,hexA(windColor(s.lv),.34),lineW+9,.55);
+  }
+  fctx.restore();
+  for(const s of segs){
+    const col=windColor(s.lv);
+    const route=state.settings.smooth?smoothPts(s.pts):s.pts;
+    fctx.save();fctx.shadowColor=col;fctx.shadowBlur=16;
+    strokeSegment(route,0,0,col,lineW,1);
+    fctx.restore();
+  }
+  /* comet head + breathing halo */
+  const cur=P.cur;
+  if(cur){
+    const q=project(cur.lat,cur.lon);
+    const lv=classify(cur.wind||0),col=windColor(lv);
+    const t=performance.now()/1000;
+    const pulse=1+Math.sin(t*3.2)*.10;
+    const g=fctx.createRadialGradient(q[0],q[1],1,q[0],q[1],24*pulse);
+    g.addColorStop(0,'rgba(255,255,255,.95)');
+    g.addColorStop(.22,hexA(col,.9));
+    g.addColorStop(.58,hexA(col,.28));
+    g.addColorStop(1,hexA(col,0));
+    fctx.save();fctx.globalCompositeOperation='lighter';
+    fctx.fillStyle=g;fctx.beginPath();fctx.arc(q[0],q[1],24*pulse,0,7);fctx.fill();
+    fctx.beginPath();fctx.arc(q[0],q[1],3.4,0,7);fctx.fillStyle='#fff';fctx.fill();
+    fctx.restore();
+  }
+  /* faint ground shadow, keeps depth without changing builder rendering */
+  fctx.save();fctx.globalAlpha*=.22;fctx.strokeStyle='rgba(0,0,0,.7)';fctx.lineWidth=lineW+5;
+  for(const s of segs){
+    const route=state.settings.smooth?smoothPts(s.pts):s.pts;
+    strokeSegment(route,0,5,undefined,lineW+5,.22);
+  }
+  fctx.restore();
+}
 function drawTrack(P,w,h){
+  if(state.appMode==='animation'&&state.settings.mode!=='pro'){
+    drawAnimationTrack(P,w,h);return;
+  }
   const pro=state.settings.mode==='pro';
   const pts=P.pts,fi=pro?pts.length-1:P.fi;
   const raised=!pro&&state.settings.view==='raised';
@@ -5519,6 +5642,20 @@ function maybeFollow(now){
   let z=clamp(7-Math.log2(Math.max(r,20)/40),4,7);
   if((cur.wind||0)>=96)z=clamp(z+.35,4,7.4);
   const target=L.latLng(cur.lat,cur.lon);
+  if(state.appMode==='animation'){
+    const offPx=+s.camOffset||0;
+    const targetPoint=map.project(target,z).add([0,offPx]);
+    const targetLL=map.unproject(targetPoint,z);
+    if(Math.abs(map.getZoom()-z)>.18)map.setZoom(z,{animate:true});
+    const c=map.latLngToContainerPoint(targetLL);
+    const size=map.getSize();
+    const off=Math.hypot(c.x-size.x/2,c.y-size.y/2);
+    if(off>18||Math.abs(map.getZoom()-z)>.22){
+      map.panTo(targetLL,{animate:true,duration:1.15,easeLinearity:.18});
+      camLast=now;
+    }
+    return;
+  }
   const c=map.latLngToContainerPoint(target);
   const size=map.getSize();
   const off=Math.hypot(c.x-size.x/2,c.y-size.y/2);
@@ -5719,9 +5856,22 @@ function render3D(frac){
 }
 function render3DCamera(progress){
   if(!glChart||glUser)return;
-  const alpha=34;
-  const beta=22+progress*26;
-  const distance=285-progress*45;
+  if(state.appMode!=='animation'){
+    const alpha=34;
+    const beta=22+progress*26;
+    const distance=285-progress*45;
+    glChart.setOption({grid3D:{viewControl:{alpha,beta,distance}}});
+    return;
+  }
+  const st=activeStorm();
+  const cur=st?pointAt(st,state.frac):null;
+  const intense=cur&&(cur.wind||0)>=96;
+  const t=performance.now()/1000;
+  const orbit=intense?Math.sin(t*.48)*13:Math.sin(t*.24)*3;
+  const alpha=30+orbit*.45;
+  const beta=18+progress*34+orbit;
+  const push=intense?58+Math.sin(t*.62)*9:12;
+  const distance=286-progress*38-push;
   glChart.setOption({grid3D:{viewControl:{alpha,beta,distance}}});
 }
 function fly3D(){
@@ -6842,6 +6992,7 @@ function makeExport(W,H,st,opts){
   st=st||activeStorm();if(!st)return null;
   const pro=state.settings.mode==='pro';
   const transparent=!!opts.transparent;
+  const anim=!!opts.animation && state.appMode==='animation' && !pro && !transparent;
   const view=state.settings.view||'2d';
   const tilt=!transparent&&(view==='tilt'||view==='full3d');
   const raised=!transparent&&(view==='raised'||view==='full3d');
@@ -6875,6 +7026,31 @@ function makeExport(W,H,st,opts){
       const q=rawP(lat,lon),p=persp(q[0],q[1]);
       return [p[0]*scale+ox,p[1]*scale+oy];
     };
+  }
+  function drawExportAtmosphere(cur,fi){
+    if(!anim||!cur)return;
+    const q=P(cur.lat,cur.lon);
+    const t=fi*.55;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<44;i++){
+      const a=t*(.18+(i%5)*.02)+i*2.399;
+      const rad=18+(i%8)*14+Math.sin(t*.6+i)*7;
+      const x=q[0]+Math.cos(a)*rad,y=q[1]+Math.sin(a)*rad*.55;
+      ctx.fillStyle='rgba(110,245,222,'+(.035+(i%6)*.014)+')';
+      ctx.beginPath();ctx.arc(x,y,.7+(i%3)*.45,0,7);ctx.fill();
+    }
+    const g=ctx.createRadialGradient(q[0],q[1],1,q[0],q[1],28);
+    g.addColorStop(0,'rgba(255,255,255,.9)');
+    g.addColorStop(.25,hexA(windColor(classify(cur.wind||0)),.7));
+    g.addColorStop(1,hexA(windColor(classify(cur.wind||0)),0));
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(q[0],q[1],28,0,7);ctx.fill();
+    ctx.restore();
+  }
+  function drawExportVignette(){
+    if(!anim)return;
+    const g=ctx.createRadialGradient(W*.5,H*.48,Math.min(W,H)*.24,W*.5,H*.5,Math.max(W,H)*.78);
+    g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.64,'rgba(0,0,0,.04)');g.addColorStop(.88,'rgba(0,0,0,.26)');g.addColorStop(1,'rgba(0,0,0,.6)');
+    ctx.save();ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.restore();
   }
   const drawCity=()=>{
     if(!state.settings.showCities||!CITIES)return;
@@ -7012,10 +7188,23 @@ function makeExport(W,H,st,opts){
           const quad=[[r.ne,0,90],[r.se,90,180],[r.sw,180,270],[r.nw,270,360]];
           ctx.beginPath();let started=false;
           quad.forEach(([rad,a0,a1])=>{if(!rad)return;for(let a=a0;a<=a1;a+=5){const q=destination(cur.lat,cur.lon,a,rad);const p=P(q[1],wrapLonNear(q[0],cur.lon));started?ctx.lineTo(p[0],p[1]):(ctx.moveTo(p[0],p[1]),started=true);}});
-          ctx.closePath();ctx.fillStyle=hexA(WR_COLOR[k],.16);ctx.fill();ctx.strokeStyle=hexA(WR_COLOR[k],.55);ctx.lineWidth=1.4;ctx.stroke();
+          ctx.closePath();
+          if(anim){
+            const cq=P(cur.lat,cur.lon);const radPx=Math.max(18,(Math.max(r.ne,r.se,r.sw,r.nw)/(b.lo1-b.lo0||1))*W);
+            const g=ctx.createRadialGradient(cq[0],cq[1],0,cq[0],cq[1],radPx);
+            g.addColorStop(0,hexA(WR_COLOR[k],.01));g.addColorStop(.58,hexA(WR_COLOR[k],.06));g.addColorStop(.9,hexA(WR_COLOR[k],.16));g.addColorStop(1,hexA(WR_COLOR[k],0));
+            ctx.fillStyle=g;ctx.fill();ctx.strokeStyle=hexA(WR_COLOR[k],.5);ctx.lineWidth=1.2;ctx.shadowColor=hexA(WR_COLOR[k],.6);ctx.shadowBlur=10;ctx.stroke();ctx.shadowBlur=0;
+          }else{ctx.fillStyle=hexA(WR_COLOR[k],.16);ctx.fill();ctx.strokeStyle=hexA(WR_COLOR[k],.55);ctx.lineWidth=1.4;ctx.stroke();}
         });
       }
       drawPath();
+      if(anim&&cur){
+        ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor=hexA(windColor(classify(cur.wind||0)),.8);ctx.shadowBlur=18;
+        ctx.beginPath();let st0=true;
+        for(let i=0;i<=fi;i++){const p=P(pts[i].lat,pts[i].lon);st0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]);st0=false;}
+        ctx.strokeStyle=hexA(windColor(classify(cur.wind||0)),.22);ctx.lineWidth=10;ctx.stroke();ctx.restore();
+        drawExportAtmosphere(cur,fi);
+      }
       drawCity();
       if(!transparent){
       const lift2=raised?H*.13:0;
@@ -7035,6 +7224,7 @@ function makeExport(W,H,st,opts){
         ctx.fillStyle='#fff';ctx.fillText(lv.key,p[0],p[1]);
       }
       }
+      if(anim)drawExportVignette();
       if(!transparent){
         ctx.textAlign='left';ctx.textBaseline='alphabetic';
         ctx.font='700 '+Math.round(Math.max(15,W/58))+'px '+getComputedStyle(document.body).fontFamily;
@@ -7099,7 +7289,7 @@ function exportPNG(){
 async function exportWebM(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
   if(!window.MediaRecorder){toast('浏览器不支持 MediaRecorder','err');return;}
-  const ex=makeExport(1280,800,st);
+  const ex=makeExport(1280,800,st,{animation:state.appMode==='animation'});
   const fps=+((document.getElementById('webmFps')||{}).value||30);const stream=ex.canvas.captureStream(fps);
   let mime='video/webm;codecs=vp9';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';
   const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6});
@@ -7131,7 +7321,7 @@ async function exportMP4(){
   W=Math.max(320,W);H=Math.max(240,H);
   const fps=+$('#mp4Fps').value||30;
   const hold=clamp(+$('#mp4Hold').value||36,16,120);
-  const ex=makeExport(W,H,st);
+  const ex=makeExport(W,H,st,{animation:state.appMode==='animation'});
   MP4.busy=true;MP4.cancel=false;MP4.paused=false;
   $('#mp4Modal').classList.add('open');$('#mp4Pause').textContent='暂停';$('#mp4Fill').style.width='0%';
   const target=new Mp4Muxer.ArrayBufferTarget();
