@@ -3285,7 +3285,7 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
           <div class="mm-card-head"><span class="mm-tag tag-done">[测试]</span><span class="mm-no">02 / ANIM</span></div>
           <h2 class="mm-card-title">TC 动画工坊</h2>
           <p class="mm-card-desc">剥离时间轴与镜头控制，进入沉浸式电影播放布局，专注运镜、特效与 MP4 录制。</p>
-          <div class="mm-card-foot"><span>TC ANIMATION</span><button class="mm-card-btn" type="button" onclick="event.stopPropagation(); if(window.enterAnimationMode) enterAnimationMode()">进入动画 <span>→</span></button></div>
+          <div class="mm-card-foot"><span>TC ANIMATION</span><button class="mm-card-btn" type="button" onclick="event.stopPropagation(); if(window.openTCAnimationStudio) openTCAnimationStudio(); else if(window.enterAnimationMode) enterAnimationMode()">进入动画 <span>→</span></button></div>
         </div>
       </article>
 
@@ -8832,7 +8832,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     if (action === 'builder') { enterSystem(); return; }
     if (action === 'simulator') { sfx('ui_open'); if (typeof window.openSimulator === 'function') window.openSimulator(); return; }
     if (action === 'arena') { sfx('ui_open'); if (typeof window.openGameArena === 'function') window.openGameArena(); return; }
-    if (action === 'animation') { sfx('view_enter'); if (typeof window.enterAnimationMode === 'function') window.enterAnimationMode(); return; }
+    if (action === 'animation') { sfx('view_enter'); if (typeof window.openTCAnimationStudio === 'function') window.openTCAnimationStudio(); else if (typeof window.enterAnimationMode === 'function') window.enterAnimationMode(); return; }
     if (action === 'realtime') { sfx('ui_open'); if (typeof window.openLiveFeed === 'function') window.openLiveFeed(); return; }
     if (action === 'diary') { sfx('ui_open'); if (typeof window.openDiary === 'function') window.openDiary(); }
   }
@@ -8840,7 +8840,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   cards.forEach((card, i) => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.mm-card-btn')) return;
-      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime' || act === 'animation') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); if (act === 'animation' && window.enterAnimationMode) window.enterAnimationMode(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime' || act === 'animation') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); if (act === 'animation') { if (window.openTCAnimationStudio) window.openTCAnimationStudio(); else if (window.enterAnimationMode) window.enterAnimationMode(); } }, 420); return; }
       activateCard(card);
     });
     card.addEventListener('keydown', (e) => {
@@ -8852,7 +8852,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     const btn = card.querySelector('.mm-card-btn');
     if (btn) btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime' || act === 'animation') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); if (act === 'animation' && window.enterAnimationMode) window.enterAnimationMode(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime' || act === 'animation') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); if (act === 'animation') { if (window.openTCAnimationStudio) window.openTCAnimationStudio(); else if (window.enterAnimationMode) window.enterAnimationMode(); } }, 420); return; }
       activateCard(card);
     });
   });
@@ -8882,10 +8882,10 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
       const i = cards.findIndex((c) => c.getAttribute('data-action') === act);
       if (i >= 0) {
         focusCard(i);
-        if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); if (act === 'animation' && window.enterAnimationMode) window.enterAnimationMode();
+        if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed();
         else if (act === 'arena' && window.openGameArena) window.openGameArena();
         else if (act === 'simulator' && window.openSimulator) window.openSimulator();
-        else if (act === 'animation' && window.enterAnimationMode) window.enterAnimationMode();
+        else if (act === 'animation') { if (window.openTCAnimationStudio) window.openTCAnimationStudio(); else if (window.enterAnimationMode) window.enterAnimationMode(); }
       }
     });
   });
@@ -9108,6 +9108,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
   }
 
+  window.openTCAnimationStudio = function(){ window.location.href = 'tc-animation-studio.html'; };
   window.enterAnimationMode = enterAnimationMode;
   window.exitAnimationMode = exitAnimationMode;
 
