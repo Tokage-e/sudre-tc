@@ -3208,6 +3208,12 @@ body.mode-animation #tlTicks,body.mode-animation .tl-tick{display:none!important
 
 .anim-icon-file{width:100%;font:8px var(--mono);color:var(--txt3);margin:4px 0 6px;border:1px dashed var(--line);border-radius:4px;padding:5px;background:rgba(3,12,21,.5)}
 .anim-icon-file::file-selector-button{background:rgba(25,226,197,.1);border:1px solid rgba(25,226,197,.4);color:var(--teal);font:8px var(--mono);border-radius:3px;padding:3px 5px;margin-right:5px;cursor:pointer}
+
+/* Unified animation canvas: preview is the export surface */
+#animPreviewWrap{display:none;position:absolute;inset:0;z-index:500;background:#03080e;overflow:hidden}
+#animPreview{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;background:#040b13;box-shadow:0 0 40px rgba(0,0,0,.55)}
+body.mode-animation #animPreviewWrap{display:block}
+body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation #mapTitle,body.mode-animation #mapLegend,body.mode-animation #mapStatus,body.mode-animation #coordReadout,body.mode-animation #viewDock,body.mode-animation #landfallEta,body.mode-animation #riAlert,body.mode-animation #windAreaPanel,body.mode-animation #editBar,body.mode-animation #measureInfo,body.mode-animation #zoomCtl,body.mode-animation #fab{display:none!important}
 </style>
 </head>
 <body>
@@ -3478,6 +3484,7 @@ body.mode-animation #tlTicks,body.mode-animation .tl-tick{display:none!important
   <section id="mapStage">
     <div id="stageInner"><div id="map"></div><canvas id="fx"></canvas><canvas id="animFx"></canvas></div>
     <div id="glView"></div>
+    <div id="animPreviewWrap"><canvas id="animPreview"></canvas></div>
     <div id="mapTitle"><h2>Sudre.Tc · TC Track Studio</h2><p>等待导入 B-Deck / A-Deck / JMA 报文</p></div>
     <div id="mapLegend"></div>
     <div id="mapStatus">MAP · 初始化…</div>
@@ -4883,6 +4890,7 @@ function projectedStorm(st,frac){
 }
 function draw(){
   if(!fctx||!map)return;
+  if(state.appMode==='animation'&&window.AnimPreview&&!window.__animPreviewRendering){window.AnimPreview.render(state.frac);return;}
   const w=fx.width/dpr,h=fx.height/dpr;
   fctx.setTransform(dpr,0,0,dpr,0,0);
   fctx.clearRect(0,0,w,h);
@@ -9009,6 +9017,53 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     sandbox = null;
   }
 
+  const AnimPreview = (function () {
+    let exporter = null, key = '', curW = 0, curH = 0;
+    function dims() {
+      const st = window.SUDRE && window.SUDRE.state;
+      const ex = (st && st.settings.export) || {};
+      if (ex.res === '4k') return [3840, 2160];
+      if (ex.res === '2k') return [2560, 1440];
+      if (ex.res === '1080') return [1920, 1080];
+      const stage = document.getElementById('mapStage');
+      return [Math.max(320, (stage && stage.clientWidth) || 1280), Math.max(240, (stage && stage.clientHeight) || 800)];
+    }
+    function fit(canvas, w, h) {
+      const stage = document.getElementById('mapStage');
+      const r = stage ? stage.getBoundingClientRect() : { width: w, height: h };
+      const sc = Math.min(r.width / w, r.height / h);
+      canvas.style.width = Math.round(w * sc) + 'px';
+      canvas.style.height = Math.round(h * sc) + 'px';
+    }
+    function render(frac) {
+      if (!document.body.classList.contains('mode-animation')) return;
+      const st = window.SUDRE && window.SUDRE.state;
+      const storm = window.SUDRE && window.SUDRE.activeStorm && window.SUDRE.activeStorm();
+      const canvas = document.getElementById('animPreview');
+      if (!canvas || !st || !storm || !window.SUDRE.makeExport) return;
+      const [w, h] = dims();
+      const locked = st.settings.followMode === 'lock-center';
+      const k = storm.id + '|' + w + 'x' + h + '|' + (locked ? 'lock' : 'pan') + '|' + (st.settings.mode || 'normal');
+      if (!exporter || key !== k) {
+        exporter = window.SUDRE.makeExport(w, h, storm, { animation: true, locked });
+        key = k; curW = w; curH = h;
+        canvas.width = w; canvas.height = h;
+        fit(canvas, w, h);
+      }
+      curW = w; curH = h;
+      fit(canvas, w, h);
+      window.__animPreviewRendering = true;
+      try { exporter.draw(frac); } finally { window.__animPreviewRendering = false; }
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(exporter.canvas, 0, 0);
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    }
+    function invalidate() { exporter = null; key = ''; }
+    return { render, invalidate, dims, get size() { return [curW, curH]; } };
+  })();
+  window.AnimPreview = AnimPreview;
+
   function enterAnimationMode() {
     if (isAnimation()) return;
     if (typeof window.hideMainMenu === 'function') {
@@ -9021,6 +9076,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     try { window.SUDRE.state.appMode = 'animation'; } catch (e) {}
     saveSandbox();
     forceAnimationMap();
+    AnimPreview.invalidate();
     const panel = $('animControlPanel');
     if (panel) panel.setAttribute('aria-hidden', 'false');
     const dataPanel = $('animDataPanel');
@@ -9047,6 +9103,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     if (panel) panel.setAttribute('aria-hidden', 'true');
     const dataPanel = $('animDataPanel');
     if (dataPanel) dataPanel.setAttribute('aria-hidden', 'true');
+    AnimPreview.invalidate();
     restoreSandbox();
     if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
   }
@@ -9263,7 +9320,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     on('maskNum', 'change', applyEffects);
     on('customIconUpload', 'change', e => loadCustomIcon(e.target.files && e.target.files[0]));
     for (const [id,key] of [['exportRes','res'],['exportFps','fps'],['exportBitrate','bitrate']]) {
-      on(id,'change',e=>{const s=settings();s.export=Object.assign({},s.export||{},{[key]:key==='fps'?+e.target.value:e.target.value});});
+      on(id,'change',e=>{const s=settings();s.export=Object.assign({},s.export||{},{[key]:key==='fps'?+e.target.value:e.target.value});if(key==='res'){AnimPreview.invalidate();if(window.SUDRE)try{window.SUDRE.draw();}catch(err){}}});
     }
     const smooth = $('animSmooth');
     if (smooth) smooth.addEventListener('input', () => {
