@@ -70,7 +70,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 #toast.err{border-left-color:#ff6b81;color:#ffb3bd}
 @media(max-width:1100px){.panel{width:232px;flex-basis:232px}#time{min-width:105px}}
 @media(max-width:820px){.panel{position:absolute;top:8px;bottom:8px;width:210px;display:none}.panel.open{display:flex}#left{left:8px}#right{right:8px}#stage{min-height:0}#ft{display:none}}
-</style>
+#globe{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#02070d;box-shadow:0 24px 80px rgba(0,0,0,.65)}#globeHud{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}</style>
 </head>
 <body>
 <header id="hdr">
@@ -108,12 +108,13 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
     </div>
   </aside>
 
-  <div id="stage"><canvas id="cv"></canvas><div id="splash"><b>RENDERING</b><small>WORLD ATLAS · CANVAS CORE</small></div></div>
+  <div id="stage"><canvas id="cv"></canvas><canvas id="globe"></canvas><canvas id="globeHud"></canvas><div id="splash"><b>RENDERING</b><small>WORLD ATLAS · CANVAS CORE</small></div></div>
 
   <aside class="panel" id="right">
     <div class="p-head"><div><b>导演参数</b><small>DIRECTOR · CAMERA · FX</small></div><span class="tag">LIVE</span></div>
     <div class="p-body">
       <div class="sec"><h5>镜头 <em>CAMERA</em></h5>
+        <div class="lbl"><label>视图</label><select id="viewMode"><option value="2d" selected>2D 地图</option><option value="3d">3D 地球</option></select></div>
         <div class="lbl"><label>模式</label><select id="camMode"><option value="director" selected>导演自动</option><option value="follow">跟随</option><option value="wide">广角</option><option value="lock">中心锁死</option></select></div>
         <div class="lbl"><label>强度</label><input id="camPush" type="range" min=".8" max="2.2" step=".05" value="1.25"><span id="camPushV">1.25</span></div>
         <div class="lbl"><label>速度</label><input id="speed" type="range" min=".1" max="5" step=".1" value="1"><span id="speedV">1.0×</span></div>
@@ -159,6 +160,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 </footer>
 <div id="toast"></div>
 
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
 <script src="https://unpkg.com/topojson-client@3"></script>
 <script src="https://unpkg.com/mp4-muxer@5.2.1/build/mp4-muxer.js"></script>
 <script>
@@ -174,7 +176,7 @@ const PALETTES = {
 const C = { 34:'#56d8ff', 50:'#ffd166', 64:'#ff6b81', TD:'#5bb8ff', TS:'#19e2c5', TY:'#ffd166', STY:'#ff9f43', SuperTY:'#ff5d73' };
 const state = {
   palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
-  W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0,
+  W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0, view:'2d',
   fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
   lineW:4, logo:null, icon:null, iconUrl:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
@@ -555,9 +557,112 @@ function resizeCanvas(){
   const cv=$('cv');if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
   const st=$('stage'),r=st.getBoundingClientRect(),sc=Math.min((r.width-34)/w,(r.height-34)/h);
   cv.style.width=Math.round(w*sc)+'px';cv.style.height=Math.round(h*sc)+'px';
+  const gl=$('globe');if(gl){gl.style.width=Math.round(w*sc)+'px';gl.style.height=Math.round(h*sc)+'px';}
+  const gh=$('globeHud');if(gh){gh.width=w;gh.height=h;gh.style.width=Math.round(w*sc)+'px';gh.style.height=Math.round(h*sc)+'px';}
   $('renderStat').textContent=w+' × '+h+' · '+state.fps+' fps';
 }
-function drawPreview(){const cv=$('cv');if(!cv)return;renderScene(cv.getContext('2d'),state.W,state.H,state.frac);}
+let G3=null;
+function sphereVec(lat,lon,r){
+  const phi=(90-lat)*D2R,theta=(lon+180)*D2R;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+}
+function globeLine(points,color,opacity,parent){
+  if(points.length<2)return null;
+  const geo=new THREE.BufferGeometry().setFromPoints(points);
+  const mat=new THREE.LineBasicMaterial({color,transparent:true,opacity:opacity==null?.5:opacity,depthWrite:false});
+  const line=new THREE.Line(geo,mat);parent.add(line);return line;
+}
+function initGlobe(){
+  if(G3||!window.THREE)return G3;
+  const canvas=document.getElementById('globe');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+  renderer.setPixelRatio(1);
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#02070d');
+  const camera=new THREE.PerspectiveCamera(34,16/9,.1,100);
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(1,64,48),new THREE.MeshBasicMaterial({color:0x061522})));
+  const g=new THREE.Group();scene.add(g);
+  const gm=new THREE.LineBasicMaterial({color:0x1c5269,transparent:true,opacity:.42,depthWrite:false});
+  for(let lat=-75;lat<=75;lat+=15){const pts=[];for(let lon=-180;lon<=180;lon+=4)pts.push(sphereVec(lat,lon,1.002));const geo=new THREE.BufferGeometry().setFromPoints(pts);g.add(new THREE.Line(geo,gm));}
+  for(let lon=-180;lon<180;lon+=15){const pts=[];for(let lat=-90;lat<=90;lat+=4)pts.push(sphereVec(lat,lon,1.002));const geo=new THREE.BufferGeometry().setFromPoints(pts);g.add(new THREE.Line(geo,gm));}
+  const starGeo=new THREE.BufferGeometry(),arr=[];
+  for(let i=0;i<900;i++){const z=Math.random()*2-1,a=Math.random()*Math.PI*2,rr=6+Math.random()*4,ss=Math.sqrt(1-z*z);arr.push(ss*Math.cos(a)*rr,ss*Math.sin(a)*rr,z*rr);}
+  starGeo.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));
+  scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x9fdfe8,size:.018,transparent:true,opacity:.55})));
+  G3={renderer,scene,camera,land:new THREE.Group(),track:new THREE.Group(),segs:[],dot:null,landBuilt:false};
+  scene.add(G3.land);scene.add(G3.track);
+  buildGlobeTrack();
+  return G3;
+}
+function buildGlobeLand(){
+  if(!G3||!state.land)return;
+  while(G3.land.children.length)G3.land.remove(G3.land.children[0]);
+  const lm=new THREE.LineBasicMaterial({color:0x4d9bb3,transparent:true,opacity:.65,depthWrite:false});
+  for(const f of state.land.features){
+    const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[];
+    for(const poly of polys)for(const ring of poly){
+      let seg=[],prev=null;
+      for(const c of ring){if(prev!=null&&Math.abs(c[0]-prev)>180){globeLine(seg,0x4d9bb3,.65,G3.land);seg=[];}seg.push(sphereVec(c[1],c[0],1.006));prev=c[0];}
+      globeLine(seg,0x4d9bb3,.65,G3.land);
+    }
+  }
+  G3.landBuilt=true;
+}
+function buildGlobeTrack(){
+  if(!G3||!state.points.length)return;
+  while(G3.track.children.length)G3.track.remove(G3.track.children[0]);
+  G3.segs=[];
+  const pts=state.points;
+  for(let i=1;i<pts.length;i++){
+    const a=sphereVec(pts[i-1].lat,pts[i-1].lon,1.015),b=sphereVec(pts[i].lat,pts[i].lon,1.015);
+    const line=globeLine([a,b],new THREE.Color(colorOf(pts[i].wind)).getHex(),.9,G3.track);
+    if(line){line.visible=false;G3.segs.push({line,i});}
+  }
+  const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,1,32,32,30);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.2,'rgba(120,255,230,.9)');gr.addColorStop(.6,'rgba(50,220,210,.25)');gr.addColorStop(1,'rgba(50,220,210,0)');
+  x.fillStyle=gr;x.fillRect(0,0,64,64);
+  const tex=new THREE.CanvasTexture(c);
+  const pgeo=new THREE.BufferGeometry();const parr=[];for(const p of pts){const v=sphereVec(p.lat,p.lon,1.018);parr.push(v.x,v.y,v.z);}pgeo.setAttribute('position',new THREE.Float32BufferAttribute(parr,3));const pmat=new THREE.PointsMaterial({color:0xa8fff0,size:.018,transparent:true,opacity:.9});const points=new THREE.Points(pgeo,pmat);G3.track.add(points);G3.points=points;
+  const dot=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+  dot.scale.set(.12,.12,.12);G3.track.add(dot);G3.dot=dot;
+  G3.rings=[];[64,50,34].forEach(k=>{const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(new Array(65*3).fill(0),3));const mat=new THREE.LineBasicMaterial({color:k===64?0xff6b81:k===50?0xffd166:0x56d8ff,transparent:true,opacity:.45,depthWrite:false});const line=new THREE.LineLoop(geo,mat);line.visible=false;G3.track.add(line);G3.rings.push({k,line});});
+}
+function syncGlobe(frac,W,H){
+  if(!G3)return;
+  const pts=state.points,fi=Math.floor(frac),cur=pointAt(frac);
+  for(const s of G3.segs)s.line.visible=s.i<=fi+1;
+  if(G3.points)G3.points.geometry.setDrawRange(0,Math.max(0,fi+1));
+  if(G3.rings){const rr=radiiAt(frac);for(const ring of G3.rings){const r=rr[ring.k];ring.line.visible=!!r;if(!r)continue;const pos=ring.line.geometry.attributes.position;for(let j=0;j<65;j++){const a=j/64*360;const rad=a<90?r.ne:a<180?r.se:a<270?r.sw:r.nw;const q=destination(cur.lat,cur.lon,a,rad);const vv=sphereVec(q[0],q[1],1.02);pos.setXYZ(j,vv.x,vv.y,vv.z);}pos.needsUpdate=true;ring.line.geometry.computeBoundingSphere();}}
+  if(cur){
+    const v=sphereVec(cur.lat,cur.lon,1.02);G3.dot.position.copy(v);
+    const dist=state.camMode==='wide'?5.0:state.camMode==='lock'?3.1:3.8;
+    const cam=v.clone().normalize().multiplyScalar(dist);
+    if(state.camOrbit)cam.applyAxisAngle(new THREE.Vector3(0,1,0),Math.sin(frac*.8)*state.camOrbit*.5);
+    G3.camera.position.copy(cam);G3.camera.up.set(0,1,0);G3.camera.lookAt(0,0,0);
+    if(state.camRoll)G3.camera.rotateZ(state.camRoll*D2R);
+    G3.camera.aspect=W/H;G3.camera.updateProjectionMatrix();
+  }
+}
+function renderGlobeFrame(ctx,W,H,frac){
+  const g=initGlobe();if(!g)return false;
+  if(!g.landBuilt)buildGlobeLand();
+  g.renderer.setSize(W,H,false);
+  syncGlobe(frac,W,H);
+  g.renderer.render(g.scene,g.camera);
+  const hud=ctx||document.getElementById('globeHud').getContext('2d');
+  const pal=PALETTES[state.palette]||PALETTES.deepsea;
+  hud.setTransform(1,0,0,1,0,0);hud.clearRect(0,0,W,H);
+  if(ctx)ctx.drawImage(g.renderer.domElement,0,0,W,H);
+  drawHUD(hud,W,H,pal,frac);drawLogo(hud,W,H);drawPost(hud,W,H,pal,frac);drawGrade(hud,W,H);
+  return true;
+}
+function setViewMode(v){
+  state.view=v;
+  const cv=document.getElementById('cv'),gl=document.getElementById('globe');
+  if(v==='3d'){cv.style.display='none';gl.style.display='block';document.getElementById('globeHud').style.display='block';initGlobe();resizeCanvas();}
+  else{cv.style.display='block';gl.style.display='none';document.getElementById('globeHud').style.display='none';resizeCanvas();}
+  drawPreview();
+}
+function drawPreview(){if(state.view==='3d'){renderGlobeFrame(null,state.W,state.H,state.frac);return;}const cv=$('cv');if(!cv)return;renderScene(cv.getContext('2d'),state.W,state.H,state.frac);}
 function setFrac(v){state.frac=clamp(v,0,Math.max(1,state.points.length-1));const cur=pointAt(state.frac);$('scrub').value=state.points.length>1?state.frac/(state.points.length-1):0;$('time').textContent=cur?fmtUTC(cur.time):'--';drawPreview();}
 function setPlaying(on){
   state.playing=on;$('play').textContent=on?'❚❚':'▶';
@@ -576,7 +681,7 @@ function tick(ts){
 function renderKeys(){const el=$('keyList');if(!el)return;el.textContent=state.keys.length?state.keys.map(k=>Math.round(k.p*100)+'% → '+k.zoom.toFixed(2)+'×').join('  ·  '):'无关键帧 · 使用导演自动';}
 function loadStorm(st){
   if(!st||!st.points.length)return;
-  state.storm=st;state.points=st.points;state.frac=0;
+  state.storm=st;state.points=st.points;state.frac=0;if(G3)buildGlobeTrack();
   renderStormList();setFrac(0);drawPreview();
 }
 function renderStormList(){
@@ -599,6 +704,7 @@ function bindUI(){
   $('scrub').oninput=e=>{setPlaying(false);setFrac(+e.target.value*(state.points.length-1));};
   $('speed').oninput=e=>{state.speed=+e.target.value;$('speedV').textContent=state.speed.toFixed(1)+'×';};
   $('camMode').onchange=e=>{state.camMode=e.target.value;drawPreview();};
+  $('viewMode').onchange=e=>setViewMode(e.target.value);
   $('camPush').oninput=e=>{state.camPush=+e.target.value;$('camPushV').textContent=state.camPush.toFixed(2);drawPreview();};
   $('camOrbit').oninput=e=>{state.camOrbit=+e.target.value;$('camOrbitV').textContent=state.camOrbit.toFixed(2);drawPreview();};
   $('camRoll').oninput=e=>{state.camRoll=+e.target.value;$('camRollV').textContent=state.camRoll.toFixed(1);drawPreview();};
@@ -646,6 +752,41 @@ function codecFor(W,H,fps){
   let lv='28';if(W>=3000)lv=fps>=50?'34':'33';else if(W>=2400)lv='32';else if(fps>=50)lv='2a';
   return 'avc1.6400'+lv;
 }
+function addNoise(ac,at,dur,vol,hi){
+  const sr=ac.sampleRate,len=Math.ceil(sr*dur),b=ac.createBuffer(1,len,sr),d=b.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=ac.createBufferSource();src.buffer=b;const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=hi||900;f.Q.value=.65;
+  const g=ac.createGain();g.gain.setValueAtTime(vol,at);g.gain.exponentialRampToValueAtTime(.0001,at+dur);
+  src.connect(f);f.connect(g);g.connect(ac.destination);src.start(at);
+}
+function addTone(ac,at,dur,freq,to,vol,type){
+  const o=ac.createOscillator(),g=ac.createGain();o.type=type||'sine';o.frequency.setValueAtTime(freq,at);
+  if(to)o.frequency.exponentialRampToValueAtTime(to,at+dur);
+  g.gain.setValueAtTime(vol,at);g.gain.exponentialRampToValueAtTime(.0001,at+dur);
+  o.connect(g);g.connect(ac.destination);o.start(at);o.stop(at+dur);
+}
+async function renderSfxTrack(duration){
+  const sr=48000,ac=new OfflineAudioContext(1,Math.ceil(duration*sr),sr);
+  addNoise(ac,0,.55,.06,1400);addTone(ac,0,.45,180,520,.035,'sine');
+  const peak=state.storm&&state.storm.points[state.storm.points.length-1]?state.storm.points[Math.max(0,state.storm.points.length-1)]:null;
+  const arr=state.points;let pi=0;for(let i=0;i<arr.length;i++)if(arr[i].wind>arr[pi].wind)pi=i;
+  const pt=duration*(pi/Math.max(1,arr.length-1));
+  addNoise(ac,pt,.5,.08,300);addTone(ac,pt,.65,70,38,.075,'sine');
+  const et=Math.max(.2,duration-.8);addNoise(ac,et,.45,.04,2200);addTone(ac,et,.3,523,784,.045,'triangle');addTone(ac,et+.18,.35,784,1046,.035,'sine');
+  return ac.startRendering();
+}
+async function encodeAudioTrack(muxer,buffer){
+  const sr=buffer.sampleRate,data=buffer.getChannelData(0),chunk=1024;
+  const ae=new AudioEncoder({output:(c,m)=>{try{muxer.addAudioChunk(c,m);}catch(e){}},error:e=>console.warn(e)});
+  ae.configure({codec:'mp4a.40.2',sampleRate:sr,numberOfChannels:1,bitrate:128000});
+  for(let i=0;i<data.length;i+=chunk){
+    const sub=data.slice(i,Math.min(data.length,i+chunk));
+    const ad=new AudioData({format:'f32-planar',sampleRate:sr,numberOfFrames:sub.length,numberOfChannels:1,timestamp:Math.round(i/sr*1e6),data:sub});
+    ae.encode(ad);ad.close();
+    while(ae.encodeQueueSize>8)await new Promise(r=>setTimeout(r,2));
+  }
+  await ae.flush();ae.close();
+}
 async function exportMP4(){
   if(state.exporting)return;
   if(!window.VideoEncoder||!window.Mp4Muxer){toast('当前浏览器缺少 WebCodecs / mp4-muxer',true);return;}
@@ -661,17 +802,23 @@ async function exportMP4(){
     const cfg={codec,width:W,height:H,bitrate,framerate:fps,latencyMode:'quality'};
     if(VideoEncoder.isConfigSupported){const s=await VideoEncoder.isConfigSupported(cfg);if(!s.supported)throw new Error('当前浏览器不支持 '+W+'×'+H+' @'+fps+'fps');}
     const target=new Mp4Muxer.ArrayBufferTarget();
-    const muxer=new Mp4Muxer.Muxer({target,fastStart:W>=3000?'fragmented':'in-memory',video:{codec:'avc',width:W,height:H}});
+    let audioCfg=null;
+    if(state.sfx&&window.AudioEncoder&&window.AudioData){
+      try{const ac={codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:1,bitrate:128000};if(AudioEncoder.isConfigSupported){const ar=await AudioEncoder.isConfigSupported(ac);if(ar.supported)audioCfg=ac;}}catch(e){}
+    }
+    const muxer=new Mp4Muxer.Muxer({target,fastStart:W>=3000?'fragmented':'in-memory',video:{codec:'avc',width:W,height:H},audio:audioCfg?{codec:'aac',sampleRate:48000,numberOfChannels:1}:undefined});
     const enc=new VideoEncoder({output:(chunk,meta)=>{try{muxer.addVideoChunk(chunk,meta);}catch(e){}},error:e=>toast(e.message,true)});
     enc.configure(cfg);
     for(let k=0;k<total;k++){
-      const frac=(k/(total-1))*(n-1);renderScene(ctx,W,H,frac);
+      const frac=(k/(total-1))*(n-1);if(state.view==='3d')renderGlobeFrame(ctx,W,H,frac);else renderScene(ctx,W,H,frac);
       const vf=new VideoFrame(cv,{timestamp:Math.round(k*1e6/fps),duration:Math.round(1e6/fps)});
       enc.encode(vf,{keyFrame:k%(fps*2)===0});vf.close();
       while(enc.encodeQueueSize>(W>=3000?3:8))await new Promise(r=>setTimeout(r,6));
       if(k%5===0){$('btnMp4').textContent='导出 '+Math.round((k+1)/total*100)+'%';await new Promise(r=>setTimeout(r,0));}
     }
-    await enc.flush();muxer.finalize();
+    await enc.flush();
+    if(audioCfg){try{const ab=await renderSfxTrack(total/fps);await encodeAudioTrack(muxer,ab);}catch(e){console.warn('audio',e);}}
+    muxer.finalize();
     const blob=new Blob([target.buffer],{type:'video/mp4'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SudreTc_'+state.storm.name+'_'+W+'x'+H+'_'+fps+'fps.mp4';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
     sfx('done');toast('MP4 已导出 · '+W+'×'+H+' @'+fps+'fps');
   }catch(e){toast('导出失败：'+e.message,true);}
@@ -680,7 +827,7 @@ async function exportMP4(){
 async function loadLand(){
   try{
     const topo=await (await fetch('https://unpkg.com/world-atlas@2.0.2/countries-110m.json')).json();
-    state.land=topojson.feature(topo,topo.objects.countries);try{buildWorldTexture();}catch(e){console.warn(e);}
+    state.land=topojson.feature(topo,topo.objects.countries);try{buildWorldTexture();}catch(e){console.warn(e);}if(G3)buildGlobeLand();
   }catch(e){toast('地图数据加载失败，使用经纬网',true);}
   $('splash').classList.add('hide');
 }
