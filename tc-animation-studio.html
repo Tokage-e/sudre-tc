@@ -78,6 +78,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
   <div class="spacer"></div>
   <button class="hbtn" id="btnLeft">数据</button>
   <button class="hbtn" id="btnRight">参数</button>
+  <button class="hbtn" id="sfxBtn">音效 开</button>
   <button class="hbtn" id="btnPng">PNG</button>
   <button class="hbtn primary" id="btnMp4">● 导出 MP4</button>
 </header>
@@ -176,7 +177,7 @@ const state = {
   W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0,
   fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
   lineW:4, logo:null, icon:null, iconUrl:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
-  land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false
+  land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
 WP, 01, 2026100106, , BEST, 0, 110N, 1485E, 70, 985, TY, 34, NEQ, 125, 85, 75, 105
@@ -197,6 +198,33 @@ WP, 01, 2026100418, , BEST, 0, 365N, 1260E, 50, 1000, TS, 34, NEQ, 100, 65, 55, 
 WP, 01, 2026100500, , BEST, 0, 390N, 1280E, 40, 1005, TS
 WP, 01, 2026100506, , BEST, 0, 415N, 1310E, 30, 1008, TD`;
 
+let actx=null;
+function audioCtx(){if(!state.sfx)return null;try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();return actx;}catch(e){return null;}}
+function tone(freq,dur,type,vol,slide){
+  const ac=audioCtx();if(!ac)return;
+  const o=ac.createOscillator(),g=ac.createGain();o.type=type||'sine';o.frequency.setValueAtTime(freq,ac.currentTime);
+  if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),ac.currentTime+dur);
+  g.gain.setValueAtTime(vol||.05,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+dur);
+  o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+dur);
+}
+function noise(dur,vol,hi){
+  const ac=audioCtx();if(!ac)return;
+  const len=Math.floor(ac.sampleRate*dur),buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=ac.createBufferSource();src.buffer=buf;const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=hi||900;f.Q.value=.7;
+  const g=ac.createGain();g.gain.value=vol||.04;src.connect(f);f.connect(g);g.connect(ac.destination);src.start();
+}
+function sfx(name){
+  if(!state.sfx)return;
+  if(name==='click')tone(880,.045,'triangle',.025,520);
+  else if(name==='play'){noise(.28,.055,1400);tone(180,.22,'sine',.04,520);}
+  else if(name==='pause')tone(320,.12,'sine',.035,160);
+  else if(name==='key'){tone(1200,.05,'square',.025,1500);}
+  else if(name==='peak'){noise(.55,.10,280);tone(70,.5,'sine',.08,40);}
+  else if(name==='export'){tone(220,.35,'sawtooth',.03,880);noise(.35,.03,1800);}
+  else if(name==='done'){tone(523,.12,'sine',.05,523);setTimeout(()=>tone(784,.18,'sine',.04,784),90);}
+  else if(name==='preset'){tone(440,.06,'triangle',.03,660);}
+}
 function toast(msg, err) { const t=$('toast'); t.textContent=msg; t.className='show'+(err?' err':''); clearTimeout(toast._t); toast._t=setTimeout(()=>t.className='',2600); }
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 function lerp(a,b,t){return a+(b-a)*t;}
@@ -542,6 +570,7 @@ function tick(ts){
   const n=state.points.length;
   state.frac+=(dt/900)*state.speed;
   if(state.frac>=n-1){state.frac=n-1;setFrac(state.frac);setPlaying(false);return;}
+  const _cur=pointAt(state.frac);if(_cur&&_cur.wind>=130&&!state.peakPlayed){state.peakPlayed=true;sfx('peak');}
   setFrac(state.frac);state.raf=requestAnimationFrame(tick);
 }
 function renderKeys(){const el=$('keyList');if(!el)return;el.textContent=state.keys.length?state.keys.map(k=>Math.round(k.p*100)+'% → '+k.zoom.toFixed(2)+'×').join('  ·  '):'无关键帧 · 使用导演自动';}
@@ -564,7 +593,9 @@ function bindUI(){
   $('btnParse').onclick=parseAndLoad;$('btnSample').onclick=loadSample;
   $('btnPng').onclick=()=>{const a=document.createElement('a');a.href=$('cv').toDataURL('image/png');a.download='SudreTc_TC_'+Date.now()+'.png';a.click();};
   $('btnMp4').onclick=exportMP4;
-  $('play').onclick=()=>setPlaying(!state.playing);
+  $('play').onclick=()=>{const on=!state.playing;setPlaying(on);state.peakPlayed=false;sfx(on?'play':'pause');};
+  $('sfxBtn').onclick=()=>{state.sfx=!state.sfx;$('sfxBtn').textContent='音效 '+(state.sfx?'开':'关');if(state.sfx){audioCtx();sfx('click');}};
+  document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.id!=='sfxBtn')sfx('click');},true);
   $('scrub').oninput=e=>{setPlaying(false);setFrac(+e.target.value*(state.points.length-1));};
   $('speed').oninput=e=>{state.speed=+e.target.value;$('speedV').textContent=state.speed.toFixed(1)+'×';};
   $('camMode').onchange=e=>{state.camMode=e.target.value;drawPreview();};
@@ -585,12 +616,12 @@ function bindUI(){
   $('maskNum').onchange=e=>{state.maskNum=e.target.checked;drawPreview();};
   $('iconFile').onchange=e=>loadIcon(e.target.files[0]);
   $('logoFile').onchange=e=>loadLogo(e.target.files[0]);
-  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{state.palette=b.dataset.preset;buildWorldTexture();drawPreview();});
+  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{sfx('preset');state.palette=b.dataset.preset;buildWorldTexture();drawPreview();});
   const tt=$('titleText'),ts=$('subtitleText');
   if(tt)tt.oninput=e=>{state.titleText=e.target.value;drawPreview();};
   if(ts)ts.oninput=e=>{state.subtitleText=e.target.value;drawPreview();};
   $('grade').onchange=e=>{state.grade=e.target.value;drawPreview();};
-  $('keyAdd').onclick=()=>{state.keys.push({p:state.frac/Math.max(1,state.points.length-1),zoom:state.camPush});state.keys.sort((a,b)=>a.p-b.p);renderKeys();drawPreview();};
+  $('keyAdd').onclick=()=>{sfx('key');state.keys.push({p:state.frac/Math.max(1,state.points.length-1),zoom:state.camPush});state.keys.sort((a,b)=>a.p-b.p);renderKeys();drawPreview();};
   $('keyClear').onclick=()=>{state.keys=[];renderKeys();drawPreview();};
   $('btnLeft').onclick=()=>$('left').classList.toggle('open');$('btnRight').onclick=()=>$('right').classList.toggle('open');
   window.addEventListener('resize',()=>{resizeCanvas();drawPreview();});
@@ -625,7 +656,7 @@ async function exportMP4(){
   const total=Math.max(2,Math.min(Math.round(totalSeconds*fps),W>=3000?fps*180:fps*600));
   const bitrate=bitrateFor(W,H),codec=codecFor(W,H,fps);
   const cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');
-  state.exporting=true;$('btnMp4').textContent='导出中…';
+  state.exporting=true;sfx('export');$('btnMp4').textContent='导出中…';
   try{
     const cfg={codec,width:W,height:H,bitrate,framerate:fps,latencyMode:'quality'};
     if(VideoEncoder.isConfigSupported){const s=await VideoEncoder.isConfigSupported(cfg);if(!s.supported)throw new Error('当前浏览器不支持 '+W+'×'+H+' @'+fps+'fps');}
@@ -642,7 +673,7 @@ async function exportMP4(){
     }
     await enc.flush();muxer.finalize();
     const blob=new Blob([target.buffer],{type:'video/mp4'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SudreTc_'+state.storm.name+'_'+W+'x'+H+'_'+fps+'fps.mp4';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-    toast('MP4 已导出 · '+W+'×'+H+' @'+fps+'fps');
+    sfx('done');toast('MP4 已导出 · '+W+'×'+H+' @'+fps+'fps');
   }catch(e){toast('导出失败：'+e.message,true);}
   finally{state.exporting=false;$('btnMp4').textContent='● 导出 MP4';}
 }
