@@ -128,6 +128,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
         <label class="chk"><input type="checkbox" id="fxVignette" checked>电影暗角</label>
         <label class="chk"><input type="checkbox" id="fxGrain" checked>胶片颗粒</label>
         <label class="chk"><input type="checkbox" id="fxRings" checked>动态风圈</label>
+        <label class="chk"><input type="checkbox" id="fxClouds" checked>卫星云层</label>
         <label class="chk"><input type="checkbox" id="fxRain" checked>雨带 / 螺旋云系</label>
         <label class="chk"><input type="checkbox" id="fxBloom" checked>辉光 Bloom</label>
         <div class="lbl"><label>路径</label><input id="lineW" type="range" min="1" max="10" step=".5" value="4"><span id="lineWV">4</span></div>
@@ -177,7 +178,7 @@ const C = { 34:'#56d8ff', 50:'#ffd166', 64:'#ff6b81', TD:'#5bb8ff', TS:'#19e2c5'
 const state = {
   palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
   W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0, view:'2d',
-  fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
+  fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,clouds:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
   lineW:4, logo:null, icon:null, iconUrl:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
 };
@@ -572,6 +573,15 @@ function globeLine(points,color,opacity,parent){
   const mat=new THREE.LineBasicMaterial({color,transparent:true,opacity:opacity==null?.5:opacity,depthWrite:false});
   const line=new THREE.Line(geo,mat);parent.add(line);return line;
 }
+function makeCloudTexture(){
+  const c=document.createElement('canvas');c.width=1024;c.height=512;const x=c.getContext('2d');x.clearRect(0,0,1024,512);
+  for(let i=0;i<170;i++){
+    const px=Math.random()*1024,py=Math.random()*512,r=8+Math.random()*44;
+    const g=x.createRadialGradient(px,py,1,px,py,r);g.addColorStop(0,'rgba(190,225,235,.22)');g.addColorStop(.5,'rgba(150,205,220,.10)');g.addColorStop(1,'rgba(150,205,220,0)');
+    x.fillStyle=g;x.beginPath();x.ellipse(px,py,r*1.8,r*.65,Math.random()*3,0,7);x.fill();
+  }
+  const tex=new THREE.CanvasTexture(c);tex.wrapS=THREE.RepeatWrapping;tex.repeat.x=2;return tex;
+}
 function initGlobe(){
   if(G3||!window.THREE)return G3;
   const canvas=document.getElementById('globe');
@@ -580,6 +590,11 @@ function initGlobe(){
   const scene=new THREE.Scene();scene.background=new THREE.Color('#02070d');
   const camera=new THREE.PerspectiveCamera(34,16/9,.1,100);
   scene.add(new THREE.Mesh(new THREE.SphereGeometry(1,64,48),new THREE.MeshBasicMaterial({color:0x061522})));
+  const atmoMat=new THREE.ShaderMaterial({transparent:true,blending:THREE.AdditiveBlending,side:THREE.BackSide,depthWrite:false,vertexShader:'varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying vec3 vN;void main(){float i=pow(1.0-abs(dot(vN,vec3(0.0,0.0,1.0))),2.2);gl_FragColor=vec4(0.16,0.75,0.88,i*0.42);}'});
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.09,64,48),atmoMat));
+  const cloudTex=makeCloudTexture();
+  const clouds=new THREE.Mesh(new THREE.SphereGeometry(1.012,64,48),new THREE.MeshBasicMaterial({map:cloudTex,transparent:true,opacity:.28,depthWrite:false}));
+  scene.add(clouds);
   const g=new THREE.Group();scene.add(g);
   const gm=new THREE.LineBasicMaterial({color:0x1c5269,transparent:true,opacity:.42,depthWrite:false});
   for(let lat=-75;lat<=75;lat+=15){const pts=[];for(let lon=-180;lon<=180;lon+=4)pts.push(sphereVec(lat,lon,1.002));const geo=new THREE.BufferGeometry().setFromPoints(pts);g.add(new THREE.Line(geo,gm));}
@@ -588,7 +603,7 @@ function initGlobe(){
   for(let i=0;i<900;i++){const z=Math.random()*2-1,a=Math.random()*Math.PI*2,rr=6+Math.random()*4,ss=Math.sqrt(1-z*z);arr.push(ss*Math.cos(a)*rr,ss*Math.sin(a)*rr,z*rr);}
   starGeo.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));
   scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x9fdfe8,size:.018,transparent:true,opacity:.55})));
-  G3={renderer,scene,camera,land:new THREE.Group(),track:new THREE.Group(),segs:[],dot:null,landBuilt:false};
+  G3={renderer,scene,camera,land:new THREE.Group(),track:new THREE.Group(),segs:[],dot:null,landBuilt:false,clouds};
   scene.add(G3.land);scene.add(G3.track);
   buildGlobeTrack();
   return G3;
@@ -614,8 +629,10 @@ function buildGlobeTrack(){
   const pts=state.points;
   for(let i=1;i<pts.length;i++){
     const a=sphereVec(pts[i-1].lat,pts[i-1].lon,1.015),b=sphereVec(pts[i].lat,pts[i].lon,1.015);
-    const line=globeLine([a,b],new THREE.Color(colorOf(pts[i].wind)).getHex(),.9,G3.track);
-    if(line){line.visible=false;G3.segs.push({line,i});}
+    const col=new THREE.Color(colorOf(pts[i].wind)).getHex();
+    const curve=new THREE.LineCurve3(a,b);const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,4,.006,6,false),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.92,blending:THREE.AdditiveBlending,depthWrite:false}));
+    const glow=new THREE.Mesh(new THREE.TubeGeometry(curve,4,.016,6,false),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.10,blending:THREE.AdditiveBlending,depthWrite:false}));
+    tube.visible=false;glow.visible=false;G3.track.add(tube);G3.track.add(glow);G3.segs.push({tube,glow,i});
   }
   const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,1,32,32,30);
   gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.2,'rgba(120,255,230,.9)');gr.addColorStop(.6,'rgba(50,220,210,.25)');gr.addColorStop(1,'rgba(50,220,210,0)');
@@ -629,17 +646,19 @@ function buildGlobeTrack(){
 function syncGlobe(frac,W,H){
   if(!G3)return;
   const pts=state.points,fi=Math.floor(frac),cur=pointAt(frac);
-  for(const s of G3.segs)s.line.visible=s.i<=fi+1;
+  for(const s of G3.segs){const on=s.i<=fi+1;if(s.tube)s.tube.visible=on;if(s.glow)s.glow.visible=on;if(s.line)s.line.visible=on;}
   if(G3.points)G3.points.geometry.setDrawRange(0,Math.max(0,fi+1));
   if(G3.rings){const rr=radiiAt(frac);for(const ring of G3.rings){const r=rr[ring.k];ring.line.visible=!!r;if(!r)continue;const pos=ring.line.geometry.attributes.position;for(let j=0;j<65;j++){const a=j/64*360;const rad=a<90?r.ne:a<180?r.se:a<270?r.sw:r.nw;const q=destination(cur.lat,cur.lon,a,rad);const vv=sphereVec(q[0],q[1],1.02);pos.setXYZ(j,vv.x,vv.y,vv.z);}pos.needsUpdate=true;ring.line.geometry.computeBoundingSphere();}}
   if(cur){
     const v=sphereVec(cur.lat,cur.lon,1.02);G3.dot.position.copy(v);
-    const dist=state.camMode==='wide'?5.0:state.camMode==='lock'?3.1:3.8;
+    let dist=state.camMode==='wide'?5.0:state.camMode==='lock'?3.1:3.8;
+    if(state.keys.length){const p=frac/Math.max(1,state.points.length-1);let a=state.keys[0],b=state.keys[state.keys.length-1];for(let i2=0;i2<state.keys.length-1;i2++){if(p>=state.keys[i2].p&&p<=state.keys[i2+1].p){a=state.keys[i2];b=state.keys[i2+1];break;}}const t=b.p===a.p?0:clamp((p-a.p)/(b.p-a.p),0,1);dist=5.2-lerp(a.zoom,b.zoom,ease(t))*1.2;}
     const cam=v.clone().normalize().multiplyScalar(dist);
     if(state.camOrbit)cam.applyAxisAngle(new THREE.Vector3(0,1,0),Math.sin(frac*.8)*state.camOrbit*.5);
     G3.camera.position.copy(cam);G3.camera.up.set(0,1,0);G3.camera.lookAt(0,0,0);
     if(state.camRoll)G3.camera.rotateZ(state.camRoll*D2R);
     G3.camera.aspect=W/H;G3.camera.updateProjectionMatrix();
+    if(G3.clouds){G3.clouds.visible=state.fx.clouds;G3.clouds.rotation.y=frac*.12;}
   }
 }
 function renderGlobeFrame(ctx,W,H,frac){
@@ -709,8 +728,8 @@ function bindUI(){
   $('camOrbit').oninput=e=>{state.camOrbit=+e.target.value;$('camOrbitV').textContent=state.camOrbit.toFixed(2);drawPreview();};
   $('camRoll').oninput=e=>{state.camRoll=+e.target.value;$('camRollV').textContent=state.camRoll.toFixed(1);drawPreview();};
   $('lineW').oninput=e=>{state.lineW=+e.target.value;$('lineWV').textContent=state.lineW.toFixed(1);drawPreview();};
-  ['fxParticles','fxVignette','fxGrain','fxRings','fxRain','fxBloom','hudTitle','hudGrid','hudLabels'].forEach((id,i)=>{
-    const key=['particles','vignette','grain','rings','rain','bloom','hudTitle','grid','labels'][i];$(id).onchange=e=>{state.fx[key]=e.target.checked;drawPreview();};
+  ['fxParticles','fxVignette','fxGrain','fxRings','fxRain','fxClouds','fxBloom','hudTitle','hudGrid','hudLabels'].forEach((id,i)=>{
+    const key=['particles','vignette','grain','rings','rain','clouds','bloom','hudTitle','grid','labels'][i];$(id).onchange=e=>{state.fx[key]=e.target.checked;drawPreview();};
   });
   $('res').onchange=e=>{state.res=e.target.value;resizeCanvas();drawPreview();};
   $('fps').onchange=e=>{state.fps=+e.target.value;drawPreview();};
