@@ -3120,10 +3120,10 @@ body.arena-open{overflow:hidden}
 
 /* ================= Animation Studio mode ================= */
 #animFx{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:430;mix-blend-mode:screen}
-#animPanel{display:none;position:absolute;right:14px;top:76px;bottom:96px;width:246px;z-index:1050;overflow:auto;padding:12px;border:1px solid rgba(42,77,112,.8);border-radius:10px;background:linear-gradient(180deg,rgba(8,22,37,.82),rgba(5,15,26,.7));backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.35);transform:translateX(14px);opacity:0;transition:.35s}
-#animPanel .ap-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:9px}
-#animPanel .ap-head b{font-size:12px;letter-spacing:.05em;color:#e8f7ff;display:block}
-#animPanel .ap-head small{font:7px var(--mono);letter-spacing:.18em;color:var(--txt3)}
+#animControlPanel{display:none;position:absolute;right:20px;top:80px;bottom:96px;width:246px;z-index:1000;overflow:auto;padding:12px;border:1px solid rgba(42,77,112,.8);border-radius:10px;background:linear-gradient(180deg,rgba(8,22,37,.82),rgba(5,15,26,.7));backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.35);transform:translateX(14px);opacity:0;transition:.35s}
+#animControlPanel .ap-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:9px}
+#animControlPanel .ap-head b{font-size:12px;letter-spacing:.05em;color:#e8f7ff;display:block}
+#animControlPanel .ap-head small{font:7px var(--mono);letter-spacing:.18em;color:var(--txt3)}
 .ap-live{font:7px var(--mono);color:var(--teal);border:1px solid rgba(25,226,197,.4);border-radius:999px;padding:2px 6px;letter-spacing:.1em}
 .ap-sec{padding:8px 0;border-bottom:1px solid rgba(42,77,112,.45)}
 .ap-sec h5{font:8px var(--mono);letter-spacing:.14em;color:var(--txt3);margin-bottom:6px}
@@ -3149,7 +3149,7 @@ body.arena-open{overflow:hidden}
 body.mode-animation #sidebar{display:none!important}
 body.mode-animation #main{grid-template-columns:1fr!important}
 body.mode-animation #mapStage{grid-column:1/-1!important}
-body.mode-animation #animPanel{display:block;opacity:1;transform:none}
+body.mode-animation #animControlPanel{display:block;opacity:1;transform:none}
 body.mode-animation #animFx{display:block}
 body.mode-animation #hdr .modes,body.mode-animation #hdr .header-search,body.mode-animation #hdr #simBtn,body.mode-animation #hdr #muteBtn,body.mode-animation #hdr #hdrLive,body.mode-animation #hdr #hdrBgm,body.mode-animation #hdr .hdr-actions > *:not(#homeBtn){display:none!important}
 body.mode-animation #hdr{background:linear-gradient(180deg,rgba(8,20,32,.82),rgba(5,14,24,.7));backdrop-filter:blur(10px)}
@@ -3162,14 +3162,14 @@ body.mode-animation #tl .right{display:none}
 body.mode-animation #mapTitle{opacity:.82}
 body.anim-trail #fx{filter:drop-shadow(0 0 5px rgba(25,226,197,.7)) drop-shadow(0 0 13px rgba(25,226,197,.35))}
 @media(max-width:760px){
- #animPanel{top:64px;right:8px;bottom:86px;width:210px;padding:9px}
+ #animControlPanel{top:64px;right:8px;bottom:86px;width:210px;padding:9px}
  body.mode-animation #tl{margin:5px 6px 7px}
  body.mode-animation #animExtra label{display:none}
  body.mode-animation #animExtra select{width:56px}
 }
 
 /* closed-loop animation console */
-#animDataPanel{display:none;position:absolute;left:14px;top:76px;bottom:96px;width:272px;z-index:1050;flex-direction:column;overflow:hidden;padding:12px;border:1px solid rgba(42,77,112,.8);border-radius:10px;background:linear-gradient(180deg,rgba(8,22,37,.84),rgba(5,15,26,.72));backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.35);transform:translateX(-14px);opacity:0;transition:.35s}
+#animDataPanel{display:none;position:absolute;left:20px;top:80px;bottom:96px;width:272px;z-index:1000;flex-direction:column;overflow:hidden;padding:12px;border:1px solid rgba(42,77,112,.8);border-radius:10px;background:linear-gradient(180deg,rgba(8,22,37,.84),rgba(5,15,26,.72));backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.35);transform:translateX(-14px);opacity:0;transition:.35s}
 body.mode-animation #animDataPanel{display:flex;opacity:1;transform:none}
 #animDataPanel .ap-grow{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #animDataPanel textarea{width:100%;height:92px;resize:vertical;border:1px solid var(--line);border-radius:5px;background:rgba(3,12,21,.75);color:#cfe3f5;font:9px/1.55 var(--mono);padding:7px;outline:none}
@@ -3191,7 +3191,7 @@ body.mode-animation #animDataPanel{display:flex;opacity:1;transform:none}
 body.mode-animation #tl .step,body.mode-animation #tlSub,body.mode-animation #tl .ticks,body.mode-animation #tl .right{display:none!important}
 body.mode-animation #tl{padding-left:14px;padding-right:14px}
 body.mode-animation #tl .scrub{flex:1}
-body.mode-animation #animPanel{bottom:96px}
+body.mode-animation #animControlPanel{bottom:96px}
 @media(max-width:900px){
  #animDataPanel{width:215px;left:8px;padding:9px}
  #animDataPanel textarea{height:68px}
@@ -3205,6 +3205,9 @@ body.mode-animation #animPanel{bottom:96px}
 #animDataPanel .ap-sec h5 em{font-style:normal;color:var(--teal);opacity:.7;float:right}
 #animDataPanel .ap-note{margin-top:auto;flex:0 0 auto}
 body.mode-animation #tlTicks,body.mode-animation .tl-tick{display:none!important}
+
+.anim-icon-file{width:100%;font:8px var(--mono);color:var(--txt3);margin:4px 0 6px;border:1px dashed var(--line);border-radius:4px;padding:5px;background:rgba(3,12,21,.5)}
+.anim-icon-file::file-selector-button{background:rgba(25,226,197,.1);border:1px solid rgba(25,226,197,.4);color:var(--teal);font:8px var(--mono);border-radius:3px;padding:3px 5px;margin-right:5px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -3381,8 +3384,8 @@ body.mode-animation #tlTicks,body.mode-animation .tl-tick{display:none!important
       <h5>直接粘贴报文 <em>DECK</em></h5>
       <textarea id="animPaste" spellcheck="false" placeholder="粘贴 B-Deck / A-Deck / JMA / 宽松文本…"></textarea>
       <div class="anim-data-actions">
-        <button type="button" id="animParse">解析并载入</button>
-        <button type="button" id="animSample">载入示例</button>
+        <button type="button" id="animBtnParse">解析并载入</button>
+        <button type="button" id="animBtnSample">载入示例</button>
       </div>
       <div id="animDataStatus">等待报文…</div>
     </div>
@@ -3526,7 +3529,7 @@ body.mode-animation #tlTicks,body.mode-animation .tl-tick{display:none!important
 <div id="windAreaPanel" aria-live="polite"><div class="wa-title">风圈覆盖面积</div><div class="wa-row"><span>34kt</span><b id="wa34">—</b></div><div class="wa-row"><span>50kt</span><b id="wa50">—</b></div><div class="wa-note">球面多边形 · 当前时次</div></div>
     <button class="fab" id="fab" aria-label="打开数据面板"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
   </section>
-  <aside id="animPanel" aria-label="动画设置">
+  <aside id="animControlPanel" aria-label="动画设置">
     <div class="ap-head"><div><b>动画设置</b><small>TC ANIMATION</small></div><span class="ap-live">LIVE</span></div>
     <div class="ap-sec">
       <h5>样式调节 <em>STYLE</em></h5>
@@ -3542,13 +3545,22 @@ body.mode-animation #tlTicks,body.mode-animation .tl-tick{display:none!important
     </div>
     <div class="ap-sec">
       <h5>镜头 <em>CAMERA</em></h5>
-      <div class="ap-row"><label>追踪</label><select id="animCam"><option value="fixed">固定</option><option value="follow" selected>平滑追踪</option><option value="locked">视觉中心锁死</option></select></div>
+      <div class="ap-row"><label>追踪</label><select id="animFollowMode"><option value="pan" selected>平滑追踪</option><option value="lock-center">视觉中心锁死</option><option value="none">不跟随</option></select></div>
       <div class="ap-row"><label>平滑度</label><input id="animSmooth" type="range" min="0" max="100" value="62"><span id="animSmoothV">62</span></div>
       <div class="ap-row"><label>中心偏移</label><input id="animOffset" type="range" min="-40" max="40" value="0"><span id="animOffsetV">0</span></div>
     </div>
     <div class="ap-sec">
       <h5>速率 <em>SPEED</em></h5>
       <div class="ap-row"><label>0.1–5x</label><input id="animSpeed" type="range" min=".1" max="5" step=".1" value="1"><span id="animSpeedV">1.0×</span></div>
+    </div>
+    <div class=ap-sec>
+      <h5>图标 <em>ICON</em></h5>
+      <input type=file id=customIconUpload accept=image/*,video/* class=anim-icon-file>
+      <div class=ap-row><label>缩放</label><input id=animIconScale type=range min=.3 max=3 step=.05 value=1><span id=animIconScaleV>1.0</span></div>
+      <div class=ap-row><label>X 偏移</label><input id=animIconX type=range min=-100 max=100 step=1 value=0><span id=animIconXV>0</span></div>
+      <div class=ap-row><label>Y 偏移</label><input id=animIconY type=range min=-100 max=100 step=1 value=0><span id=animIconYV>0</span></div>
+      <div class=ap-row><label>旋转速度</label><input id=animIconSpin type=range min=0 max=5 step=.1 value=1><span id=animIconSpinV>1.0</span></div>
+      <label class=chk><input type=checkbox id=maskNum>遮挡数字</label>
     </div>
     <div class="ap-sec">
       <h5>动画视角 <em>VIEW</em></h5>
@@ -4247,7 +4259,7 @@ const DEFAULTS={
   basemap:'vector',prec:'110',showGrid:true,showLegend:true,showScale:true,showTitle:true,
   view:'2d',tilt:{rx:52,ry:0,persp:1600},raisedH:30,
   icon:{style:'neon',size:1,spin:1.2},
-  animSpeed:1,follow:true,cinema:true,camMode:'follow',animVignette:true,seenIntro:false,
+  animSpeed:1,follow:true,cinema:true,camMode:'follow',followMode:'pan',animVignette:true,iconScale:1,iconX:0,iconY:0,iconSpin:1,maskNum:false,seenIntro:false,
   timeMode:'utc',cone:false,coneRate:24,radiiMode:'current',loop:false,
   showLandfall:true,showReadout:true,highContrast:false,autosave:true,overlayAll:true,
   proBg:'#000000',proLineWidth:5,
@@ -4272,7 +4284,7 @@ const state={
   settings:loadSettings(),
   storms:[],activeId:null,frac:0,playing:false,
   parseLog:[],lastFormat:'',userZoom:false,
-  history:[],introSeen:false,appMode:'builder',
+  history:[],introSeen:false,appMode:'builder',customIcon:null,
   undo:[],redo:[],editMode:false,measure:false,measurePts:[],selectedIdx:-1,mouse:null
 };
 function saveSettings(){
@@ -4879,6 +4891,12 @@ function draw(){
   const op=k=>clamp((s.layerOpacity&&s.layerOpacity[k]!=null?s.layerOpacity[k]:100)/100,0,1);
   const paint=(k,fn)=>{fctx.save();fctx.globalAlpha*=op(k);try{fn();}finally{fctx.restore();}};
   if(s.showGrid&&!pro){fctx.save();fctx.globalAlpha*=op('grid');drawGrid(w,h);fctx.restore();}
+  const lockCenter=state.appMode==='animation'&&!pro&&s.followMode==='lock-center'&&primary;
+  let lockSaved=false;
+  if(lockCenter){
+    const cc=pointAt(primary,state.frac);
+    if(cc){const q=project(cc.lat,cc.lon);fctx.save();fctx.translate(w/2-q[0],h/2-q[1]);lockSaved=true;}
+  }
   const showAll=!pro&&s.overlayAll&&list.length>1;
   const ordered=pro?[primary]: (showAll?list.filter(x=>x!==primary).concat(list.filter(x=>x===primary)):list);
   const order=Array.isArray(s.layerOrder)?s.layerOrder:['radii','cone','track','points','labels','landfall','cities'];
@@ -4919,11 +4937,13 @@ function draw(){
   if(!pro&&primary&&!primary.hidden){
     const P=projectedStorm(primary,state.frac);
     if(s.layers.icon)paint('icon',()=>drawIntensityIcon(P,w,h));
-    drawCurrent(P,w,h);
+    if(!(state.appMode==='animation'&&state.customIcon&&state.customIcon.element))drawCurrent(P,w,h);
     if(state.editMode)drawEditHandles(P,w,h);
   }
   if(!pro&&state.measurePts.length)drawMeasure(w,h);
   if(!pro&&state.mouse&&s.showReadout)drawReadout(w,h);
+  if(state.appMode==='animation'&&!pro&&s.animParticles!==false)drawAtmosphere(w,h);
+  if(lockSaved){fctx.restore();lockSaved=false;}
   if(!pro&&s.showScale)drawScale(w,h,primary?pointAt(primary,state.frac):null);
   drawWatermark(w,h);
   updateLandfallEta(primary);
@@ -4931,7 +4951,7 @@ function draw(){
   updateWindArea(primary);
   updateTitle();
   updateLegend();
-  if(state.appMode==='animation'&&!pro){ if(s.animParticles!==false)drawAtmosphere(w,h); if(s.animVignette!==false)drawVignette(w,h); }
+  if(state.appMode==='animation'&&!pro&&s.animVignette!==false)drawVignette(w,h);
   maybeFollow(performance.now());
 }
 function drawAgencyForecast(st,w,h){
@@ -5222,13 +5242,24 @@ function drawVignette(w,h){
 }
 function drawAnimationRadii(P,w,h){
   const s=state.settings;
-  const cur=P.cur;if(!cur||!cur.radii)return;
+  const cur=P.cur;if(!cur)return;
   const c=project(cur.lat,cur.lon);
   const pulse=1+Math.sin(performance.now()/850)*.018;
   const aScale=clamp((s.radiiAlpha!=null?s.radiiAlpha:16)/16,0,3);
+  const st=activeStorm();
+  const f=clamp(state.frac,0,(st?st.points.length:1)-1),i0=Math.floor(f),i1=Math.min((st?st.points.length:1)-1,i0+1),tt=f-i0;
+  const a0=st&&st.points[i0],a1=st&&st.points[i1];
+  const radii={};
+  [34,50,64].forEach(k=>{
+    const x=(a0&&a0.radii)?a0.radii[k]:null,y=(a1&&a1.radii)?a1.radii[k]:null;
+    if(!x&&!y)return;
+    if(!x){radii[k]=y;return;}if(!y){radii[k]=x;return;}
+    radii[k]={ne:lerp(x.ne,y.ne,tt),se:lerp(x.se,y.se,tt),sw:lerp(x.sw,y.sw,tt),nw:lerp(x.nw,y.nw,tt)};
+  });
+  if(!Object.keys(radii).length)return;
   for(const k of [64,50,34]){
     if(!s.wr[k])continue;
-    const rr=cur.radii[k];
+    const rr=radii[k];
     if(!rr||!(rr.ne>0||rr.se>0||rr.sw>0||rr.nw>0))continue;
     const ring=ringPolygon(cur.lat,cur.lon,rr);if(ring.length<3)continue;
     const pts=ring.map(q=>project(q[1],q[0]));
@@ -5349,6 +5380,18 @@ function drawAnimationTrack(P,w,h){
     strokeSegment(route,0,0,hexA(windColor(s.lv),.34),lineW+9,.55);
   }
   fctx.restore();
+  if(fxOn&&past.length>2){
+    const i0=Math.max(0,fi-8);
+    const a=project(past[i0].lat,past[i0].lon),b=project(P.cur.lat,P.cur.lon);
+    const col=windColor(classify(P.cur.wind||0));
+    const g=fctx.createLinearGradient(a[0],a[1],b[0],b[1]);
+    g.addColorStop(0,hexA(col,0));g.addColorStop(.55,hexA(col,.22));g.addColorStop(1,hexA(col,.82));
+    fctx.save();fctx.globalCompositeOperation='lighter';fctx.strokeStyle=g;fctx.lineWidth=lineW*1.55;
+    fctx.shadowColor=col;fctx.shadowBlur=18;fctx.lineCap='round';
+    fctx.beginPath();let started=false;
+    for(let i=i0;i<=fi;i++){const p=project(past[i].lat,past[i].lon);started?fctx.lineTo(p[0],p[1]):fctx.moveTo(p[0],p[1]);started=true;}
+    fctx.stroke();fctx.restore();
+  }
   for(const s of segs){
     const col=windColor(s.lv);
     const route=state.settings.smooth?smoothPts(s.pts):s.pts;
@@ -5506,6 +5549,30 @@ function drawIntensityIcon(P,w,h){
   const lv=basinLevel(activeStorm()?.basin||'WP',cur.wind||0);
   const col=windColor(classify(cur.wind));
   const t=performance.now()/1000;
+  if(state.appMode==='animation'&&state.customIcon&&state.customIcon.element){
+    const ci=state.customIcon,el=ci.element;
+    if(ci.type!=='video'||(el.readyState||0)>=2){
+      const st=state.settings;
+      const iw0=el.videoWidth||el.naturalWidth||256,ih0=el.videoHeight||el.naturalHeight||256;
+      const base=Math.max(30,R*2.1),sc=clamp(st.iconScale||1,.1,5);
+      const iw=base*sc,ih=iw*(ih0/iw0||1);
+      const ix=q[0]+(st.iconX||0),iy=q[1]+(st.iconY||0);
+      const spin=st.iconSpin!=null?st.iconSpin:1;
+      fctx.save();fctx.translate(ix,iy);
+      if(spin>0)fctx.rotate(t*spin);
+      fctx.drawImage(el,-iw/2,-ih/2,iw,ih);
+      fctx.restore();
+      if(st.maskNum){
+        const mr=Math.max(7,R*.62);
+        fctx.beginPath();fctx.arc(ix,iy,mr,0,7);fctx.fillStyle=col;fctx.fill();
+        fctx.strokeStyle='rgba(2,8,14,.85)';fctx.lineWidth=2;fctx.stroke();
+        fctx.font='700 '+Math.round(mr*.95)+'px '+getComputedStyle(document.body).fontFamily;
+        fctx.textAlign='center';fctx.textBaseline='middle';fctx.fillStyle='#fff';
+        fctx.fillText(lv.key==='TY'?'TY':lv.key,ix,iy);
+      }
+      return;
+    }
+  }
   const ang=t*(s.spin||1.2)*1.2 + state.frac*.4;
   fctx.save();fctx.translate(q[0],q[1]);
   if(s.style==='neon'){
@@ -5703,8 +5770,8 @@ function maybeFollow(now){
   if(!s.follow||!state.playing||!s.cinema)return;
   const st=activeStorm();if(!st)return;
   const cur=pointAt(st,state.frac);if(!cur)return;
-  if(state.appMode==='animation'&&s.camMode==='locked'){
-    map.panTo([cur.lat,cur.lon],{animate:false});
+  if(state.appMode==='animation'&&s.followMode==='lock-center'){
+    map.panTo([cur.lat,cur.lon],{animate:true,duration:.3});
     camLast=now;
     return;
   }
@@ -5722,7 +5789,7 @@ function maybeFollow(now){
     const size=map.getSize();
     const off=Math.hypot(c.x-size.x/2,c.y-size.y/2);
     if(off>18||Math.abs(map.getZoom()-z)>.22){
-      map.panTo(targetLL,{animate:true,duration:1.15,easeLinearity:.18});
+      map.panTo(targetLL,{animate:true,duration:.3,easeLinearity:.22});
       camLast=now;
     }
     return;
@@ -5777,7 +5844,7 @@ const Anim={
     const st=activeStorm();
     if(!st||!st.points.length){this.pause();return;}
     const speed=state.settings.animSpeed||1;
-    this.frac+=dt/(this.base/speed);
+    this.frac += (dt / this.base) * speed;
     if(this.frac>=st.points.length-1){
       this.frac=st.points.length-1;state.frac=this.frac;
       draw();updateTimeline();
@@ -5792,7 +5859,8 @@ const Anim={
     }
     state.frac=this.frac;
     if(state.settings.view==='full3d')render3D(this.frac);else draw();
-    if(!this._uiLast||ts-this._uiLast>50){updateTimeline();this._uiLast=ts;}
+    const fast=speed>=3;
+    if(!this._uiLast||ts-this._uiLast>(fast?220:50)){updateTimeline();this._uiLast=ts;}
     this.raf=requestAnimationFrame(this.tick.bind(this));
   },
   seek(f,quiet){
@@ -7078,7 +7146,13 @@ function makeExport(W,H,st,opts){
   const y0=merc(b.la0),y1=merc(b.la1);
   const sx=W/(b.lo1-b.lo0),sy=H/(y1-y0);
   const rawP=(lat,lon)=>[ (lon-b.lo0)*sx, H-(merc(lat)-y0)*sy ];
+  const locked=!!opts.locked&&state.settings.camMode==='locked'&&anim;
   let P=rawP;
+  if(locked){
+    const cc=pointAt(st,state.frac);
+    if(cc){const cp=rawP(cc.lat,cc.lon),ox=W/2-cp[0],oy=H/2-cp[1];
+      P=(lat,lon)=>{const q=rawP(lat,lon);return [q[0]+ox,q[1]+oy];};}
+  }
   if(tilt){
     /* 与屏幕 tilt（rotateX 52° + perspective）同构的透视投影 */
     const ang=52*D2R,ca=Math.cos(ang),sa=Math.sin(ang),f=H*2.2;
@@ -7122,6 +7196,27 @@ function makeExport(W,H,st,opts){
     const g=ctx.createRadialGradient(W*.5,H*.48,Math.min(W,H)*.24,W*.5,H*.5,Math.max(W,H)*.78);
     g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.64,'rgba(0,0,0,.04)');g.addColorStop(.88,'rgba(0,0,0,.26)');g.addColorStop(1,'rgba(0,0,0,.6)');
     ctx.save();ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.restore();
+  }
+  function drawExportCustomIcon(cur){
+    if(!anim||!cur||!state.customIcon||!state.customIcon.element)return false;
+    const ci=state.customIcon,el=ci.element;
+    if(ci.type==='video'&&(el.readyState||0)<2)throw new Error('自定义视频图标尚未加载完成');
+    const q=P(cur.lat,cur.lon);
+    const iw0=el.videoWidth||el.naturalWidth||256,ih0=el.videoHeight||el.naturalHeight||256;
+    const base=Math.max(28,W/42)*2,sc=+state.settings.iconScale||1;
+    const iw=base*sc,ih=iw*(ih0/iw0||1);
+    const ix=q[0]+(+state.settings.iconX||0),iy=q[1]+(+state.settings.iconY||0);
+    const spin=state.settings.iconSpin!=null?state.settings.iconSpin:1;
+    ctx.save();ctx.translate(ix,iy);if(spin>0)ctx.rotate((fi||0)*.12*spin);ctx.drawImage(el,-iw/2,-ih/2,iw,ih);ctx.restore();
+    if(state.settings.maskNum){
+      const lv=basinLevel(st.basin,cur.wind);
+      const mr=Math.max(8,iw*.16);
+      ctx.beginPath();ctx.arc(ix,iy,mr,0,7);ctx.fillStyle=windColor(classify(cur.wind));ctx.fill();
+      ctx.strokeStyle='rgba(2,8,14,.85)';ctx.lineWidth=2;ctx.stroke();
+      ctx.font='700 '+Math.round(mr*.95)+'px '+getComputedStyle(document.body).fontFamily;
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(lv.key,ix,iy);
+    }
+    return true;
   }
   const drawCity=()=>{
     if(!state.settings.showCities||!CITIES)return;
@@ -7284,7 +7379,8 @@ function makeExport(W,H,st,opts){
         ctx.beginPath();ctx.arc(p[0],p[1],Math.max(2,W/380),0,7);ctx.fillStyle=windColor(pts[i].level);ctx.fill();
         ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1;ctx.stroke();
       }
-      if(cur){
+      if(cur&&drawExportCustomIcon(cur)){
+      }else if(cur){
         const p=P(cur.lat,cur.lon);if(lift2)p[1]-=lift2;
         ctx.beginPath();ctx.arc(p[0],p[1],Math.max(9,W/190),0,7);ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=2;ctx.stroke();
         const lv=basinLevel(st.basin,cur.wind);
@@ -7360,7 +7456,7 @@ function exportPNG(){
 async function exportWebM(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
   if(!window.MediaRecorder){toast('浏览器不支持 MediaRecorder','err');return;}
-  const ex=makeExport(1280,800,st,{animation:state.appMode==='animation'});
+  const ex=makeExport(1280,800,st,{animation:state.appMode==='animation',locked:state.settings.camMode==='locked'});
   const fps=+((document.getElementById('webmFps')||{}).value||30);const stream=ex.canvas.captureStream(fps);
   let mime='video/webm;codecs=vp9';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';
   const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6});
@@ -7385,6 +7481,7 @@ async function exportMP4(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
   if(!('VideoEncoder' in window)||typeof VideoFrame==='undefined'){toast('当前浏览器不支持 WebCodecs H.264','err',4200);return;}
   if(!window.Mp4Muxer||!window.Mp4Muxer.Muxer){toast('mp4-muxer 未加载（需联网）','err',4200);return;}
+  if(state.customIcon&&state.customIcon.type==='video'&&(!state.customIcon.element||state.customIcon.element.readyState<2)){alert('自定义视频图标尚未加载完成，请等待视频可播放后再导出 MP4');return;}
   const res=$('#mp4Res').value;
   let W=1280,H=800;
   if(res==='1080'){W=1920;H=1080;}else if(res==='1440'){W=2560;H=1440;}
@@ -7392,7 +7489,7 @@ async function exportMP4(){
   W=Math.max(320,W);H=Math.max(240,H);
   const fps=+$('#mp4Fps').value||30;
   const hold=clamp(+$('#mp4Hold').value||36,16,120);
-  const ex=makeExport(W,H,st,{animation:state.appMode==='animation'});
+  const ex=makeExport(W,H,st,{animation:state.appMode==='animation',locked:state.settings.camMode==='locked'});
   MP4.busy=true;MP4.cancel=false;MP4.paused=false;
   $('#mp4Modal').classList.add('open');$('#mp4Pause').textContent='暂停';$('#mp4Fill').style.width='0%';
   const target=new Mp4Muxer.ArrayBufferTarget();
@@ -8787,13 +8884,14 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
 })();
 
 /* ============================================================
-   TC Animation Studio — self-contained sandbox (v4.2)
+   TC Animation Studio — closed-loop director console (v4.2)
    ============================================================ */
 (function () {
   'use strict';
 
   const $ = id => document.getElementById(id);
   const LEVEL_COLOR = { TD:'#5bb8ff', TS:'#19e2c5', TY:'#ffd166', STY:'#ff9f43', SuperTY:'#ff5d73', Cat5:'#ff3b5c' };
+  let iconUrl = null;
 
   function isAnimation() {
     return document.body.classList.contains('mode-animation');
@@ -8803,7 +8901,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     return (window.SUDRE && window.SUDRE.state && window.SUDRE.state.settings) || {};
   }
 
-  function status(text, kind) {
+  function setStatus(text, kind) {
     const el = $('animDataStatus');
     if (!el) return;
     el.textContent = text;
@@ -8819,7 +8917,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     document.body.classList.remove('menu-visible', 'main-menu-open', 'home-open', 'ui-leaving');
     document.body.classList.add('mode-animation', 'ui-entering');
     try { window.SUDRE.state.appMode = 'animation'; } catch (e) {}
-    const panel = $('animPanel');
+    const panel = $('animControlPanel');
     if (panel) panel.setAttribute('aria-hidden', 'false');
     const dataPanel = $('animDataPanel');
     if (dataPanel) dataPanel.setAttribute('aria-hidden', 'false');
@@ -8842,7 +8940,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     if (!isAnimation()) return;
     document.body.classList.remove('mode-animation', 'anim-trail');
     try { window.SUDRE.state.appMode = 'builder'; } catch (e) {}
-    const panel = $('animPanel');
+    const panel = $('animControlPanel');
     if (panel) panel.setAttribute('aria-hidden', 'true');
     const dataPanel = $('animDataPanel');
     if (dataPanel) dataPanel.setAttribute('aria-hidden', 'true');
@@ -8865,6 +8963,8 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     s.animParticles = !!(particles && particles.checked);
     const vignette = $('animVignette');
     s.animVignette = !!(vignette && vignette.checked);
+    const mask = $('maskNum');
+    s.maskNum = !!(mask && mask.checked);
     if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
   }
 
@@ -8875,14 +8975,23 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     set('animLineWidth', s.lineWidth || 3);
     set('animRadiiAlpha', s.radiiAlpha != null ? s.radiiAlpha : 16);
     set('animSpeed', s.animSpeed || 1);
-    set('animCam', s.camMode || 'follow');
+    set('animFollowMode', s.followMode || 'pan');
+    set('animIconScale', s.iconScale || 1);
+    set('animIconX', s.iconX || 0);
+    set('animIconY', s.iconY || 0);
+    set('animIconSpin', s.iconSpin != null ? s.iconSpin : 1);
     check('animParticles', s.animParticles !== false);
     check('animRings', !s.wr || s.wr[34] !== false);
-    check('animTrail', true);
+    check('animTrail', s.animTrail !== false);
     check('animVignette', s.animVignette !== false);
+    check('maskNum', !!s.maskNum);
     const lw = $('animLineWidthV'); if (lw) lw.textContent = String(s.lineWidth || 3);
     const ra = $('animRadiiAlphaV'); if (ra) ra.textContent = String(s.radiiAlpha != null ? s.radiiAlpha : 16);
     const sp = $('animSpeedV'); if (sp) sp.textContent = (+s.animSpeed || 1).toFixed(1) + '×';
+    const is = $('animIconScaleV'); if (is) is.textContent = (+s.iconScale || 1).toFixed(1);
+    const ix = $('animIconXV'); if (ix) ix.textContent = String(s.iconX || 0);
+    const iy = $('animIconYV'); if (iy) iy.textContent = String(s.iconY || 0);
+    const ir = $('animIconSpinV'); if (ir) ir.textContent = (+s.iconSpin || 0).toFixed(1);
   }
 
   function renderStormList() {
@@ -8892,19 +9001,19 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     const list = st.storms.filter(x => !x.hidden && x.points && x.points.length);
     if (!list.length) {
       box.innerHTML = '<div class="anim-empty">尚未载入气旋<br>在左侧粘贴报文或载入示例</div>';
-      status('等待报文…');
+      setStatus('等待报文…');
       return;
     }
     box.innerHTML = list.map(x => {
       const p = x.points[x.peak] || x.points[0] || {};
-      const col = LEVEL_COLOR[p.level] || LEVEL_COLOR[(p.level || '').replace('Cat', 'Cat')] || '#7fa3c0';
+      const col = LEVEL_COLOR[p.level] || '#7fa3c0';
       const name = String(x.name || x.id).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
       return '<div class="anim-storm' + (x.id === st.activeId ? ' on' : '') + '" data-id="' + x.id + '">' +
         '<span class="dot" style="background:' + col + ';color:' + col + '"></span>' +
         '<span class="nm"><b>' + name + '</b><small>' + x.id + ' · ' + (p.level || '—') + ' · ' + Math.round(p.wind || 0) + 'kt · ' + x.points.length + ' 帧</small></span>' +
         '</div>';
     }).join('');
-    status('已载入 ' + list.length + ' 个气旋 · 点击切换');
+    setStatus('已载入 ' + list.length + ' 个气旋 · 点击切换');
   }
 
   function selectStorm(id) {
@@ -8918,47 +9027,45 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     try { window.SUDRE.draw(); window.SUDRE.updateTimeline(); } catch (e) {}
     try { window.SUDRE.flyToStorm(); } catch (e) {}
     renderStormList();
-    status('当前：' + (storm.name || storm.id) + ' · ' + storm.points.length + ' 帧');
+    setStatus('当前：' + (storm.name || storm.id) + ' · ' + storm.points.length + ' 帧');
   }
 
   function parsePaste() {
     const area = $('animPaste');
     if (!area || !window.SUDRE || !window.SUDRE.ingest) return;
     const text = area.value.trim();
-    if (!text) { status('请先粘贴报文', 'err'); return; }
-    status('正在解析…');
+    if (!text) { setStatus('请先粘贴报文', 'err'); return; }
+    setStatus('正在解析…');
     let result = [];
-    try { result = window.SUDRE.ingest(text, '动画工坊'); } catch (e) { status('解析失败：' + e.message, 'err'); return; }
-    if (!result || !result.length) { status('未解析到有效路径', 'err'); return; }
+    try { result = window.SUDRE.ingest(text, '动画工坊'); } catch (e) { setStatus('解析失败：' + e.message, 'err'); return; }
+    if (!result || !result.length) { setStatus('未解析到有效路径', 'err'); return; }
     setTimeout(() => {
       renderStormList();
       const st = window.SUDRE.state;
       const first = st.storms.find(x => x.id === st.activeId) || st.storms[0];
       if (first) selectStorm(first.id);
-      status('解析完成：' + result.length + ' 条路径', 'ok');
+      setStatus('解析完成：' + result.length + ' 条路径', 'ok');
     }, 450);
   }
 
   function loadSample() {
     const btn = $('btnSample');
-    if (!btn) { status('示例数据不可用', 'err'); return; }
-    status('正在载入示例…');
+    if (!btn) { setStatus('示例数据不可用', 'err'); return; }
+    setStatus('正在载入示例…');
     btn.click();
     setTimeout(() => {
       renderStormList();
       const st = window.SUDRE && window.SUDRE.state;
       const first = st && (st.storms.find(x => x.id === st.activeId) || st.storms[0]);
       if (first) selectStorm(first.id);
-      status('示例已载入', 'ok');
+      setStatus('示例已载入', 'ok');
     }, 600);
   }
 
   function syncCamera(v) {
-    const cam = $('animCam');
-    if (cam) cam.value = v;
     const s = settings();
-    s.camMode = v;
-    const follow = v !== 'fixed';
+    s.followMode = v;
+    const follow = v !== 'none';
     s.follow = follow;
     s.cinema = follow;
     try { if (window.SUDRE && window.SUDRE.setFollow) window.SUDRE.setFollow(follow, false); } catch (e) {}
@@ -8981,10 +9088,46 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     } catch (e) {}
   }
 
+  function loadCustomIcon(file) {
+    if (!file) return;
+    if (iconUrl) { try { URL.revokeObjectURL(iconUrl); } catch (e) {} iconUrl = null; }
+    const old = window.SUDRE && window.SUDRE.state && window.SUDRE.state.customIcon;
+    if (old && old.element && old.element.parentNode && old.type === 'video') old.element.parentNode.removeChild(old.element);
+    iconUrl = URL.createObjectURL(file);
+    if (/^video\//.test(file.type)) {
+      const video = document.createElement('video');
+      video.src = iconUrl;
+      video.muted = true;
+      video.loop = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.style.display = 'none';
+      document.body.appendChild(video);
+      video.onloadeddata = () => {
+        try { video.play(); } catch (e) {}
+        window.SUDRE.state.customIcon = { type: 'video', element: video };
+        setStatus('自定义视频图标已载入', 'ok');
+        try { window.SUDRE.draw(); } catch (e) {}
+      };
+      video.onerror = () => setStatus('视频图标读取失败', 'err');
+    } else if (/^image\//.test(file.type)) {
+      const img = new Image();
+      img.onload = () => {
+        window.SUDRE.state.customIcon = { type: 'image', element: img };
+        setStatus('自定义图片图标已载入', 'ok');
+        try { window.SUDRE.draw(); } catch (e) {}
+      };
+      img.onerror = () => setStatus('图片图标读取失败', 'err');
+      img.src = iconUrl;
+    } else {
+      setStatus('请选择图片或视频文件', 'err');
+    }
+  }
+
   function init() {
     const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
-    on('animParse', 'click', parsePaste);
-    on('animSample', 'click', loadSample);
+    on('animBtnParse', 'click', parsePaste);
+    on('animBtnSample', 'click', loadSample);
     const list = $('animStormList');
     if (list) list.addEventListener('click', e => {
       const row = e.target.closest('.anim-storm');
@@ -9007,11 +9150,13 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
       settings().animSpeed = v;
       const out = $('animSpeedV'); if (out) out.textContent = v.toFixed(1) + '×';
     });
-    on('animCam', 'change', e => syncCamera(e.target.value));
+    on('animFollowMode', 'change', e => syncCamera(e.target.value));
     on('animParticles', 'change', applyEffects);
     on('animRings', 'change', applyEffects);
     on('animTrail', 'change', applyEffects);
     on('animVignette', 'change', applyEffects);
+    on('maskNum', 'change', applyEffects);
+    on('customIconUpload', 'change', e => loadCustomIcon(e.target.files && e.target.files[0]));
     const smooth = $('animSmooth');
     if (smooth) smooth.addEventListener('input', () => {
       const v = +smooth.value;
@@ -9023,6 +9168,15 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
       const out = $('animOffsetV'); if (out) out.textContent = offset.value;
       settings().camOffset = +offset.value;
     });
+    for (const [id, key, suffix] of [['animIconScale', 'iconScale', 'animIconScaleV'], ['animIconX', 'iconX', 'animIconXV'], ['animIconY', 'iconY', 'animIconYV'], ['animIconSpin', 'iconSpin', 'animIconSpinV']]) {
+      on(id, 'input', e => {
+        const v = +e.target.value;
+        settings()[key] = v;
+        const out = $(suffix);
+        if (out) out.textContent = id === 'animIconScale' ? v.toFixed(1) : (id === 'animIconSpin' ? v.toFixed(1) : String(v));
+        if (window.SUDRE) try { window.SUDRE.draw(); } catch (err) {}
+      });
+    }
     document.querySelectorAll('[data-aview]').forEach(b => b.addEventListener('click', () => setView(b.dataset.aview)));
     const rec = $('animRec');
     if (rec) rec.addEventListener('click', () => {
