@@ -3570,6 +3570,12 @@ body.mode-animation #tlTicks,body.mode-animation .tl-tick{display:none!important
         <button type="button" data-aview="climax">高潮推近</button>
       </div>
     </div>
+    <div class="ap-sec">
+      <h5>导出设置 <em>EXPORT</em></h5>
+      <div class="ap-row"><label>画质</label><select id="exportRes"><option value="current">当前视图</option><option value="1080" selected>1080p</option><option value="2k">2K</option><option value="4k">4K</option></select></div>
+      <div class="ap-row"><label>帧率</label><select id="exportFps"><option value="24">24 fps</option><option value="30" selected>30 fps</option><option value="60">60 fps</option></select></div>
+      <div class="ap-row"><label>码率</label><select id="exportBitrate"><option value="auto" selected>自动</option><option value="high">高</option><option value="medium">中</option><option value="low">低</option></select></div>
+    </div>
     <button type="button" id="animRec" class="ap-rec">● 录制 MP4</button>
     <div class="ap-note">MP4 使用当前 ECharts GL / 高画质 2D 画面。<br>退出动画工坊后恢复路径制作布局。</div>
   </aside>
@@ -4265,6 +4271,7 @@ const DEFAULTS={
   proBg:'#000000',proLineWidth:5,
   smooth:false,baseDim:0,watermark:'',showCities:false,cityName:'上海',autoOrbit:false,
   customTitle:'',customSubtitle:'',
+  export:{res:'1080',fps:30,bitrate:'auto'},
   layerOrder:['radii','cone','track','points','labels','landfall','cities'],
   layerOpacity:{track:100,radii:100,points:100,labels:100,icon:100,cone:100,landfall:100,cities:100,grid:100}
 };
@@ -4277,6 +4284,7 @@ function loadSettings(){
   s.icon=Object.assign({},DEFAULTS.icon,s.icon||{});
   s.tilt=Object.assign({},DEFAULTS.tilt,s.tilt||{});
   s.layerOpacity=Object.assign({},DEFAULTS.layerOpacity,s.layerOpacity||{});
+  s.export=Object.assign({},DEFAULTS.export,s.export||{});
   s.layerOrder=Array.isArray(s.layerOrder)&&s.layerOrder.length?s.layerOrder:DEFAULTS.layerOrder.slice();
   return s;
 }
@@ -7146,7 +7154,7 @@ function makeExport(W,H,st,opts){
   const y0=merc(b.la0),y1=merc(b.la1);
   const sx=W/(b.lo1-b.lo0),sy=H/(y1-y0);
   const rawP=(lat,lon)=>[ (lon-b.lo0)*sx, H-(merc(lat)-y0)*sy ];
-  const locked=!!opts.locked&&state.settings.camMode==='locked'&&anim;
+  const locked=!!opts.locked&&(state.settings.followMode==='lock-center'||state.settings.camMode==='locked')&&anim;
   let P=rawP;
   if(locked){
     const cc=pointAt(st,state.frac);
@@ -7236,6 +7244,11 @@ function makeExport(W,H,st,opts){
     const pts=st.points,n=pts.length;
     const f=proNow?n-1:clamp(frac,0,n-1),fi=Math.floor(f);
     const cur=pointAt(st,f);
+    let rrAnim=cur&&cur.radii;
+    if(anim&&cur){
+      const i0=Math.floor(f),i1=Math.min(n-1,i0+1),tt=f-i0,a0=st.points[i0],a1=st.points[i1];
+      if(a0&&a1){rrAnim={};[34,50,64].forEach(k=>{const x=a0.radii&&a0.radii[k],y=a1.radii&&a1.radii[k];if(!x&&!y)return;if(!x){rrAnim[k]=y;return;}if(!y){rrAnim[k]=x;return;}rrAnim[k]={ne:lerp(x.ne,y.ne,tt),se:lerp(x.se,y.se,tt),sw:lerp(x.sw,y.sw,tt),nw:lerp(x.nw,y.nw,tt)};});}
+    }
     if(transparent){
       ctx.clearRect(0,0,W,H);
     }else if(proNow){
@@ -7347,7 +7360,7 @@ function makeExport(W,H,st,opts){
         }
       }
     }else{
-      const rr=cur&&cur.radii;
+      const rr=rrAnim||(cur&&cur.radii);
       if(rr){
         [64,50,34].forEach(k=>{
           const r=rr[k];if(!r||!state.settings.wr[k])return;
@@ -7365,6 +7378,11 @@ function makeExport(W,H,st,opts){
       }
       drawPath();
       if(anim&&cur&&state.settings.animTrail!==false){
+        const ti=Math.max(0,fi-8),ta=P(pts[ti].lat,pts[ti].lon),tb=P(cur.lat,cur.lon);
+        const tg=ctx.createLinearGradient(ta[0],ta[1],tb[0],tb[1]);const tc=windColor(classify(cur.wind||0));
+        tg.addColorStop(0,hexA(tc,0));tg.addColorStop(.55,hexA(tc,.2));tg.addColorStop(1,hexA(tc,.85));
+        ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle=tg;ctx.lineWidth=Math.max(5,W/260);ctx.lineCap='round';ctx.shadowColor=tc;ctx.shadowBlur=16;
+        ctx.beginPath();for(let i=ti;i<=fi;i++){const p=P(pts[i].lat,pts[i].lon);i===ti?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]);}ctx.stroke();ctx.restore();
         ctx.save();ctx.globalCompositeOperation='lighter';ctx.shadowColor=hexA(windColor(classify(cur.wind||0)),.8);ctx.shadowBlur=18;
         ctx.beginPath();let st0=true;
         for(let i=0;i<=fi;i++){const p=P(pts[i].lat,pts[i].lon);st0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]);st0=false;}
@@ -7456,7 +7474,7 @@ function exportPNG(){
 async function exportWebM(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
   if(!window.MediaRecorder){toast('浏览器不支持 MediaRecorder','err');return;}
-  const ex=makeExport(1280,800,st,{animation:state.appMode==='animation',locked:state.settings.camMode==='locked'});
+  const ex=makeExport(1280,800,st,{animation:state.appMode==='animation',locked:state.settings.followMode==='lock-center'});
   const fps=+((document.getElementById('webmFps')||{}).value||30);const stream=ex.canvas.captureStream(fps);
   let mime='video/webm;codecs=vp9';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';
   const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6});
@@ -7475,53 +7493,81 @@ async function exportWebM(){
 
 /* ---- MP4（WebCodecs + mp4-muxer） ---- */
 const MP4={cancel:false,paused:false,busy:false};
+function avcCodecFor(W,H,fps){
+  let level='28';
+  if(W>=3000)level=fps>=50?'34':'33';
+  else if(W>=2400)level=fps>=50?'32':'32';
+  else level=fps>=50?'2a':'28';
+  return 'avc1.6400'+level;
+}
 async function exportMP4(){
   if(MP4.busy)return;
-  if(innerWidth<760){toast('手机端暂不支持 MP4 直出，请使用 PNG / WebM','warn',3800);return;}
+  if(innerWidth<760){toast('移动端暂不支持 MP4 直出，请使用 PNG / WebM','warn',3800);return;}
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
   if(!('VideoEncoder' in window)||typeof VideoFrame==='undefined'){toast('当前浏览器不支持 WebCodecs H.264','err',4200);return;}
   if(!window.Mp4Muxer||!window.Mp4Muxer.Muxer){toast('mp4-muxer 未加载（需联网）','err',4200);return;}
   if(state.customIcon&&state.customIcon.type==='video'&&(!state.customIcon.element||state.customIcon.element.readyState<2)){alert('自定义视频图标尚未加载完成，请等待视频可播放后再导出 MP4');return;}
-  const res=$('#mp4Res').value;
-  let W=1280,H=800;
-  if(res==='1080'){W=1920;H=1080;}else if(res==='1440'){W=2560;H=1440;}
-  else{W=Math.round($('#map').clientWidth/2)*2;H=Math.round($('#map').clientHeight/2)*2;}
-  W=Math.max(320,W);H=Math.max(240,H);
-  const fps=+$('#mp4Fps').value||30;
-  const hold=clamp(+$('#mp4Hold').value||36,16,120);
-  const ex=makeExport(W,H,st,{animation:state.appMode==='animation',locked:state.settings.camMode==='locked'});
+
+  const eo=Object.assign({res:'1080',fps:30,bitrate:'auto'},state.settings.export||{});
+  let W=1920,H=1080;
+  if(eo.res==='2k'){W=2560;H=1440;}
+  else if(eo.res==='4k'){W=3840;H=2160;}
+  else if(eo.res==='current'){
+    const stage=document.getElementById('mapStage');
+    W=Math.round((stage&&stage.clientWidth||1280)/2)*2;
+    H=Math.round((stage&&stage.clientHeight||800)/2)*2;
+  }
+  W=Math.max(320,Math.min(3840,Math.round(W/2)*2));
+  H=Math.max(240,Math.min(2160,Math.round(H/2)*2));
+  const fps=clamp(Math.round(+eo.fps||30),24,60);
+  const baseBit=W>=3000?20e6:W>=2400?12e6:8e6;
+  const qMul=eo.bitrate==='high'?1.25:eo.bitrate==='low'?0.6:1;
+  const bitrate=Math.round(baseBit*qMul);
+  const speed=clamp(+state.settings.animSpeed||1,.1,5);
+  const n=st.points.length;
+  const pointMs=(window.SUDRE&&SUDRE.Anim&&SUDRE.Anim.base)||900;
+  const timelineSeconds=Math.max(.1,((n-1)*pointMs/1000)/speed);
+  let totalFrames=Math.max(2,Math.round(timelineSeconds*fps));
+  const maxFrames=W*H>=3000*1600?Math.round(fps*180):Math.round(fps*600);
+  totalFrames=Math.min(totalFrames,maxFrames);
+  const frameLimit=W*H>=3000*1600?3:8;
+  const hold=W*H>=3000*1600?8:clamp(+($('#mp4Hold')||{}).value||36,16,120);
+
+  const ex=makeExport(W,H,st,{animation:state.appMode==='animation',locked:state.settings.followMode==='lock-center'});
   MP4.busy=true;MP4.cancel=false;MP4.paused=false;
   $('#mp4Modal').classList.add('open');$('#mp4Pause').textContent='暂停';$('#mp4Fill').style.width='0%';
+  $('#mp4Info').textContent='0% · 0/'+totalFrames+' 帧 · '+W+'×'+H+' @'+fps+'fps · '+Math.round(bitrate/1e6)+'Mbps';
   const target=new Mp4Muxer.ArrayBufferTarget();
-  const muxer=new Mp4Muxer.Muxer({target,fastStart:'in-memory',video:{codec:'avc',width:W,height:H}});
+  const muxer=new Mp4Muxer.Muxer({target,fastStart:W*H>=3000*1600?'fragmented':'in-memory',video:{codec:'avc',width:W,height:H}});
   let encoder;
   try{
-    const cfg={codec:'avc1.640028',width:W,height:H,bitrate:8e6,framerate:fps,latencyMode:'quality'};
-    if(VideoEncoder.isConfigSupported){const r=await VideoEncoder.isConfigSupported(cfg);if(!r.supported)throw new Error('H.264 配置不受支持');}
+    const cfg={codec:avcCodecFor(W,H,fps),width:W,height:H,bitrate,framerate:fps,latencyMode:'quality'};
+    if(VideoEncoder.isConfigSupported){const r=await VideoEncoder.isConfigSupported(cfg);if(!r.supported)throw new Error('H.264 配置不受支持（'+W+'×'+H+' @'+fps+'fps）');}
     encoder=new VideoEncoder({
       output:(chunk,meta)=>{try{muxer.addVideoChunk(chunk,meta);}catch(e){}},
       error:e=>{toast('编码器错误：'+e.message,'err');}
     });
     encoder.configure(cfg);
-    const st0=activeStorm(),n=st0.points.length;
-    const frames=Math.max(2,n*6);
-    for(let k=0;k<frames;k++){
+    const live=activeStorm()||st;
+    const total=Math.max(2,totalFrames);
+    for(let k=0;k<total;k++){
       if(MP4.cancel)throw new Error('CANCEL');
       while(MP4.paused){await sleep(100);if(MP4.cancel)throw new Error('CANCEL');}
-      const f=k/(frames-1)*(n-1);
-      ex.draw(f);
+      const progress=total<=1?0:k/(total-1);
+      const frac=progress*((live.points.length||n)-1);
+      ex.draw(frac);
       const vf=new VideoFrame(ex.canvas,{timestamp:Math.round(k*1e6/fps),duration:Math.round(1e6/fps)});
-      encoder.encode(vf,{keyFrame:k%fps===0});vf.close();
-      while(encoder.encodeQueueSize>8){await sleep(8);if(MP4.cancel)throw new Error('CANCEL');}
-      const pct=Math.round((k+1)/frames*100);
+      encoder.encode(vf,{keyFrame:k%(fps*2)===0});vf.close();
+      while(encoder.encodeQueueSize>frameLimit){await sleep(6);if(MP4.cancel)throw new Error('CANCEL');}
+      const pct=Math.round((k+1)/total*100);
       $('#mp4Fill').style.width=pct+'%';
-      $('#mp4Info').textContent=pct+'% · '+(k+1)+'/'+frames+' 帧 · '+W+'×'+H+' @'+fps+'fps';
+      $('#mp4Info').textContent=pct+'% · '+(k+1)+'/'+total+' 帧 · '+W+'×'+H+' @'+fps+'fps · '+Math.round(bitrate/1e6)+'Mbps';
       if(k%4===0)await sleep(hold);
     }
     await encoder.flush();muxer.finalize();
     const blob=new Blob([target.buffer],{type:'video/mp4'});
-    downloadBlob(blob,'SudreTc_'+(st.name||st.id)+'_'+W+'x'+H+'.mp4');
-    toast('MP4 已导出（'+(blob.size/1048576).toFixed(1)+' MB）','ok',4000);
+    downloadBlob(blob,'SudreTc_'+(st.name||st.id)+'_'+W+'x'+H+'_'+fps+'fps.mp4');
+    toast('MP4 已导出（'+(blob.size/1048576).toFixed(1)+' MB · '+W+'×'+H+' @'+fps+'fps）','ok',4200);
   }catch(e){
     if(e.message==='CANCEL')toast('已取消 MP4 导出','info');
     else toast('MP4 导出失败：'+e.message,'err',4800);
@@ -9038,6 +9084,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     set('animIconX', s.iconX || 0);
     set('animIconY', s.iconY || 0);
     set('animIconSpin', s.iconSpin != null ? s.iconSpin : 1);
+    const ex=s.export||{};set('exportRes',ex.res||'1080');set('exportFps',String(ex.fps||30));set('exportBitrate',ex.bitrate||'auto');
     check('animParticles', s.animParticles !== false);
     check('animRings', !s.wr || s.wr[34] !== false);
     check('animTrail', s.animTrail !== false);
@@ -9215,6 +9262,9 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     on('animVignette', 'change', applyEffects);
     on('maskNum', 'change', applyEffects);
     on('customIconUpload', 'change', e => loadCustomIcon(e.target.files && e.target.files[0]));
+    for (const [id,key] of [['exportRes','res'],['exportFps','fps'],['exportBitrate','bitrate']]) {
+      on(id,'change',e=>{const s=settings();s.export=Object.assign({},s.export||{},{[key]:key==='fps'?+e.target.value:e.target.value});});
+    }
     const smooth = $('animSmooth');
     if (smooth) smooth.addEventListener('input', () => {
       const v = +smooth.value;
