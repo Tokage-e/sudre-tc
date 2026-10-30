@@ -3117,6 +3117,56 @@ body.arena-open{overflow:hidden}
 .mm-quick button b{font-family:var(--mono);font-size:8px;color:var(--teal);margin-right:4px;letter-spacing:.08em}
 .mm-quick button:hover{border-color:rgba(25,226,197,.55);color:#eaf7ff;background:rgba(25,226,197,.08)}
 #liveModal{z-index:4200 !important}
+
+/* ================= Animation Studio mode ================= */
+#animFx{position:absolute;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:430;mix-blend-mode:screen}
+#animPanel{display:none;position:absolute;right:14px;top:76px;bottom:96px;width:246px;z-index:1050;overflow:auto;padding:12px;border:1px solid rgba(42,77,112,.8);border-radius:10px;background:linear-gradient(180deg,rgba(8,22,37,.82),rgba(5,15,26,.7));backdrop-filter:blur(14px);box-shadow:0 20px 50px rgba(0,0,0,.35);transform:translateX(14px);opacity:0;transition:.35s}
+#animPanel .ap-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:9px}
+#animPanel .ap-head b{font-size:12px;letter-spacing:.05em;color:#e8f7ff;display:block}
+#animPanel .ap-head small{font:7px var(--mono);letter-spacing:.18em;color:var(--txt3)}
+.ap-live{font:7px var(--mono);color:var(--teal);border:1px solid rgba(25,226,197,.4);border-radius:999px;padding:2px 6px;letter-spacing:.1em}
+.ap-sec{padding:8px 0;border-bottom:1px solid rgba(42,77,112,.45)}
+.ap-sec h5{font:8px var(--mono);letter-spacing:.14em;color:var(--txt3);margin-bottom:6px}
+.ap-sec h5 em{font-style:normal;color:var(--teal);opacity:.7;float:right}
+.ap-sec .chk{font-size:10px;color:var(--txt2);margin:5px 0}
+.ap-sec .chk input{margin-right:5px;accent-color:var(--teal)}
+.ap-row{display:flex;align-items:center;gap:6px;margin:5px 0;font-size:9px;color:var(--txt3)}
+.ap-row label{width:48px;flex:0 0 auto}
+.ap-row select{flex:1;min-width:0;height:25px;border:1px solid var(--line);border-radius:4px;background:#071522;color:var(--txt2);font-size:9px;padding:0 4px}
+.ap-row input[type=range]{flex:1;min-width:0;height:3px;accent-color:var(--teal)}
+.ap-row span{width:22px;text-align:right;font:8px var(--mono);color:var(--txt2)}
+.ap-views{display:flex;gap:4px}
+.ap-views button{flex:1;padding:6px 3px;font-size:8px;border:1px solid var(--line);border-radius:4px;background:rgba(16,37,58,.55);color:var(--txt2);cursor:pointer}
+.ap-views button.on,.ap-views button:hover{border-color:rgba(25,226,197,.5);color:var(--teal);background:rgba(25,226,197,.08)}
+.ap-rec{width:100%;margin-top:10px;padding:9px;border:1px solid rgba(255,83,83,.5);border-radius:6px;background:rgba(255,83,83,.12);color:#ff9aa9;font:10px var(--mono);letter-spacing:.08em;cursor:pointer}
+.ap-rec:hover{background:rgba(255,83,83,.2)}
+.ap-note{font-size:8px;color:var(--txt3);line-height:1.7;margin-top:9px}
+.anim-extra{display:none;align-items:center;gap:5px;flex:0 0 auto}
+.anim-extra label{font:7px var(--mono);color:var(--txt3);letter-spacing:.08em}
+.anim-extra select{height:26px;border:1px solid var(--line);border-radius:4px;background:#071522;color:var(--txt2);font-size:9px;padding:0 4px}
+.anim-extra button{height:28px;border:1px solid rgba(255,83,83,.5);border-radius:5px;background:rgba(255,83,83,.15);color:#ff9aa9;font:9px var(--mono);padding:0 9px;cursor:pointer}
+.anim-extra button span{color:#ff5353}
+body.mode-animation #sidebar{display:none!important}
+body.mode-animation #main{grid-template-columns:1fr!important}
+body.mode-animation #mapStage{grid-column:1/-1!important}
+body.mode-animation #animPanel{display:block;opacity:1;transform:none}
+body.mode-animation #animFx{display:block}
+body.mode-animation #hdr .modes,body.mode-animation #hdr .header-search,body.mode-animation #hdr #simBtn,body.mode-animation #hdr #muteBtn,body.mode-animation #hdr #hdrLive,body.mode-animation #hdr #hdrBgm,body.mode-animation #hdr .hdr-actions > *:not(#homeBtn){display:none!important}
+body.mode-animation #hdr{background:linear-gradient(180deg,rgba(8,20,32,.82),rgba(5,14,24,.7));backdrop-filter:blur(10px)}
+body.mode-animation #tl{margin:8px 12px 12px;border:1px solid rgba(42,77,112,.85);border-radius:11px;background:rgba(6,17,29,.78);backdrop-filter:blur(16px);box-shadow:0 16px 40px rgba(0,0,0,.35);height:calc(var(--tl-h) + 4px);flex-basis:calc(var(--tl-h) + 4px)}
+body.mode-animation #btnPlay{width:52px;height:52px;flex:0 0 52px;border-color:rgba(25,226,197,.5);color:var(--teal);background:rgba(25,226,197,.08)}
+body.mode-animation #btnPlay svg{width:23px;height:23px}
+body.mode-animation #tlSub,body.mode-animation #tlMode,body.mode-animation #footerVersion,body.mode-animation #loopBtn{display:none!important}
+body.mode-animation #animExtra{display:flex}
+body.mode-animation #tl .right{display:none}
+body.mode-animation #mapTitle{opacity:.82}
+body.anim-trail #fx{filter:drop-shadow(0 0 5px rgba(25,226,197,.7)) drop-shadow(0 0 13px rgba(25,226,197,.35))}
+@media(max-width:760px){
+ #animPanel{top:64px;right:8px;bottom:86px;width:210px;padding:9px}
+ body.mode-animation #tl{margin:5px 6px 7px}
+ body.mode-animation #animExtra label{display:none}
+ body.mode-animation #animExtra select{width:56px}
+}
 </style>
 </head>
 <body>
@@ -3183,34 +3233,43 @@ body.arena-open{overflow:hidden}
         </div>
       </article>
 
-      <article class="mm-card is-right" data-action="simulator" data-index="1" tabindex="0" aria-label="台风路径模拟器">
+      <article class="mm-card is-right" data-action="animation" data-index="1" tabindex="0" aria-label="TC 动画工坊">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-done">[已实现]</span><span class="mm-no">02 / SIM</span></div>
+          <div class="mm-card-head"><span class="mm-tag tag-done">[测试]</span><span class="mm-no">02 / ANIM</span></div>
+          <h2 class="mm-card-title">TC 动画工坊</h2>
+          <p class="mm-card-desc">剥离时间轴与镜头控制，进入沉浸式电影播放布局，专注运镜、特效与 MP4 录制。</p>
+          <div class="mm-card-foot"><span>TC ANIMATION</span><button class="mm-card-btn" type="button" onclick="event.stopPropagation(); if(window.enterAnimationMode) enterAnimationMode()">进入动画 <span>→</span></button></div>
+        </div>
+      </article>
+
+      <article class="mm-card is-right" data-action="simulator" data-index="2" tabindex="0" aria-label="台风路径模拟器">
+        <div class="mm-card-inner">
+          <div class="mm-card-head"><span class="mm-tag tag-done">[已实现]</span><span class="mm-no">03 / SIM</span></div>
           <h2 class="mm-card-title">台风模拟器</h2>
           <p class="mm-card-desc">用环境场与历史相似路径生成虚拟台风，观察不同初始场下的路径分歧。</p>
           <div class="mm-card-foot"><span>SIM ENGINE</span><button class="mm-card-btn" type="button">打开模拟器</button></div>
         </div>
       </article>
 
-      <article class="mm-card is-back" data-action="arena" data-index="2" tabindex="0" aria-label="台风对战竞技场">
+      <article class="mm-card is-back" data-action="arena" data-index="3" tabindex="0" aria-label="台风对战竞技场">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-done">[小游戏]</span><span class="mm-no">05 / ARENA</span></div>
+          <div class="mm-card-head"><span class="mm-tag tag-done">[小游戏]</span><span class="mm-no">04 / ARENA</span></div>
           <h2 class="mm-card-title">台风对战</h2>
           <p class="mm-card-desc">从历史风王中选一位出战，与随机台风进行 1V1 回合制对决。</p>
           <div class="mm-card-foot"><span>TC ARENA</span><button class="mm-card-btn" type="button">进入竞技场 <span>→</span></button></div>
         </div>
       </article>
 
-      <article class="mm-card is-back" data-action="realtime" data-index="4" tabindex="0">
+      <article class="mm-card is-back" data-action="realtime" data-index="5" tabindex="0">
         <div class="mm-card-inner">
-          <div class="mm-card-head"><span class="mm-tag tag-live">[已接入]</span><span class="mm-no">03 / LIVE</span></div>
+          <div class="mm-card-head"><span class="mm-tag tag-live">[已接入]</span><span class="mm-no">06 / LIVE</span></div>
           <h2 class="mm-card-title">实时路径播报</h2>
           <p class="mm-card-desc">CMA 中央气象台为主源，独立播放实时路径，不进入路径制作器。</p>
           <div class="mm-card-foot"><span>LIVE FEED</span><button class="mm-card-btn" type="button">打开实时播报</button></div>
         </div>
       </article>
 
-      <article class="mm-card is-left" data-action="diary" data-index="3" tabindex="0">
+      <article class="mm-card is-left" data-action="diary" data-index="4" tabindex="0">
         <div class="mm-card-inner">
           <div class="mm-card-head"><span class="mm-tag tag-live">[持续更新]</span><span class="mm-no">05 / LOG</span></div>
           <h2 class="mm-card-title">开发日记</h2>
@@ -3222,13 +3281,14 @@ body.arena-open{overflow:hidden}
   </div>
 
   <div class="mm-quick">
+    <button type="button" data-quick="animation"><b>ANIM</b> 动画工坊</button>
     <button type="button" data-quick="realtime"><b>LIVE</b> 实时播报</button>
     <button type="button" data-quick="arena"><b>ARENA</b> 台风对战</button>
     <button type="button" data-quick="simulator"><b>SIM</b> 路径模拟</button>
   </div>
 
   <div class="mm-bottom">
-    <div class="mm-dots" id="mmDots"><button class="on" data-index="0" aria-label="路径制作器"></button><button data-index="1" aria-label="台风模拟器"></button><button data-index="2" aria-label="台风对战"></button><button data-index="4" aria-label="实时播报"></button><button data-index="3" aria-label="开发日记"></button></div>
+    <div class="mm-dots" id="mmDots"><button class="on" data-index="0" aria-label="路径制作器"></button><button data-index="1" aria-label="TC 动画工坊"></button><button data-index="2" aria-label="台风模拟器"></button><button data-index="3" aria-label="台风对战"></button><button data-index="4" aria-label="开发日记"></button><button data-index="5" aria-label="实时播报"></button></div>
     <div class="mm-hint"><span>← →</span> 切换模块 · 点击中央卡片进入</div>
     <div class="mm-foot-meta"><span>v4.2</span><span>SUDRE.TC</span></div>
   </div>
@@ -3358,7 +3418,7 @@ body.arena-open{overflow:hidden}
   </aside>
 
   <section id="mapStage">
-    <div id="stageInner"><div id="map"></div><canvas id="fx"></canvas></div>
+    <div id="stageInner"><div id="map"></div><canvas id="fx"></canvas><canvas id="animFx"></canvas></div>
     <div id="glView"></div>
     <div id="mapTitle"><h2>Sudre.Tc · TC Track Studio</h2><p>等待导入 B-Deck / A-Deck / JMA 报文</p></div>
     <div id="mapLegend"></div>
@@ -3411,6 +3471,31 @@ body.arena-open{overflow:hidden}
 <div id="windAreaPanel" aria-live="polite"><div class="wa-title">风圈覆盖面积</div><div class="wa-row"><span>34kt</span><b id="wa34">—</b></div><div class="wa-row"><span>50kt</span><b id="wa50">—</b></div><div class="wa-note">球面多边形 · 当前时次</div></div>
     <button class="fab" id="fab" aria-label="打开数据面板"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
   </section>
+  <aside id="animPanel" aria-label="动画设置">
+    <div class="ap-head"><div><b>动画设置</b><small>TC ANIMATION</small></div><span class="ap-live">LIVE</span></div>
+    <div class="ap-sec">
+      <h5>视觉特效 <em>FX</em></h5>
+      <label class="chk"><input type="checkbox" id="animParticles" checked>粒子风场</label>
+      <label class="chk"><input type="checkbox" id="animRings" checked>动态风圈</label>
+      <label class="chk"><input type="checkbox" id="animTrail" checked>发光拖尾</label>
+    </div>
+    <div class="ap-sec">
+      <h5>镜头 <em>CAMERA</em></h5>
+      <div class="ap-row"><label>模式</label><select id="animCam"><option value="fixed">固定</option><option value="follow" selected>跟随</option><option value="smart">智能</option></select></div>
+      <div class="ap-row"><label>平滑度</label><input id="animSmooth" type="range" min="0" max="100" value="62"><span id="animSmoothV">62</span></div>
+      <div class="ap-row"><label>中心偏移</label><input id="animOffset" type="range" min="-40" max="40" value="0"><span id="animOffsetV">0</span></div>
+    </div>
+    <div class="ap-sec">
+      <h5>动画视角 <em>VIEW</em></h5>
+      <div class="ap-views">
+        <button type="button" data-aview="2d">2D</button>
+        <button type="button" data-aview="full3d">完整 3D</button>
+        <button type="button" data-aview="climax">高潮推近</button>
+      </div>
+    </div>
+    <button type="button" id="animRec" class="ap-rec">● 录制 MP4</button>
+    <div class="ap-note">MP4 使用当前 ECharts GL / 高画质 2D 画面。<br>退出动画工坊后恢复路径制作布局。</div>
+  </aside>
 </main>
 
 <!-- ================= Timeline ================= -->
@@ -3429,6 +3514,11 @@ body.arena-open{overflow:hidden}
     <span class="tl-ver" id="footerVersion">v4.2</span>
     <button class="chip" id="loopBtn" title="循环播放">LOOP</button>
     <select id="tlSpeed"><option value="1600">0.5×</option><option value="1000" selected>1×</option><option value="600">1.6×</option><option value="320">3×</option></select>
+  </div>
+  <div class="anim-extra" id="animExtra">
+    <label>镜头</label>
+    <select id="animCamTl"><option value="fixed">固定</option><option value="follow" selected>跟随</option><option value="smart">智能</option></select>
+    <button type="button" id="animRecTl"><span>●</span> 录制 MP4</button>
   </div>
 </footer>
 
@@ -3848,7 +3938,7 @@ body.arena-open{overflow:hidden}
 <div class="modal live-modal" id="liveModal" aria-hidden="true">
   <div class="panel live-panel" role="dialog" aria-modal="true" aria-label="实时路径播报">
     <div class="p-head">
-      <div><h3>实时路径播报 <span class="roadmap-tag tag-live">[NOAA ACTIVE]</span></h3><div class="sub">IBTrACS ACTIVE · 自动刷新 10 min</div></div>
+      <div><h3>实时路径播报 <span class="roadmap-tag tag-live">[CMA / NCEI]</span></h3><div class="sub">中央气象台主源 · 自动刷新 10 min · 独立播放</div></div>
       <div class="sp"></div>
       <button class="x" id="liveClose" type="button" aria-label="关闭实时播报">✕</button>
     </div>
@@ -3878,7 +3968,7 @@ body.arena-open{overflow:hidden}
           </div>
         </div>
       </div>
-      <div class="live-note">数据源：NOAA/NCEI IBTrACS ACTIVE，最近观测时次为准；网络不可用时使用本地缓存。载入后会进入工作台并开始时间轴播放。</div>
+      <div class="live-note">数据源：CMA 中央气象台为主，NCEI ACTIVE / GDACS 为补充。独立播放，不进入工作台；网络不可用时使用本地缓存与快照。</div>
     </div>
   </div>
 </div>
@@ -4122,7 +4212,7 @@ const state={
   settings:loadSettings(),
   storms:[],activeId:null,frac:0,playing:false,
   parseLog:[],lastFormat:'',userZoom:false,
-  history:[],introSeen:false,
+  history:[],introSeen:false,appMode:'builder',
   undo:[],redo:[],editMode:false,measure:false,measurePts:[],selectedIdx:-1,mouse:null
 };
 function saveSettings(){
@@ -5422,7 +5512,7 @@ function currentRadiusNm(p){
 function maybeFollow(now){
   const s=state.settings;
   if(!s.follow||!state.playing||!s.cinema)return;
-  if(now-camLast<650)return;
+  if(now-camLast<(s.camSmooth||650))return;
   const st=activeStorm();if(!st)return;
   const cur=pointAt(st,state.frac);if(!cur)return;
   const r=currentRadiusNm(cur)||80;
@@ -7763,6 +7853,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
 
   /* ---------- 2. 路径制作器入口 ---------- */
   function openPathBuilder() {
+    if (typeof window.exitAnimationMode === 'function') { try { window.exitAnimationMode(); } catch (e) {} }
     try {
       if (typeof window.hideHome === 'function') window.hideHome();
     } catch (e) {}
@@ -8328,6 +8419,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     if (action === 'builder') { enterSystem(); return; }
     if (action === 'simulator') { sfx('ui_open'); if (typeof window.openSimulator === 'function') window.openSimulator(); return; }
     if (action === 'arena') { sfx('ui_open'); if (typeof window.openGameArena === 'function') window.openGameArena(); return; }
+    if (action === 'animation') { sfx('view_enter'); if (typeof window.enterAnimationMode === 'function') window.enterAnimationMode(); return; }
     if (action === 'realtime') { sfx('ui_open'); if (typeof window.openLiveFeed === 'function') window.openLiveFeed(); return; }
     if (action === 'diary') { sfx('ui_open'); if (typeof window.openDiary === 'function') window.openDiary(); }
   }
@@ -8335,7 +8427,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   cards.forEach((card, i) => {
     card.addEventListener('click', (e) => {
       if (e.target.closest('.mm-card-btn')) return;
-      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime' || act === 'animation') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); if (act === 'animation' && window.enterAnimationMode) window.enterAnimationMode(); }, 420); return; }
       activateCard(card);
     });
     card.addEventListener('keydown', (e) => {
@@ -8347,7 +8439,7 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
     const btn = card.querySelector('.mm-card-btn');
     if (btn) btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); }, 420); return; }
+      if (i !== active) { focusCard(i); const act = card.getAttribute('data-action'); if (act === 'diary' || act === 'simulator' || act === 'arena' || act === 'realtime' || act === 'animation') setTimeout(() => { if (act === 'diary' && window.openDiary) window.openDiary(); if (act === 'simulator' && window.openSimulator) window.openSimulator(); if (act === 'arena' && window.openGameArena) window.openGameArena(); if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); if (act === 'animation' && window.enterAnimationMode) window.enterAnimationMode(); }, 420); return; }
       activateCard(card);
     });
   });
@@ -8377,9 +8469,10 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
       const i = cards.findIndex((c) => c.getAttribute('data-action') === act);
       if (i >= 0) {
         focusCard(i);
-        if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed();
+        if (act === 'realtime' && window.openLiveFeed) window.openLiveFeed(); if (act === 'animation' && window.enterAnimationMode) window.enterAnimationMode();
         else if (act === 'arena' && window.openGameArena) window.openGameArena();
         else if (act === 'simulator' && window.openSimulator) window.openSimulator();
+        else if (act === 'animation' && window.enterAnimationMode) window.enterAnimationMode();
       }
     });
   });
@@ -8430,6 +8523,203 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   window.showMainMenu = showMainMenu;
   window.hideMainMenu = hideMainMenu;
   window.enterSudreSystem = enterSystem;
+})();
+
+/* ============================================================
+   TC Animation Studio — independent workbench mode (v4.2)
+   ============================================================ */
+(function () {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  let particles = [];
+  let fxRaf = 0;
+  let fxDpr = 1;
+
+  function isAnimation() {
+    return document.body.classList.contains('mode-animation');
+  }
+
+  function enterAnimationMode() {
+    if (typeof window.hideMainMenu === 'function') {
+      try { window.hideMainMenu(true); } catch (e) {}
+    }
+    const home = $('homeHub');
+    if (home) { home.classList.remove('open'); home.setAttribute('aria-hidden', 'true'); }
+    document.body.classList.remove('menu-visible', 'main-menu-open', 'home-open', 'ui-leaving');
+    document.body.classList.add('mode-animation', 'ui-entering');
+    try { window.SUDRE.state.appMode = 'animation'; } catch (e) {}
+    const panel = $('animPanel');
+    if (panel) panel.setAttribute('aria-hidden', 'false');
+    const extra = $('animExtra');
+    if (extra) extra.style.display = 'flex';
+    if (window.SUDRE && window.SUDRE.state && window.SUDRE.state.storms.length) {
+      setTimeout(() => {
+        try { window.SUDRE.flyToStorm(); } catch (e) {}
+        try { window.SUDRE.draw(); } catch (e) {}
+      }, 360);
+      try { window.toast('动画工坊已就绪：播放时间轴或录制 MP4', 'ok'); } catch (e) {}
+    } else {
+      try { window.toast('动画工坊已就绪：请先导入一条路径', 'warn'); } catch (e) {}
+    }
+    applyEffects();
+    startParticlesIfNeeded();
+    if (window.playSFX) try { window.playSFX('view_enter'); } catch (e) {}
+  }
+
+  function exitAnimationMode() {
+    if (!isAnimation()) return;
+    document.body.classList.remove('mode-animation', 'anim-trail');
+    try { window.SUDRE.state.appMode = 'builder'; } catch (e) {}
+    const panel = $('animPanel');
+    if (panel) panel.setAttribute('aria-hidden', 'true');
+    const extra = $('animExtra');
+    if (extra) extra.style.display = '';
+    stopParticles();
+    if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
+  }
+
+  window.enterAnimationMode = enterAnimationMode;
+  window.exitAnimationMode = exitAnimationMode;
+
+  function startParticlesIfNeeded() {
+    if (!isAnimation()) return;
+    const cb = $('animParticles');
+    if (cb && cb.checked) startParticles(); else stopParticles();
+  }
+
+  function resizeFx() {
+    const cv = $('animFx');
+    if (!cv) return;
+    const stage = $('mapStage') || cv.parentElement;
+    const r = stage.getBoundingClientRect();
+    fxDpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.max(2, Math.round(r.width * fxDpr));
+    cv.height = Math.max(2, Math.round(r.height * fxDpr));
+    cv.style.width = r.width + 'px';
+    cv.style.height = r.height + 'px';
+  }
+
+  function startParticles() {
+    const cv = $('animFx');
+    if (!cv || fxRaf) return;
+    resizeFx();
+    const ctx = cv.getContext('2d');
+    const w = cv.width / fxDpr, h = cv.height / fxDpr;
+    particles = Array.from({ length: 65 }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: 6 + Math.random() * 16, vy: (Math.random() - .5) * 5,
+      a: .08 + Math.random() * .25, s: .5 + Math.random() * 1.4
+    }));
+    const tick = () => {
+      if (!isAnimation() || !$('animParticles')?.checked) { fxRaf = 0; return; }
+      ctx.setTransform(fxDpr, 0, 0, fxDpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.lineCap = 'round';
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x > w + 20) { p.x = -20; p.y = Math.random() * h; }
+        if (p.y < -10) p.y = h + 10;
+        if (p.y > h + 10) p.y = -10;
+        ctx.strokeStyle = 'rgba(90,240,220,' + p.a + ')';
+        ctx.lineWidth = p.s;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * .8, p.y - p.vy * .8); ctx.stroke();
+      });
+      fxRaf = requestAnimationFrame(tick);
+    };
+    fxRaf = requestAnimationFrame(tick);
+  }
+
+  function stopParticles() {
+    if (fxRaf) { cancelAnimationFrame(fxRaf); fxRaf = 0; }
+    const cv = $('animFx');
+    if (cv) {
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+    }
+  }
+
+  function applyEffects() {
+    const rings = $('animRings');
+    if (rings && window.SUDRE && window.SUDRE.state) {
+      const on = rings.checked;
+      try {
+        window.SUDRE.state.settings.wr = { 34: on, 50: on, 64: on };
+        window.SUDRE.draw();
+      } catch (e) {}
+    }
+    const trail = $('animTrail');
+    document.body.classList.toggle('anim-trail', !!(trail && trail.checked));
+  }
+
+  function syncCamera(v) {
+    const cam = $('animCam'), tl = $('animCamTl');
+    if (cam) cam.value = v;
+    if (tl) tl.value = v;
+    if (!window.SUDRE) return;
+    const follow = v !== 'fixed';
+    try {
+      window.SUDRE.state.settings.follow = follow;
+      window.SUDRE.state.settings.cinema = follow;
+      if (window.SUDRE.setFollow) window.SUDRE.setFollow(follow, false);
+    } catch (e) {}
+    if (v === 'smart') {
+      try { window.SUDRE.state.settings.cinema = true; } catch (e) {}
+    }
+  }
+
+  function setView(v) {
+    if (!window.SUDRE) return;
+    try {
+      if (v === 'climax') {
+        window.SUDRE.setView('full3d');
+        window.SUDRE.state.settings.follow = true;
+        window.SUDRE.state.settings.cinema = true;
+        if (window.SUDRE.setFollow) window.SUDRE.setFollow(true, false);
+      } else {
+        window.SUDRE.setView(v);
+      }
+      document.querySelectorAll('[data-aview]').forEach(b => b.classList.toggle('on', b.dataset.aview === v));
+      window.SUDRE.draw();
+    } catch (e) {}
+  }
+
+  function init() {
+    const cam = $('animCam'), camTl = $('animCamTl');
+    [cam, camTl].forEach(el => {
+      if (el) el.addEventListener('change', () => syncCamera(el.value));
+    });
+    const smooth = $('animSmooth');
+    if (smooth) smooth.addEventListener('input', () => {
+      const v = +smooth.value;
+      const out = $('animSmoothV'); if (out) out.textContent = v;
+      try { window.SUDRE.state.settings.camSmooth = 1300 - v * 6; } catch (e) {}
+    });
+    const offset = $('animOffset');
+    if (offset) offset.addEventListener('input', () => {
+      const out = $('animOffsetV'); if (out) out.textContent = offset.value;
+      try { window.SUDRE.state.settings.camOffset = +offset.value; } catch (e) {}
+    });
+    const particlesCb = $('animParticles');
+    if (particlesCb) particlesCb.addEventListener('change', startParticlesIfNeeded);
+    const ringsCb = $('animRings');
+    if (ringsCb) ringsCb.addEventListener('change', applyEffects);
+    const trailCb = $('animTrail');
+    if (trailCb) trailCb.addEventListener('change', applyEffects);
+    document.querySelectorAll('[data-aview]').forEach(b => b.addEventListener('click', () => setView(b.dataset.aview)));
+    const rec = $('animRec'), recTl = $('animRecTl');
+    [rec, recTl].forEach(b => {
+      if (b) b.addEventListener('click', () => {
+        if (window.SUDRE && window.SUDRE.exportMP4) {
+          try { window.SUDRE.exportMP4(); } catch (e) { if (window.toast) window.toast('MP4 导出失败：' + e.message, 'err'); }
+        } else if (window.toast) window.toast('MP4 导出模块未就绪', 'err');
+      });
+    });
+    window.addEventListener('resize', () => { if (isAnimation()) resizeFx(); });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
 })();
 
 /* ============================================================
