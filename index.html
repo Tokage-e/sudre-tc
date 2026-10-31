@@ -3214,6 +3214,16 @@ body.mode-animation #tlTicks,body.mode-animation .tl-tick{display:none!important
 #animPreview{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;background:#040b13;box-shadow:0 0 40px rgba(0,0,0,.55)}
 body.mode-animation #animPreviewWrap{display:block}
 body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation #mapTitle,body.mode-animation #mapLegend,body.mode-animation #mapStatus,body.mode-animation #coordReadout,body.mode-animation #viewDock,body.mode-animation #landfallEta,body.mode-animation #riAlert,body.mode-animation #windAreaPanel,body.mode-animation #editBar,body.mode-animation #measureInfo,body.mode-animation #zoomCtl,body.mode-animation #fab{display:none!important}
+
+.qc-actions{display:flex;gap:5px;margin:5px 0 7px;flex-wrap:wrap}
+.qc-actions button{height:25px;border:1px solid var(--line);border-radius:4px;background:rgba(13,33,51,.6);color:var(--txt2);font-size:9px;padding:0 8px}
+.qc-actions button:hover{border-color:rgba(25,226,197,.5);color:#eaffff}
+.qc-stats{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:4px 0 6px}
+.qc-stat{border:1px solid rgba(39,77,106,.55);border-radius:4px;padding:4px 6px;background:rgba(4,14,23,.45)}
+.qc-stat b{display:block;font:700 10px var(--mono);color:var(--teal)}
+.qc-stat small{display:block;font:7px var(--mono);color:var(--txt3);margin-top:1px}
+.qc-result{font:8px/1.5 var(--mono);color:var(--txt3);border:1px dashed rgba(39,77,106,.55);border-radius:4px;padding:6px;max-height:86px;overflow:auto}
+.qc-result .er{color:#ff8fa3}.qc-result .wa{color:#ffd166}.qc-result .ok{color:#59e0b6}
 </style>
 </head>
 <body>
@@ -3232,14 +3242,13 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
       </svg>
     </div>
     <div class="cine-sub">TC TRACK STUDIO</div>
-    <div class="cine-ver">v4.2 正式版</div>
+    <div class="cine-ver">v4.1 正式版</div>
     <div class="cine-load">
       <div class="cine-bar"><i></i></div>
       <div class="cine-load-text"><span>正在初始化气象引擎…</span><b>15s</b></div>
     </div>
   </div>
 </div>
-
 <script>
 (function(){
   window.__introStartedAt = performance.now();
@@ -3251,12 +3260,6 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
     el.style.pointerEvents='none';
     window.__introDone=true;
   },15000);
-  function introBgmKick(){
-    if(!window.BGM)return;
-    try{window.BGM.start();}catch(e){}
-    document.removeEventListener('pointerdown',introBgmKick);
-  }
-  document.addEventListener('pointerdown',introBgmKick);
 })();
 </script>
 
@@ -3423,6 +3426,19 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
         <div class="field">
           <label>气旋列表 <em id="stormCount">0 TC</em></label>
           <div class="storm-list" id="stormList"><div class="note">尚未导入路径。</div></div>
+        </div>
+        <div class="field" id="qcField">
+          <label>路径体检 <em id="qcTag">—</em></label>
+          <div class="qc-actions">
+            <button id="btnQc">运行体检</button>
+            <button id="btnQcFix">清理重复</button>
+            <button id="btnCopySummary">复制摘要</button>
+            <button id="btnProjectOut">导出项目</button>
+            <button id="btnProjectIn">导入项目</button>
+            <input type="file" id="projectFile" accept=".json,application/json" hidden>
+          </div>
+          <div id="qcStats" class="qc-stats"></div>
+          <div id="qcResult" class="qc-result">等待气旋数据…</div>
         </div>
         <div class="field">
           <label>解析报告 <em id="parseTag">—</em></label>
@@ -3602,6 +3618,9 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
   <div class="right">
     <span class="chip" id="tlMode">BEST · 回放</span>
     <span class="tl-ver" id="footerVersion">v4.2</span>
+    <button class="chip" id="btnPeak" title="跳到峰值">PEAK</button>
+    <button class="chip" id="btnRapid" title="跳到快速增强点">RI</button>
+    <button class="chip" id="btnLandfall" title="跳到登陆点">LANDFALL</button>
     <button class="chip" id="loopBtn" title="循环播放">LOOP</button>
     <select id="tlSpeed"><option value="1600">0.5×</option><option value="1000" selected>1×</option><option value="600">1.6×</option><option value="320">3×</option></select>
   </div>
@@ -4751,14 +4770,14 @@ function initMap(){
 function resizeFx(){
   if(!map)return;
   const r=map.getContainer().getBoundingClientRect();
-  dpr=Math.min(2,window.devicePixelRatio||1);
+  dpr=Math.min(1.5,window.devicePixelRatio||1);
   fx.width=Math.max(2,Math.round(r.width*dpr));
   fx.height=Math.max(2,Math.round(r.height*dpr));
   fx.style.width=r.width+'px';fx.style.height=r.height+'px';
   scheduleDraw();
 }
 function scheduleDraw(){
-  if(drawRaf)return;
+  if(drawRaf||document.hidden)return;
   drawRaf=requestAnimationFrame(()=>{drawRaf=0;draw();});
 }
 const GeoDB={
@@ -5520,6 +5539,20 @@ function drawPoints(P,w,h){
     fctx.fillStyle=col;fctx.fill();
     fctx.strokeStyle='rgba(0,0,0,.5)';fctx.lineWidth=1;fctx.stroke();
   });
+  drawRapidMarkers(P);
+  fctx.restore();
+}
+function drawRapidMarkers(P){
+  const st=activeStorm();if(!st)return;
+  const s=stormStats(st);if(!s.ri.length)return;
+  fctx.save();fctx.font='700 7px '+getComputedStyle(document.body).fontFamily;fctx.textAlign='center';
+  s.ri.forEach(x=>{
+    const idx=st.points.findIndex(p=>p.time===x.time);if(idx<0||idx>P.fi+0.001)return;
+    const p=st.points[idx],q=project(p.lat,p.lon),up=x.type==='RI';
+    fctx.beginPath();fctx.moveTo(q[0],q[1]-11);fctx.lineTo(q[0]-4,q[1]-5);fctx.lineTo(q[0]+4,q[1]-5);fctx.closePath();
+    fctx.fillStyle=up?'#ff9a3c':'#5bd7ff';fctx.fill();
+    fctx.fillStyle=up?'#ffbe7a':'#9be9ff';fctx.fillText(x.type,q[0],q[1]-14);
+  });
   fctx.restore();
 }
 function drawLabels(P,w,h){
@@ -5912,6 +5945,7 @@ function updateTimeline(){
 }
 function renderTimelineTicks(st){
   const box=$('#tlTicks');if(!box)return;
+  if(st){const key=st.id+':'+st.points.length+':'+st.points[0].time+':'+st.points[st.points.length-1].time;if(state._tickKey===key)return;state._tickKey=key;}
   box.innerHTML='';
   const pts=st&&st.points?st.points:[];
   if(pts.length<2)return;
@@ -6180,6 +6214,117 @@ function renderStormList(){
       '<button data-act="eye" title="显隐">'+(st.hidden?'○':'●')+'</button>'+
       '<button data-act="del" title="删除">✕</button></div>';
   }).join('');
+  updateQcPanel();
+}
+function qcStorm(st){
+  const pts=st&&st.points?st.points:[];
+  const issues=[];
+  if(pts.length<2)issues.push({k:'er',m:'路径点少于 2 个，无法形成动画。'});
+  let missingP=0,dup=0,gap=0,fast=0,jump=0;
+  for(let i=0;i<pts.length;i++){
+    const p=pts[i],q=pts[i-1];
+    if(p.wind==null||!isFinite(+p.wind))issues.push({k:'er',m:'第 '+(i+1)+' 点缺少风速。'});
+    if(p.lat==null||p.lon==null||!isFinite(+p.lat)||!isFinite(+p.lon))issues.push({k:'er',m:'第 '+(i+1)+' 点经纬度无效。'});
+    if(p.mslp==null||!isFinite(+p.mslp))missingP++;
+    if(q){
+      const dh=(p.time-q.time)/3600000;
+      if(dh<=0){dup++;issues.push({k:'er',m:'时间顺序异常：第 '+(i+1)+' 点。'});}
+      else{
+        if(dh>12){gap++;issues.push({k:'wa',m:'时间间隔 '+dh.toFixed(1)+'h：第 '+(i+1)+' 点。'});}
+        const sp=nmBetween(q.lat,q.lon,p.lat,p.lon)/Math.max(.1,dh);
+        if(sp>120){fast++;issues.push({k:'wa',m:'移速 '+Math.round(sp)+' kt：第 '+(i+1)+' 点。'});}
+        const dv=Math.abs((+p.wind||0)-(+q.wind||0));
+        if(dv>50){jump++;issues.push({k:'wa',m:'风速跳变 '+Math.round(dv)+' kt：第 '+(i+1)+' 点。'});}
+      }
+    }
+  }
+  if(dup)issues.unshift({k:'er',m:'检测到 '+dup+' 处时间重复或倒序。'});
+  if(missingP)issues.push({k:'wa',m:missingP+' 个点缺少气压。'});
+  if(!issues.length)issues.push({k:'ok',m:'结构、时间、风速与气压检查通过。'});
+  return {issues,dup,gap,fast,jump,missingP};
+}
+function updateQcPanel(){
+  const tag=document.getElementById('qcTag');
+  if(!tag)return;
+  const st=activeStorm();
+  if(!st){tag.textContent='—';return;}
+  const q=qcStorm(st),errs=q.issues.filter(x=>x.k==='er').length,warns=q.issues.filter(x=>x.k==='wa').length;
+  tag.textContent=errs?(errs+' ERR'):(warns?warns+' WARN':'PASS');
+  tag.style.color=errs?'#ff8fa3':(warns?'#ffd166':'#59e0b6');
+  const s=stormStats(st),pts=st.points;
+  const max24=s.ri.reduce((a,x)=>Math.abs(x.dv)>Math.abs(a?a.dv:0)?x:a,null);
+  const stats=document.getElementById('qcStats');
+  if(stats)stats.innerHTML=
+    '<div class=qc-stat><b>'+Math.round(s.peak.wind||0)+' kt</b><small>峰值 / '+esc(s.peak.level||'—')+'</small></div>'+
+    '<div class=qc-stat><b>'+(s.min!=null?Math.round(s.min):'—')+' hPa</b><small>最低气压</small></div>'+
+    '<div class=qc-stat><b>'+(s.ace!=null?s.ace.toFixed(1):'—')+'</b><small>ACE ×10⁴ kt²</small></div>'+
+    '<div class=qc-stat><b>'+Math.round(s.len)+' nm</b><small>路径长度 / '+pts.length+' 帧</small></div>'+
+    '<div class=qc-stat><b>'+(max24?((max24.dv>0?'+':'')+Math.round(max24.dv)+' kt'):'—')+'</b><small>最大 24h 变化</small></div>'+
+    '<div class=qc-stat><b>'+s.ri.length+'</b><small>RI / RW 次数</small></div>';
+  const box=document.getElementById('qcResult');
+  if(box)box.innerHTML=q.issues.slice(0,14).map(x=>'<div class='+x.k+'>'+esc(x.m)+'</div>').join('');
+}
+function jumpPeak(){
+  const st=activeStorm();if(!st)return;
+  Anim.pause();Anim.seek(st.peak);
+  toast('已跳到峰值：'+Math.round(st.points[st.peak].wind||0)+' kt','ok');
+}
+function jumpRapid(){
+  const st=activeStorm();if(!st)return;
+  const s=stormStats(st);if(!s.ri.length){toast('没有达到 30 kt/24h 的 RI/RW','warn');return;}
+  const x=s.ri.reduce((a,b)=>Math.abs(b.dv)>Math.abs(a.dv)?b:a);
+  const idx=st.points.findIndex(p=>p.time===x.time);
+  if(idx<0)return;
+  Anim.pause();Anim.seek(idx);
+  toast((x.type==='RI'?'快速增强':'快速减弱')+' '+(x.dv>0?'+':'')+Math.round(x.dv)+' kt/24h','ok');
+}
+function jumpLandfall(){
+  const st=activeStorm();if(!st||!st.landfalls||!st.landfalls.length){toast('未判定登陆点','warn');return;}
+  const lf=st.landfalls[st.landfalls.length-1];
+  let best=0,bd=Infinity;
+  st.points.forEach((p,i)=>{const d=Math.abs(p.time-lf.time);if(d<bd){bd=d;best=i;}});
+  Anim.pause();Anim.seek(best);
+  toast('登陆点 · '+fmtUTC(lf.time)+' · '+Math.round(lf.vmax||0)+' kt','ok');
+}
+function cleanQcDuplicates(){
+  const st=activeStorm();if(!st)return;
+  const seen=new Set(),pts=[];
+  (st.points||[]).forEach(p=>{
+    if(!p||p.time==null||p.lat==null||p.lon==null)return;
+    if(seen.has(p.time))return;seen.add(p.time);pts.push(p);
+  });
+  pts.sort((a,b)=>a.time-b.time);
+  if(!pts.length){toast('没有可保留的有效点','warn');return;}
+  const removed=(st.points||[]).length-pts.length;
+  st.points=pts;finalizeStorm(st);renderStormList();fitSoon();draw();updateTimeline();updateQcPanel();saveDraft();
+  toast('已清理 '+removed+' 个重复/无效点','ok');
+}
+function copySummary(){
+  const st=activeStorm();if(!st){toast('没有气旋数据','warn');return;}
+  const s=stormStats(st);
+  const txt=[st.name+' ('+st.id+')', '峰值 '+Math.round(s.peak.wind||0)+' kt / '+(s.peak.level||'—'), '最低气压 '+(s.min!=null?Math.round(s.min):'—')+' hPa', 'ACE '+(s.ace!=null?s.ace.toFixed(2):'—')+' ×10⁴ kt²', '路径长度 '+Math.round(s.len)+' nm', '帧数 '+st.points.length, 'RI/RW '+s.ri.length].join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>toast('摘要已复制','ok')).catch(()=>toast('复制失败','warn'));else toast('当前浏览器不支持剪贴板','warn');
+}
+function exportProject(){
+  const data={app:'Sudre.Tc',version:'4.2',exported:Date.now(),activeId:state.activeId,settings:state.settings,storms:state.storms};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SudreTc_project_'+Date.now()+'.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('项目 JSON 已导出','ok');
+}
+function importProject(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d||!Array.isArray(d.storms)||!d.storms.length)throw new Error('没有 storms');
+      state.storms=d.storms.map(st=>{const x=Object.assign({},st);x.points=(st.points||[]).map(p=>Object.assign({},p,{radii:p.radii||{34:null,50:null,64:null}}));finalizeStorm(x);return x;});
+      state.activeId=d.activeId&&state.storms.some(s=>s.id===d.activeId)?d.activeId:state.storms[0].id;
+      state.frac=0;Anim.frac=0;renderStormList();fitSoon();draw();updateTimeline();updateTitle();updateQcPanel();saveDraft();
+      toast('已导入 '+state.storms.length+' 个气旋','ok');
+    }catch(e){toast('项目 JSON 解析失败','warn');}
+  };
+  r.readAsText(file);
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function renderParseLog(){
@@ -6193,7 +6338,7 @@ function renderParseLog(){
 }
 function selectStorm(id){
   state.activeId=id;state.frac=0;Anim.frac=0;
-  renderStormList();draw();updateTimeline();updateTitle();
+  renderStormList();draw();updateTimeline();updateTitle();updateQcPanel();
   if(state.settings.view==='full3d')render3D(0);
 }
 function deleteStorm(id){
@@ -6312,6 +6457,15 @@ function bindUI(){
   document.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files.length)readFiles(e.dataTransfer.files);});
   $('#btnParse').addEventListener('click',()=>ingest($('#pasteArea').value,'粘贴内容'));
   $('#btnSample').addEventListener('click',()=>{ingest(SAMPLE,'示例 BAVI');});
+  document.getElementById('btnQc').addEventListener('click',updateQcPanel);
+document.getElementById('btnQcFix').addEventListener('click',cleanQcDuplicates);
+document.getElementById('btnCopySummary').addEventListener('click',copySummary);
+  document.getElementById('btnPeak').addEventListener('click',jumpPeak);
+  document.getElementById('btnRapid').addEventListener('click',jumpRapid);
+document.getElementById('btnLandfall').addEventListener('click',jumpLandfall);
+  document.getElementById('btnProjectOut').addEventListener('click',exportProject);
+  document.getElementById('btnProjectIn').addEventListener('click',()=>document.getElementById('projectFile').click());
+  document.getElementById('projectFile').addEventListener('change',e=>{importProject(e.target.files[0]);e.target.value='';});
   $('#stormList').addEventListener('click',e=>{
     const row=e.target.closest('.storm');if(!row)return;
     const id=row.dataset.id;const st=state.storms.find(s=>s.id===id);
@@ -7766,466 +7920,6 @@ else boot();
 
 })();
 
-window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"2026278N12269","name":"SIMON","basin":"EP","number":"80","points":[{"time":"2026-10-04 12:00:00","lat":11.8,"lon":-91.5,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 15:00:00","lat":11.8,"lon":-92.0,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 18:00:00","lat":11.9,"lon":-92.6,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 21:00:00","lat":12.0,"lon":-93.2,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 00:00:00","lat":12.0,"lon":-93.8,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 03:00:00","lat":12.0,"lon":-94.4,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 06:00:00","lat":12.0,"lon":-94.9,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 09:00:00","lat":12.1,"lon":-95.4,"wind":20,"mslp":null,"status":"DB"},{"time":"2026-10-05 12:00:00","lat":12.2,"lon":-95.8,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 15:00:00","lat":12.3,"lon":-96.1,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 18:00:00","lat":12.4,"lon":-96.4,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 21:00:00","lat":12.4,"lon":-96.7,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 00:00:00","lat":12.4,"lon":-97.0,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 03:00:00","lat":12.5,"lon":-97.4,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 06:00:00","lat":12.6,"lon":-97.7,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 09:00:00","lat":12.7,"lon":-98.0,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 12:00:00","lat":12.8,"lon":-98.2,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-06 15:00:00","lat":12.8,"lon":-98.4,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-06 18:00:00","lat":13.0,"lon":-98.7,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-06 21:00:00","lat":13.4,"lon":-99.0,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-07 00:00:00","lat":13.9,"lon":-99.4,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 03:00:00","lat":14.2,"lon":-99.7,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 06:00:00","lat":14.5,"lon":-100.0,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 09:00:00","lat":14.7,"lon":-100.3,"wind":28,"mslp":1006,"status":"DB"},{"time":"2026-10-07 12:00:00","lat":14.9,"lon":-100.6,"wind":30,"mslp":1006,"status":"TD"},{"time":"2026-10-07 15:00:00","lat":15.1,"lon":-100.9,"wind":33,"mslp":1005,"status":"TD"},{"time":"2026-10-07 18:00:00","lat":15.2,"lon":-101.3,"wind":35,"mslp":1004,"status":"TS"},{"time":"2026-10-07 21:00:00","lat":15.3,"lon":-101.7,"wind":38,"mslp":1003,"status":"TS"},{"time":"2026-10-08 00:00:00","lat":15.3,"lon":-102.1,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-08 03:00:00","lat":15.4,"lon":-102.4,"wind":43,"mslp":1001,"status":"TS"},{"time":"2026-10-08 06:00:00","lat":15.4,"lon":-102.7,"wind":45,"mslp":1000,"status":"TS"},{"time":"2026-10-08 09:00:00","lat":15.4,"lon":-103.0,"wind":50,"mslp":998,"status":"TS"},{"time":"2026-10-08 12:00:00","lat":15.4,"lon":-103.3,"wind":55,"mslp":995,"status":"TS"},{"time":"2026-10-08 15:00:00","lat":15.4,"lon":-103.6,"wind":58,"mslp":994,"status":"TS"},{"time":"2026-10-08 18:00:00","lat":15.4,"lon":-103.8,"wind":60,"mslp":992,"status":"TS"},{"time":"2026-10-08 21:00:00","lat":15.4,"lon":-104.0,"wind":63,"mslp":989,"status":"TS"},{"time":"2026-10-09 00:00:00","lat":15.5,"lon":-104.2,"wind":65,"mslp":985,"status":"HU"},{"time":"2026-10-09 03:00:00","lat":15.6,"lon":-104.3,"wind":73,"mslp":982,"status":"HU"},{"time":"2026-10-09 06:00:00","lat":15.7,"lon":-104.4,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-09 09:00:00","lat":15.7,"lon":-104.5,"wind":83,"mslp":977,"status":"HU"},{"time":"2026-10-09 12:00:00","lat":15.8,"lon":-104.5,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-09 15:00:00","lat":15.9,"lon":-104.6,"wind":88,"mslp":971,"status":"HU"},{"time":"2026-10-09 18:00:00","lat":16.0,"lon":-104.6,"wind":90,"mslp":966,"status":"HU"},{"time":"2026-10-09 21:00:00","lat":16.3,"lon":-104.6,"wind":98,"mslp":959,"status":"HU"},{"time":"2026-10-10 00:00:00","lat":16.6,"lon":-104.6,"wind":105,"mslp":952,"status":"HU"},{"time":"2026-10-10 03:00:00","lat":16.8,"lon":-104.6,"wind":113,"mslp":949,"status":"HU"},{"time":"2026-10-10 06:00:00","lat":17.0,"lon":-104.7,"wind":120,"mslp":945,"status":"HU"},{"time":"2026-10-10 09:00:00","lat":17.2,"lon":-104.8,"wind":125,"mslp":942,"status":"HU"},{"time":"2026-10-10 12:00:00","lat":17.3,"lon":-104.8,"wind":130,"mslp":938,"status":"HU"},{"time":"2026-10-10 15:00:00","lat":17.3,"lon":-104.8,"wind":130,"mslp":935,"status":"HU"},{"time":"2026-10-10 18:00:00","lat":17.4,"lon":-104.8,"wind":130,"mslp":932,"status":"HU"},{"time":"2026-10-10 21:00:00","lat":17.7,"lon":-104.8,"wind":133,"mslp":931,"status":"HU"},{"time":"2026-10-11 00:00:00","lat":18.0,"lon":-104.9,"wind":135,"mslp":930,"status":"HU"},{"time":"2026-10-11 03:00:00","lat":18.2,"lon":-104.9,"wind":135,"mslp":929,"status":"HU"},{"time":"2026-10-11 06:00:00","lat":18.4,"lon":-105.0,"wind":135,"mslp":928,"status":"HU"},{"time":"2026-10-11 09:00:00","lat":18.6,"lon":-105.1,"wind":133,"mslp":931,"status":"HU"},{"time":"2026-10-11 12:00:00","lat":18.9,"lon":-105.2,"wind":130,"mslp":933,"status":"HU"},{"time":"2026-10-11 15:00:00","lat":19.2,"lon":-105.4,"wind":123,"mslp":938,"status":"HU"},{"time":"2026-10-11 18:00:00","lat":19.4,"lon":-105.6,"wind":115,"mslp":943,"status":"HU"},{"time":"2026-10-11 21:00:00","lat":19.5,"lon":-105.7,"wind":108,"mslp":951,"status":"HU"},{"time":"2026-10-12 00:00:00","lat":19.6,"lon":-105.8,"wind":100,"mslp":958,"status":"HU"},{"time":"2026-10-12 03:00:00","lat":19.7,"lon":-105.9,"wind":98,"mslp":960,"status":"HU"},{"time":"2026-10-12 06:00:00","lat":19.8,"lon":-106.0,"wind":95,"mslp":961,"status":"HU"},{"time":"2026-10-12 09:00:00","lat":19.9,"lon":-106.2,"wind":95,"mslp":962,"status":"HU"},{"time":"2026-10-12 12:00:00","lat":20.0,"lon":-106.4,"wind":95,"mslp":962,"status":"HU"},{"time":"2026-10-12 15:00:00","lat":20.0,"lon":-106.6,"wind":93,"mslp":964,"status":"HU"},{"time":"2026-10-12 18:00:00","lat":20.1,"lon":-106.7,"wind":90,"mslp":966,"status":"HU"},{"time":"2026-10-12 21:00:00","lat":20.2,"lon":-106.8,"wind":88,"mslp":968,"status":"HU"},{"time":"2026-10-13 00:00:00","lat":20.3,"lon":-106.9,"wind":85,"mslp":969,"status":"HU"},{"time":"2026-10-13 03:00:00","lat":20.3,"lon":-107.0,"wind":83,"mslp":973,"status":"HU"},{"time":"2026-10-13 06:00:00","lat":20.3,"lon":-107.1,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 09:00:00","lat":20.3,"lon":-107.1,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 12:00:00","lat":20.3,"lon":-107.2,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 15:00:00","lat":20.3,"lon":-107.3,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 18:00:00","lat":20.2,"lon":-107.4,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 21:00:00","lat":20.2,"lon":-107.4,"wind":85,"mslp":973,"status":"HU"},{"time":"2026-10-14 00:00:00","lat":20.2,"lon":-107.5,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 03:00:00","lat":20.1,"lon":-107.6,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 06:00:00","lat":20.0,"lon":-107.7,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 09:00:00","lat":19.9,"lon":-107.9,"wind":88,"mslp":971,"status":"HU"},{"time":"2026-10-14 12:00:00","lat":19.8,"lon":-108.0,"wind":85,"mslp":972,"status":"HU"},{"time":"2026-10-14 15:00:00","lat":19.7,"lon":-108.1,"wind":80,"mslp":976,"status":"HU"},{"time":"2026-10-14 18:00:00","lat":19.5,"lon":-108.2,"wind":75,"mslp":980,"status":"HU"},{"time":"2026-10-14 21:00:00","lat":19.3,"lon":-108.3,"wind":65,"mslp":986,"status":"HU"},{"time":"2026-10-15 00:00:00","lat":19.2,"lon":-108.4,"wind":55,"mslp":991,"status":"TS"},{"time":"2026-10-15 03:00:00","lat":19.1,"lon":-108.4,"wind":55,"mslp":992,"status":"TS"},{"time":"2026-10-15 06:00:00","lat":19.1,"lon":-108.3,"wind":55,"mslp":992,"status":"TS"},{"time":"2026-10-15 09:00:00","lat":19.1,"lon":-108.2,"wind":53,"mslp":994,"status":"TS"},{"time":"2026-10-15 12:00:00","lat":19.1,"lon":-108.1,"wind":50,"mslp":996,"status":"TS"},{"time":"2026-10-15 15:00:00","lat":19.1,"lon":-108.1,"wind":48,"mslp":998,"status":"TS"},{"time":"2026-10-15 18:00:00","lat":19.2,"lon":-108.2,"wind":45,"mslp":999,"status":"TS"},{"time":"2026-10-15 21:00:00","lat":19.3,"lon":-108.2,"wind":43,"mslp":1001,"status":"TS"},{"time":"2026-10-16 00:00:00","lat":19.4,"lon":-108.2,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-16 03:00:00","lat":19.5,"lon":-108.3,"wind":38,"mslp":1002,"status":"TS"},{"time":"2026-10-16 06:00:00","lat":19.7,"lon":-108.5,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 09:00:00","lat":20.0,"lon":-108.8,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 12:00:00","lat":20.4,"lon":-109.2,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 15:00:00","lat":20.8,"lon":-109.6,"wind":33,"mslp":1004,"status":"TS"},{"time":"2026-10-16 18:00:00","lat":21.3,"lon":-110.0,"wind":30,"mslp":1006,"status":"DB"}]},{"sid":"2026284N08272","name":"TRUDY","basin":"EP","number":"82","points":[{"time":"2026-10-11 06:00:00","lat":7.6,"lon":-88.0,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 09:00:00","lat":7.5,"lon":-88.6,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 12:00:00","lat":7.4,"lon":-89.2,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 15:00:00","lat":7.3,"lon":-89.8,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 18:00:00","lat":7.2,"lon":-90.4,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 21:00:00","lat":7.2,"lon":-90.9,"wind":20,"mslp":null,"status":"DB"},{"time":"2026-10-12 00:00:00","lat":7.3,"lon":-91.4,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 03:00:00","lat":7.5,"lon":-91.7,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 06:00:00","lat":7.7,"lon":-92.1,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 09:00:00","lat":7.8,"lon":-92.6,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 12:00:00","lat":7.9,"lon":-93.1,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-12 15:00:00","lat":8.0,"lon":-93.5,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-12 18:00:00","lat":8.1,"lon":-93.9,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-12 21:00:00","lat":8.3,"lon":-94.3,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 00:00:00","lat":8.6,"lon":-94.7,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 03:00:00","lat":8.9,"lon":-94.9,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 06:00:00","lat":9.1,"lon":-95.1,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 09:00:00","lat":9.3,"lon":-95.3,"wind":28,"mslp":1007,"status":"DB"},{"time":"2026-10-13 12:00:00","lat":9.5,"lon":-95.5,"wind":30,"mslp":1006,"status":"TD"},{"time":"2026-10-13 15:00:00","lat":9.9,"lon":-95.7,"wind":33,"mslp":1006,"status":"TD"},{"time":"2026-10-13 18:00:00","lat":10.3,"lon":-96.0,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-13 21:00:00","lat":10.4,"lon":-96.4,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-14 00:00:00","lat":10.5,"lon":-96.9,"wind":35,"mslp":1004,"status":"TS"},{"time":"2026-10-14 03:00:00","lat":10.7,"lon":-97.7,"wind":38,"mslp":1003,"status":"TS"},{"time":"2026-10-14 06:00:00","lat":10.9,"lon":-98.4,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-14 09:00:00","lat":11.1,"lon":-98.8,"wind":45,"mslp":1001,"status":"TS"},{"time":"2026-10-14 12:00:00","lat":11.3,"lon":-99.1,"wind":50,"mslp":999,"status":"TS"},{"time":"2026-10-14 15:00:00","lat":11.5,"lon":-99.4,"wind":53,"mslp":998,"status":"TS"},{"time":"2026-10-14 18:00:00","lat":11.7,"lon":-99.7,"wind":55,"mslp":997,"status":"TS"},{"time":"2026-10-14 21:00:00","lat":12.0,"lon":-100.1,"wind":58,"mslp":996,"status":"TS"},{"time":"2026-10-15 00:00:00","lat":12.3,"lon":-100.5,"wind":60,"mslp":994,"status":"TS"},{"time":"2026-10-15 03:00:00","lat":12.5,"lon":-100.9,"wind":65,"mslp":989,"status":"TS"},{"time":"2026-10-15 06:00:00","lat":12.6,"lon":-101.2,"wind":70,"mslp":983,"status":"HU"},{"time":"2026-10-15 09:00:00","lat":12.7,"lon":-101.4,"wind":75,"mslp":981,"status":"HU"},{"time":"2026-10-15 12:00:00","lat":12.8,"lon":-101.5,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-15 15:00:00","lat":13.1,"lon":-101.6,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-15 18:00:00","lat":13.5,"lon":-101.6,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-15 21:00:00","lat":13.8,"lon":-101.7,"wind":85,"mslp":974,"status":"HU"},{"time":"2026-10-16 00:00:00","lat":14.0,"lon":-101.9,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-16 03:00:00","lat":14.0,"lon":-102.2,"wind":98,"mslp":963,"status":"HU"},{"time":"2026-10-16 06:00:00","lat":14.0,"lon":-102.4,"wind":105,"mslp":956,"status":"HU"},{"time":"2026-10-16 09:00:00","lat":14.1,"lon":-102.5,"wind":98,"mslp":963,"status":"HU"},{"time":"2026-10-16 12:00:00","lat":14.2,"lon":-102.5,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-16 15:00:00","lat":14.4,"lon":-102.4,"wind":83,"mslp":976,"status":"HU"},{"time":"2026-10-16 18:00:00","lat":14.6,"lon":-102.4,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-16 21:00:00","lat":14.8,"lon":-102.5,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-17 00:00:00","lat":15.1,"lon":-102.7,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-17 03:00:00","lat":15.4,"lon":-102.9,"wind":78,"mslp":981,"status":"HU"},{"time":"2026-10-17 06:00:00","lat":15.7,"lon":-103.2,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 09:00:00","lat":15.9,"lon":-103.6,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 12:00:00","lat":16.2,"lon":-104.0,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 15:00:00","lat":16.6,"lon":-104.5,"wind":83,"mslp":978,"status":"HU"},{"time":"2026-10-17 18:00:00","lat":17.0,"lon":-105.0,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-17 21:00:00","lat":17.4,"lon":-105.3,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-18 00:00:00","lat":17.8,"lon":-105.6,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-18 03:00:00","lat":18.1,"lon":-105.9,"wind":88,"mslp":973,"status":"HU"},{"time":"2026-10-18 06:00:00","lat":18.4,"lon":-106.2,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 09:00:00","lat":18.7,"lon":-106.4,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 12:00:00","lat":18.9,"lon":-106.6,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 15:00:00","lat":19.1,"lon":-106.7,"wind":88,"mslp":972,"status":"HU"},{"time":"2026-10-18 18:00:00","lat":19.3,"lon":-106.9,"wind":85,"mslp":974,"status":"HU"},{"time":"2026-10-18 21:00:00","lat":19.5,"lon":-107.1,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-19 00:00:00","lat":19.6,"lon":-107.4,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-19 03:00:00","lat":19.7,"lon":-107.6,"wind":65,"mslp":989,"status":"HU"},{"time":"2026-10-19 06:00:00","lat":19.7,"lon":-107.8,"wind":55,"mslp":995,"status":"TS"},{"time":"2026-10-19 09:00:00","lat":19.7,"lon":-107.9,"wind":53,"mslp":997,"status":"TS"},{"time":"2026-10-19 12:00:00","lat":19.6,"lon":-108.0,"wind":50,"mslp":999,"status":"TS"},{"time":"2026-10-19 15:00:00","lat":19.6,"lon":-108.0,"wind":45,"mslp":1002,"status":"TS"},{"time":"2026-10-19 18:00:00","lat":19.5,"lon":-107.9,"wind":40,"mslp":1004,"status":"TS"},{"time":"2026-10-19 21:00:00","lat":19.5,"lon":-107.9,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-20 00:00:00","lat":19.4,"lon":-108.0,"wind":30,"mslp":1005,"status":"TD"}]},{"sid":"2026285N16151","name":"UNNAMED","basin":"WP","number":"83","points":[{"time":"2026-10-12 00:00:00","lat":16.4,"lon":150.8,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 03:00:00","lat":16.6,"lon":150.3,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 06:00:00","lat":16.8,"lon":149.8,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 09:00:00","lat":16.9,"lon":149.4,"wind":27,"mslp":1006,"status":""},{"time":"2026-10-12 12:00:00","lat":17.1,"lon":149.1,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 15:00:00","lat":17.3,"lon":148.7,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 18:00:00","lat":17.5,"lon":148.2,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 21:00:00","lat":17.7,"lon":147.8,"wind":27,"mslp":1008,"status":""},{"time":"2026-10-13 00:00:00","lat":18.0,"lon":147.3,"wind":25,"mslp":1010,"status":""},{"time":"2026-10-13 03:00:00","lat":18.4,"lon":146.8,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-13 06:00:00","lat":18.8,"lon":146.3,"wind":25,"mslp":1007,"status":""},{"time":"2026-10-13 09:00:00","lat":19.1,"lon":145.8,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 12:00:00","lat":19.4,"lon":145.4,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 15:00:00","lat":19.7,"lon":145.0,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 18:00:00","lat":20.1,"lon":144.5,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 21:00:00","lat":20.4,"lon":144.0,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-14 00:00:00","lat":20.7,"lon":143.5,"wind":25,"mslp":1010,"status":""},{"time":"2026-10-14 03:00:00","lat":21.0,"lon":143.1,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-14 06:00:00","lat":21.3,"lon":142.8,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-14 09:00:00","lat":21.6,"lon":142.5,"wind":27,"mslp":1008,"status":""},{"time":"2026-10-14 12:00:00","lat":22.0,"lon":142.1,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 15:00:00","lat":22.4,"lon":141.6,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 18:00:00","lat":22.7,"lon":141.1,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 21:00:00","lat":22.5,"lon":140.8,"wind":27,"mslp":1007,"status":""},{"time":"2026-10-15 00:00:00","lat":22.3,"lon":140.6,"wind":25,"mslp":1007,"status":""},{"time":"2026-10-15 03:00:00","lat":22.3,"lon":140.2,"wind":22,"mslp":1008,"status":""},{"time":"2026-10-15 06:00:00","lat":22.5,"lon":139.7,"wind":19,"mslp":1009,"status":""},{"time":"2026-10-15 09:00:00","lat":22.7,"lon":139.2,"wind":19,"mslp":1011,"status":""},{"time":"2026-10-15 12:00:00","lat":22.9,"lon":138.6,"wind":19,"mslp":1012,"status":""}]},{"sid":"2026288N10161","name":"CHAMPI","basin":"WP","number":"84","points":[{"time":"2026-10-14 12:00:00","lat":9.6,"lon":161.2,"wind":29,"mslp":1003,"status":""},{"time":"2026-10-14 15:00:00","lat":10.0,"lon":160.9,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-14 18:00:00","lat":10.4,"lon":160.5,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-14 21:00:00","lat":10.6,"lon":160.0,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-15 00:00:00","lat":10.7,"lon":159.4,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-15 03:00:00","lat":10.8,"lon":158.9,"wind":29,"mslp":1003,"status":""},{"time":"2026-10-15 06:00:00","lat":10.9,"lon":158.4,"wind":29,"mslp":1002,"status":""},{"time":"2026-10-15 09:00:00","lat":10.9,"lon":157.9,"wind":32,"mslp":1002,"status":""},{"time":"2026-10-15 12:00:00","lat":11.0,"lon":157.4,"wind":35,"mslp":1001,"status":""},{"time":"2026-10-15 15:00:00","lat":11.3,"lon":157.1,"wind":37,"mslp":1000,"status":""},{"time":"2026-10-15 18:00:00","lat":11.5,"lon":156.5,"wind":39,"mslp":999,"status":""},{"time":"2026-10-15 21:00:00","lat":11.4,"lon":155.3,"wind":42,"mslp":999,"status":""},{"time":"2026-10-16 00:00:00","lat":11.3,"lon":154.0,"wind":45,"mslp":998,"status":""},{"time":"2026-10-16 03:00:00","lat":11.3,"lon":153.3,"wind":48,"mslp":996,"status":""},{"time":"2026-10-16 06:00:00","lat":11.4,"lon":152.7,"wind":51,"mslp":993,"status":""},{"time":"2026-10-16 09:00:00","lat":11.4,"lon":152.0,"wind":56,"mslp":993,"status":""},{"time":"2026-10-16 12:00:00","lat":11.4,"lon":151.4,"wind":60,"mslp":992,"status":""},{"time":"2026-10-16 15:00:00","lat":11.6,"lon":150.8,"wind":67,"mslp":988,"status":""},{"time":"2026-10-16 18:00:00","lat":11.9,"lon":150.2,"wind":74,"mslp":984,"status":""},{"time":"2026-10-16 21:00:00","lat":12.2,"lon":149.4,"wind":79,"mslp":983,"status":""},{"time":"2026-10-17 00:00:00","lat":12.4,"lon":148.6,"wind":84,"mslp":981,"status":""},{"time":"2026-10-17 03:00:00","lat":12.5,"lon":147.9,"wind":100,"mslp":965,"status":""},{"time":"2026-10-17 06:00:00","lat":12.5,"lon":147.3,"wind":115,"mslp":948,"status":""},{"time":"2026-10-17 09:00:00","lat":12.5,"lon":146.7,"wind":117,"mslp":947,"status":""},{"time":"2026-10-17 12:00:00","lat":12.6,"lon":146.1,"wind":119,"mslp":945,"status":""},{"time":"2026-10-17 15:00:00","lat":12.9,"lon":145.5,"wind":124,"mslp":940,"status":""},{"time":"2026-10-17 18:00:00","lat":13.1,"lon":144.8,"wind":128,"mslp":934,"status":""},{"time":"2026-10-17 21:00:00","lat":13.1,"lon":144.1,"wind":128,"mslp":934,"status":""},{"time":"2026-10-18 00:00:00","lat":13.1,"lon":143.4,"wind":128,"mslp":934,"status":""},{"time":"2026-10-18 03:00:00","lat":13.1,"lon":142.8,"wind":128,"mslp":933,"status":""},{"time":"2026-10-18 06:00:00","lat":13.1,"lon":142.3,"wind":128,"mslp":931,"status":""},{"time":"2026-10-18 09:00:00","lat":13.3,"lon":141.9,"wind":124,"mslp":937,"status":""},{"time":"2026-10-18 12:00:00","lat":13.5,"lon":141.4,"wind":119,"mslp":943,"status":""},{"time":"2026-10-18 15:00:00","lat":13.7,"lon":140.8,"wind":119,"mslp":943,"status":""},{"time":"2026-10-18 18:00:00","lat":13.8,"lon":140.2,"wind":119,"mslp":942,"status":""},{"time":"2026-10-18 21:00:00","lat":13.9,"lon":139.7,"wind":127,"mslp":934,"status":""},{"time":"2026-10-19 00:00:00","lat":14.0,"lon":139.2,"wind":134,"mslp":926,"status":""},{"time":"2026-10-19 03:00:00","lat":14.1,"lon":138.8,"wind":136,"mslp":922,"status":""},{"time":"2026-10-19 06:00:00","lat":14.3,"lon":138.4,"wind":138,"mslp":917,"status":""},{"time":"2026-10-19 09:00:00","lat":14.5,"lon":138.0,"wind":138,"mslp":918,"status":""},{"time":"2026-10-19 12:00:00","lat":14.8,"lon":137.6,"wind":138,"mslp":919,"status":""},{"time":"2026-10-19 15:00:00","lat":15.1,"lon":137.2,"wind":136,"mslp":919,"status":""},{"time":"2026-10-19 18:00:00","lat":15.4,"lon":136.7,"wind":134,"mslp":919,"status":""},{"time":"2026-10-19 21:00:00","lat":15.6,"lon":136.2,"wind":131,"mslp":924,"status":""},{"time":"2026-10-20 00:00:00","lat":15.9,"lon":135.6,"wind":128,"mslp":929,"status":""},{"time":"2026-10-20 03:00:00","lat":16.2,"lon":135.0,"wind":131,"mslp":926,"status":""},{"time":"2026-10-20 06:00:00","lat":16.5,"lon":134.4,"wind":134,"mslp":922,"status":""},{"time":"2026-10-20 09:00:00","lat":16.8,"lon":133.7,"wind":144,"mslp":912,"status":""},{"time":"2026-10-20 12:00:00","lat":17.0,"lon":133.0,"wind":154,"mslp":902,"status":""},{"time":"2026-10-20 15:00:00","lat":17.2,"lon":132.2,"wind":157,"mslp":899,"status":""},{"time":"2026-10-20 18:00:00","lat":17.4,"lon":131.5,"wind":159,"mslp":895,"status":""},{"time":"2026-10-20 21:00:00","lat":17.7,"lon":130.8,"wind":157,"mslp":899,"status":""},{"time":"2026-10-21 00:00:00","lat":18.1,"lon":130.1,"wind":154,"mslp":902,"status":""},{"time":"2026-10-21 03:00:00","lat":18.4,"lon":129.5,"wind":151,"mslp":903,"status":""},{"time":"2026-10-21 06:00:00","lat":18.7,"lon":128.9,"wind":148,"mslp":904,"status":""},{"time":"2026-10-21 09:00:00","lat":19.0,"lon":128.4,"wind":146,"mslp":908,"status":""},{"time":"2026-10-21 12:00:00","lat":19.3,"lon":127.9,"wind":144,"mslp":911,"status":""},{"time":"2026-10-21 15:00:00","lat":19.6,"lon":127.4,"wind":139,"mslp":916,"status":""},{"time":"2026-10-21 18:00:00","lat":19.9,"lon":126.9,"wind":134,"mslp":920,"status":""},{"time":"2026-10-21 21:00:00","lat":20.1,"lon":126.4,"wind":125,"mslp":930,"status":""},{"time":"2026-10-22 00:00:00","lat":20.3,"lon":126.0,"wind":115,"mslp":940,"status":""}]},{"sid":"2026289S11197","name":"WATI","basin":"SP","number":"85","points":[{"time":"2026-10-16 06:00:00","lat":-10.8,"lon":-163.3,"wind":35,"mslp":999,"status":""},{"time":"2026-10-16 09:00:00","lat":-11.1,"lon":-163.2,"wind":37,"mslp":998,"status":""},{"time":"2026-10-16 12:00:00","lat":-11.6,"lon":-163.1,"wind":39,"mslp":997,"status":""},{"time":"2026-10-16 15:00:00","lat":-12.2,"lon":-163.2,"wind":39,"mslp":996,"status":""},{"time":"2026-10-16 18:00:00","lat":-12.7,"lon":-163.4,"wind":39,"mslp":995,"status":""},{"time":"2026-10-16 21:00:00","lat":-12.6,"lon":-163.6,"wind":42,"mslp":995,"status":""},{"time":"2026-10-17 00:00:00","lat":-12.4,"lon":-163.7,"wind":45,"mslp":994,"status":""},{"time":"2026-10-17 03:00:00","lat":-12.7,"lon":-163.5,"wind":53,"mslp":990,"status":""},{"time":"2026-10-17 06:00:00","lat":-13.2,"lon":-163.2,"wind":60,"mslp":986,"status":""},{"time":"2026-10-17 09:00:00","lat":-13.8,"lon":-163.0,"wind":60,"mslp":986,"status":""},{"time":"2026-10-17 12:00:00","lat":-14.4,"lon":-163.0,"wind":60,"mslp":985,"status":""},{"time":"2026-10-17 15:00:00","lat":-14.6,"lon":-163.1,"wind":62,"mslp":985,"status":""},{"time":"2026-10-17 18:00:00","lat":-14.8,"lon":-163.2,"wind":64,"mslp":985,"status":""},{"time":"2026-10-17 21:00:00","lat":-15.3,"lon":-162.9,"wind":64,"mslp":985,"status":""},{"time":"2026-10-18 00:00:00","lat":-15.7,"lon":-162.6,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 03:00:00","lat":-15.9,"lon":-162.5,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 06:00:00","lat":-16.1,"lon":-162.4,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 09:00:00","lat":-16.7,"lon":-162.2,"wind":62,"mslp":986,"status":""},{"time":"2026-10-18 12:00:00","lat":-17.4,"lon":-161.8,"wind":60,"mslp":988,"status":""},{"time":"2026-10-18 15:00:00","lat":-18.0,"lon":-161.0,"wind":57,"mslp":990,"status":""},{"time":"2026-10-18 18:00:00","lat":-18.6,"lon":-160.2,"wind":54,"mslp":992,"status":""},{"time":"2026-10-18 21:00:00","lat":-19.2,"lon":-159.6,"wind":54,"mslp":992,"status":""},{"time":"2026-10-19 00:00:00","lat":-19.7,"lon":-159.0,"wind":54,"mslp":992,"status":""},{"time":"2026-10-19 03:00:00","lat":-20.2,"lon":-158.0,"wind":50,"mslp":996,"status":""},{"time":"2026-10-19 06:00:00","lat":-20.7,"lon":-156.8,"wind":45,"mslp":999,"status":""}]},{"sid":"2026292N11271","name":"VANCE","basin":"EP","number":"86","points":[{"time":"2026-10-18 18:00:00","lat":10.6,"lon":-89.2,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-18 21:00:00","lat":10.7,"lon":-89.8,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 00:00:00","lat":10.7,"lon":-90.3,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 03:00:00","lat":10.7,"lon":-90.8,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 06:00:00","lat":10.7,"lon":-91.2,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 09:00:00","lat":10.7,"lon":-91.6,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 12:00:00","lat":10.7,"lon":-92.1,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 15:00:00","lat":10.7,"lon":-92.5,"wind":18,"mslp":1010,"status":"DB"},{"time":"2026-10-19 18:00:00","lat":10.6,"lon":-93.0,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-19 21:00:00","lat":10.5,"lon":-93.5,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-20 00:00:00","lat":10.3,"lon":-94.0,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-20 03:00:00","lat":10.1,"lon":-94.4,"wind":23,"mslp":1008,"status":"DB"},{"time":"2026-10-20 06:00:00","lat":10.0,"lon":-94.8,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 09:00:00","lat":10.0,"lon":-95.2,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 12:00:00","lat":10.0,"lon":-95.6,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 15:00:00","lat":9.9,"lon":-95.9,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 18:00:00","lat":9.8,"lon":-96.2,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 21:00:00","lat":9.7,"lon":-96.5,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 00:00:00","lat":9.7,"lon":-96.9,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 03:00:00","lat":9.6,"lon":-97.3,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 06:00:00","lat":9.6,"lon":-97.8,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 09:00:00","lat":9.5,"lon":-98.2,"wind":28,"mslp":1006,"status":"DB"},{"time":"2026-10-21 12:00:00","lat":9.5,"lon":-98.7,"wind":30,"mslp":1005,"status":"TD"},{"time":"2026-10-21 15:00:00","lat":9.4,"lon":-99.2,"wind":33,"mslp":1004,"status":"TD"},{"time":"2026-10-21 18:00:00","lat":9.4,"lon":-99.6,"wind":35,"mslp":1003,"status":"TS"},{"time":"2026-10-21 21:00:00","lat":9.4,"lon":-100.0,"wind":35,"mslp":1003,"status":"TS"},{"time":"2026-10-22 00:00:00","lat":9.5,"lon":-100.5,"wind":35,"mslp":1003,"status":"TS"}]},{"sid":"2026292N31289","name":"JOSEPHINE","basin":"NA","number":"87","points":[{"time":"2026-10-18 18:00:00","lat":31.0,"lon":-71.4,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-18 21:00:00","lat":31.4,"lon":-71.2,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-19 00:00:00","lat":31.8,"lon":-71.0,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-19 03:00:00","lat":32.1,"lon":-70.9,"wind":43,"mslp":1009,"status":"EX"},{"time":"2026-10-19 06:00:00","lat":32.4,"lon":-70.9,"wind":45,"mslp":1008,"status":"EX"},{"time":"2026-10-19 09:00:00","lat":32.6,"lon":-70.9,"wind":45,"mslp":1008,"status":"EX"},{"time":"2026-10-19 12:00:00","lat":32.9,"lon":-70.8,"wind":45,"mslp":1007,"status":"EX"},{"time":"2026-10-19 15:00:00","lat":33.3,"lon":-70.7,"wind":45,"mslp":1005,"status":"EX"},{"time":"2026-10-19 18:00:00","lat":33.8,"lon":-70.6,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-19 21:00:00","lat":34.6,"lon":-70.8,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 00:00:00","lat":35.3,"lon":-70.9,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 03:00:00","lat":35.4,"lon":-70.7,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 06:00:00","lat":35.3,"lon":-70.5,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 09:00:00","lat":35.4,"lon":-70.4,"wind":45,"mslp":1001,"status":"EX"},{"time":"2026-10-20 12:00:00","lat":35.6,"lon":-70.2,"wind":45,"mslp":1000,"status":"EX"},{"time":"2026-10-20 15:00:00","lat":36.0,"lon":-69.8,"wind":45,"mslp":999,"status":"EX"},{"time":"2026-10-20 18:00:00","lat":36.3,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-20 21:00:00","lat":36.5,"lon":-69.3,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 00:00:00","lat":36.6,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 03:00:00","lat":36.7,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 06:00:00","lat":36.8,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 09:00:00","lat":36.9,"lon":-69.4,"wind":48,"mslp":995,"status":"EX"},{"time":"2026-10-21 12:00:00","lat":36.9,"lon":-69.5,"wind":50,"mslp":992,"status":"EX"},{"time":"2026-10-21 15:00:00","lat":37.0,"lon":-69.6,"wind":53,"mslp":991,"status":"EX"},{"time":"2026-10-21 18:00:00","lat":37.1,"lon":-69.6,"wind":55,"mslp":990,"status":"SS"},{"time":"2026-10-21 21:00:00","lat":37.3,"lon":-69.6,"wind":55,"mslp":989,"status":"SS"},{"time":"2026-10-22 00:00:00","lat":37.5,"lon":-69.5,"wind":55,"mslp":988,"status":"SS"}]},{"sid":"2026293S05054","name":"AGUEDA","basin":"SI","number":"88","points":[{"time":"2026-10-20 06:00:00","lat":-4.5,"lon":53.8,"wind":35,"mslp":1006,"status":""},{"time":"2026-10-20 09:00:00","lat":-4.6,"lon":53.5,"wind":37,"mslp":1005,"status":""},{"time":"2026-10-20 12:00:00","lat":-4.7,"lon":53.2,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 15:00:00","lat":-4.9,"lon":53.0,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 18:00:00","lat":-5.1,"lon":52.7,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 21:00:00","lat":-5.3,"lon":52.3,"wind":42,"mslp":1003,"status":""},{"time":"2026-10-21 00:00:00","lat":-5.4,"lon":52.0,"wind":45,"mslp":1003,"status":""},{"time":"2026-10-21 03:00:00","lat":-5.3,"lon":52.1,"wind":45,"mslp":1002,"status":""},{"time":"2026-10-21 06:00:00","lat":-5.3,"lon":52.2,"wind":45,"mslp":1000,"status":""},{"time":"2026-10-21 09:00:00","lat":-5.5,"lon":51.9,"wind":48,"mslp":999,"status":""},{"time":"2026-10-21 12:00:00","lat":-5.7,"lon":51.4,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 15:00:00","lat":-5.9,"lon":51.0,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 18:00:00","lat":-6.0,"lon":50.8,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 21:00:00","lat":-6.0,"lon":50.9,"wind":45,"mslp":999,"status":""},{"time":"2026-10-22 00:00:00","lat":-5.9,"lon":51.1,"wind":39,"mslp":1001,"status":""}]}]};
-
-/* ============================================================
-   Live track bulletin — standalone feed player
-   Sources: NOAA/NCEI IBTrACS ACTIVE, GDACS tropical cyclones
-   ============================================================ */
-(function () {
-  'use strict';
-
-  const NCEI = 'https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ACTIVE.list.v04r01.csv';
-  const GDACS = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC&pagesize=30';
-  const CMA_LIST = 'https://typhoon.nmc.cn/weatherservice/typhoon/jsons/list_default';
-  const CMA_VIEW = 'https://typhoon.nmc.cn/weatherservice/typhoon/jsons/view_';
-  const CACHE_KEY = 'sudre_live_ibtracs_v2';
-  const $ = id => document.getElementById(id);
-  let allStorms = [], storms = [], selected = null, source = 'CMA';
-  let loading = false, refreshTimer = 0;
-  let liveFrac = 1, livePlaying = false, liveRaf = 0;
-  let gdacsStorms = [], cmaStorms = [];
-
-  const num = v => {
-    const n = parseFloat(v);
-    return Number.isFinite(n) ? n : null;
-  };
-  const classify = w => {
-    w = +w || 0;
-    if (w < 34) return 'TD';
-    if (w < 64) return 'TS';
-    if (w < 83) return 'C1';
-    if (w < 96) return 'C2';
-    if (w < 113) return 'C3';
-    if (w < 137) return 'C4';
-    return 'C5';
-  };
-  const windColor = lv => ({ TD: '#55b7ff', TS: '#31d8b2', C1: '#ffd166', C2: '#ffb02e', C3: '#ff8a5b', C4: '#ff6f91', C5: '#d86bff' }[lv] || '#93a9c4');
-  const fmtLat = v => Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'N' : 'S');
-  const fmtLon = v => Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'E' : 'W');
-  const fmtTime = d => d ? new Date(d).toISOString().slice(0, 16).replace('T', ' ') + 'Z' : '—';
-
-  function parseCsv(text) {
-    const rows = []; let row = [], cur = '', quote = false;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (quote) {
-        if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
-        else if (c === '"') quote = false;
-        else cur += c;
-      } else if (c === '"') quote = true;
-      else if (c === ',') { row.push(cur); cur = ''; }
-      else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
-      else if (c !== '\r') cur += c;
-    }
-    if (cur.length || row.length) { row.push(cur); rows.push(row); }
-    return rows;
-  }
-
-  function normalize(st) {
-    const pts = (st.points || []).map(p => Object.assign({}, p, { time: p.time instanceof Date ? p.time : new Date(String(p.time).replace(' ', 'T') + (String(p.time).endsWith('Z') ? '' : 'Z')) }));
-    pts.sort((a, b) => a.time - b.time);
-    return Object.assign({}, st, { points: pts, last: pts[pts.length - 1], peak: Math.max(...pts.map(p => p.wind || 0)) });
-  }
-
-  function parseNcei(text) {
-    const rows = parseCsv(text);
-    if (rows.length < 3) return [];
-    const header = rows[0].map(x => x.trim().toUpperCase());
-    const ix = name => header.indexOf(name);
-    const iSid = ix('SID'), iName = ix('NAME'), iBasin = ix('BASIN'), iTime = ix('ISO_TIME'),
-      iLat = ix('LAT'), iLon = ix('LON'), iUsaLat = ix('USA_LAT'), iUsaLon = ix('USA_LON'),
-      iWind = ix('USA_WIND'), iWmoWind = ix('WMO_WIND'), iPres = ix('USA_PRES'),
-      iWmoPres = ix('WMO_PRES'), iStatus = ix('USA_STATUS'), iNum = ix('NUMBER');
-    const map = new Map();
-    for (let r = 2; r < rows.length; r++) {
-      const f = rows[r];
-      if (!f || !f[iSid] || !f[iTime]) continue;
-      const sid = f[iSid].trim(), iso = f[iTime].trim();
-      const t = Date.parse(iso.replace(' ', 'T') + (iso.endsWith('Z') ? '' : 'Z'));
-      if (!Number.isFinite(t)) continue;
-      let lat = num(f[iUsaLat]), lon = num(f[iUsaLon]);
-      if (lat == null || lon == null) { lat = num(f[iLat]); lon = num(f[iLon]); }
-      if (lat == null || lon == null) continue;
-      const wind = num(f[iWind]) != null ? num(f[iWind]) : (num(f[iWmoWind]) || 0);
-      const mslp = num(f[iPres]) != null ? num(f[iPres]) : num(f[iWmoPres]);
-      const st = map.get(sid) || {
-        sid, name: (f[iName] || 'UNNAMED').trim(), basin: (f[iBasin] || 'WP').trim(),
-        number: (f[iNum] || '1').trim(), origin: 'NCEI', points: []
-      };
-      st.points.push({ time: new Date(t), lat, lon, wind, mslp, status: (f[iStatus] || '').trim() || (wind >= 64 ? 'TY' : wind >= 34 ? 'TS' : 'TD') });
-      map.set(sid, st);
-    }
-    return [...map.values()].map(normalize).sort((a, b) => b.last.time - a.last.time);
-  }
-
-  function parseGdacs(json) {
-    const feats = (json && json.features) || [];
-    return feats.map(f => {
-      const p = f.properties || {};
-      const c = (f.geometry && f.geometry.coordinates) || [0, 0];
-      const t = Date.parse(p.todate || p.fromdate || new Date().toISOString());
-      const wind = num(p.maxwind || p.wind || 0) || 0;
-      return normalize({
-        sid: 'GDACS-' + (p.eventid || p.eventname || Math.random()),
-        name: (p.eventname || p.name || 'TC').replace(/-26$/, ''),
-        basin: 'GDACS', number: p.eventid || '—', origin: 'GDACS',
-        points: [{ time: new Date(Number.isFinite(t) ? t : Date.now()), lat: c[1], lon: c[0], wind, mslp: null, status: (p.alertlevel || 'TC').toUpperCase() }]
-      });
-    }).sort((a, b) => b.last.time - a.last.time);
-  }
-
-  function parseJsonp(text) {
-    const a = Math.min(...['{','['].map(c => text.indexOf(c)).filter(i => i >= 0));
-    const b = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
-    if (!Number.isFinite(a) || b <= a) throw new Error('JSONP 结构异常');
-    return JSON.parse(text.slice(a, b + 1));
-  }
-
-  function cmaTime(p) {
-    if (p[2] && Number.isFinite(+p[2])) return new Date(+p[2]);
-    const m = String(p[1] || '').match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
-    return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : null;
-  }
-
-  function parseCmaView(payload) {
-    const t = payload && payload.typhoon;
-    if (!Array.isArray(t) || !Array.isArray(t[8])) return null;
-    const points = [];
-    t[8].forEach(p => {
-      if (!Array.isArray(p) || p.length < 8) return;
-      const time = cmaTime(p);
-      const lon = +p[4], lat = +p[5];
-      if (!time || !Number.isFinite(lon) || !Number.isFinite(lat)) return;
-      const windMs = +p[7] || 0;
-      const wind = Math.round(windMs * 1.94384);
-      points.push({ time, lat, lon, wind, mslp: +p[6] || null, status: p[3] || (wind >= 64 ? 'TY' : wind >= 34 ? 'TS' : 'TD') });
-    });
-    if (!points.length) return null;
-    const en = t[1] || 'CMA', cn = t[2] || en;
-    return normalize({
-      sid: 'CMA-' + (t[0] || en), name: cn === en ? en : cn + ' / ' + en,
-      basin: 'WP', number: t[3] || '—', origin: 'CMA', points
-    });
-  }
-
-  async function fetchCma() {
-    setStatus('正在连接 CMA / 中央气象台…', 'loading');
-    try {
-      const listRes = await fetch(CMA_LIST, { cache: 'no-store' });
-      if (!listRes.ok) throw new Error('列表 HTTP ' + listRes.status);
-      const list = parseJsonp(await listRes.text());
-      let rows = (list.typhoonList || []).filter(t => t[7] === 'start');
-      if (!rows.length) rows = (list.typhoonList || []).slice(0, 4);
-      rows = rows.slice(0, 8);
-      const tracks = await Promise.all(rows.map(async t => {
-        try {
-          const r = await fetch(CMA_VIEW + t[0], { cache: 'no-store' });
-          if (!r.ok) return null;
-          return parseCmaView(parseJsonp(await r.text()));
-        } catch (e) { return null; }
-      }));
-      cmaStorms = tracks.filter(Boolean).sort((a, b) => b.last.time - a.last.time);
-      if (!cmaStorms.length) throw new Error('没有解析到 CMA 路径');
-      try { localStorage.setItem('sudre_live_cma_v1', JSON.stringify({ t: Date.now(), storms: cmaStorms })); } catch (e) {}
-      setStatus('已连接 CMA · ' + cmaStorms.length + ' 个活动系统', 'ok');
-      setUpdated(Date.now());
-      applySource(false);
-    } catch (e) {
-      try {
-        const c = JSON.parse(localStorage.getItem('sudre_live_cma_v1') || 'null');
-        if (c && c.storms && c.storms.length) {
-          cmaStorms = c.storms.map(normalize);
-          setStatus('CMA 不可用 · 使用本地缓存', 'warn');
-          setUpdated(c.t);
-          applySource(false);
-          return;
-        }
-      } catch (e2) {}
-      if (!allStorms.length) useSnapshot();
-      setStatus('CMA 连接失败：' + e.message, 'err');
-    } finally { loading = false; }
-  }
-
-  function setStatus(text, kind) {
-    const el = $('liveStatus');
-    if (!el) return;
-    el.textContent = text;
-    el.className = kind || '';
-  }
-  function setUpdated(date) {
-    const el = $('liveUpdated');
-    if (el) el.textContent = date ? new Date(date).toLocaleString('zh-CN', { hour12: false }) : '—';
-  }
-
-  function applySource(pickFirst) {
-    if (source === 'CMA') storms = cmaStorms.slice();
-    else if (source === 'GDACS') storms = gdacsStorms.slice();
-    else if (source === 'all') storms = allStorms.slice();
-    else storms = allStorms.filter(s => s.basin === source);
-    if (selected) {
-      const again = storms.find(s => s.sid === selected.sid);
-      selected = again || null;
-    }
-    if (!selected && storms.length) selected = storms[0];
-    stopLive();
-    renderList();
-    renderDetail();
-  }
-
-  function useSnapshot() {
-    const snap = window.LIVE_SNAPSHOT;
-    if (!snap || !snap.storms || !snap.storms.length) return false;
-    allStorms = snap.storms.map(normalize);
-    setUpdated(snap.t);
-    applySource(true);
-    return true;
-  }
-
-  async function fetchNcei(force) {
-    setStatus('正在连接 NOAA/NCEI…', 'loading');
-    try {
-      const res = await fetch(NCEI, { cache: force ? 'reload' : 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const parsed = parseNcei(await res.text());
-      if (!parsed.length) throw new Error('没有解析到 ACTIVE 路径');
-      allStorms = parsed;
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), storms: parsed })); } catch (e) {}
-      setStatus('已连接 NOAA/NCEI · ' + allStorms.length + ' 个系统', 'ok');
-      setUpdated(Date.now());
-      applySource(false);
-    } catch (e) {
-      try {
-        const raw = localStorage.getItem(CACHE_KEY);
-        if (raw) {
-          const c = JSON.parse(raw);
-          if (c && c.storms && c.storms.length) {
-            allStorms = c.storms.map(normalize);
-            setStatus('实时源不可用 · 使用本地缓存', 'warn');
-            setUpdated(c.t);
-            applySource(false);
-            return;
-          }
-        }
-      } catch (e2) {}
-      if (!allStorms.length) useSnapshot();
-      if (!allStorms.length) setStatus('无法连接 NOAA：' + e.message, 'err');
-      else setStatus('NOAA 刷新失败 · 保留现有数据', 'warn');
-    } finally { loading = false; }
-  }
-
-  async function fetchGdacs() {
-    setStatus('正在连接 GDACS…', 'loading');
-    try {
-      const res = await fetch(GDACS, { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      gdacsStorms = parseGdacs(await res.json());
-      setStatus('已连接 GDACS · ' + gdacsStorms.length + ' 个热带气旋预警', 'ok');
-      setUpdated(Date.now());
-      applySource(true);
-    } catch (e) {
-      setStatus('GDACS 连接失败：' + e.message, 'err');
-      if (!gdacsStorms.length) { storms = []; renderList(); renderDetail(); }
-    } finally { loading = false; }
-  }
-
-  function refresh(force) {
-    if (loading) return;
-    loading = true;
-    if (source === 'CMA') fetchCma();
-    else if (source === 'GDACS') fetchGdacs();
-    else fetchNcei(force);
-  }
-
-  function renderList() {
-    const box = $('liveList');
-    if (!box) return;
-    if (!storms.length) {
-      box.innerHTML = '<div class="live-empty">当前数据源没有系统<br><span>点击刷新重试</span></div>';
-      return;
-    }
-    box.innerHTML = storms.map((s, i) => {
-      const lv = s.origin === 'GDACS' ? (s.last.status || 'TC') : classify(s.last.wind || 0);
-      const cls = s.origin === 'GDACS' ? 'GDACS' : lv;
-      return `<button class="live-item${selected && selected.sid === s.sid ? ' on' : ''}" data-i="${i}">
-        <span class="live-basin">${s.origin === 'GDACS' ? 'GDACS' : s.basin}</span>
-        <b>${s.name}</b>
-        <span class="live-coord">${fmtLat(s.last.lat)} ${fmtLon(s.last.lon)}</span>
-        <span class="live-meta"><em class="lv ${cls}">${lv}</em>${Math.round(s.last.wind || 0)} kt · ${s.points.length} 点</span>
-      </button>`;
-    }).join('');
-    box.querySelectorAll('.live-item').forEach(btn => btn.addEventListener('click', () => {
-      const s = storms[+btn.dataset.i];
-      if (!s) return;
-      selected = s; liveFrac = 1; stopLive();
-      renderList(); renderDetail();
-    }));
-  }
-
-  function renderDetail() {
-    const box = $('liveSelected');
-    const play = $('livePlay'), range = $('liveRange');
-    if (!box) return;
-    if (!selected) {
-      box.textContent = '选择左侧系统查看当前定位';
-      if (play) play.disabled = true;
-      if (range) range.disabled = true;
-      return;
-    }
-    const lv = selected.origin === 'GDACS' ? (selected.last.status || 'TC') : classify(selected.last.wind || 0);
-    box.innerHTML = `<div class="live-detail-head"><span class="live-basin">${selected.origin === 'GDACS' ? 'GDACS' : selected.basin}</span>
-      <b>${selected.name}</b><em class="lv ${lv}">${lv}</em></div>
-      <div class="live-kv"><span>最后定位</span><b>${fmtLat(selected.last.lat)} / ${fmtLon(selected.last.lon)}</b></div>
-      <div class="live-kv"><span>强度</span><b>${Math.round(selected.last.wind || 0)} kt</b></div>
-      <div class="live-kv"><span>气压</span><b>${selected.last.mslp != null ? selected.last.mslp + ' hPa' : '—'}</b></div>
-      <div class="live-kv"><span>峰值</span><b>${Math.round(selected.peak || 0)} kt</b></div>
-      <div class="live-kv"><span>观测时次</span><b>${fmtTime(selected.last.time)}</b></div>`;
-    if (play) { play.disabled = selected.points.length < 2; play.textContent = '▶ 播放'; }
-    if (range) {
-      range.disabled = selected.points.length < 2;
-      range.max = Math.max(1, selected.points.length - 1);
-      range.value = Math.max(0, Math.round(liveFrac * (selected.points.length - 1)));
-    }
-    updateFrame();
-    drawPreview();
-  }
-
-  function updateFrame() {
-    const f = $('liveFrame'), r = $('liveRange');
-    if (!selected) return;
-    const idx = Math.round(liveFrac * Math.max(1, selected.points.length - 1));
-    if (r) r.value = idx;
-    if (f) f.textContent = (idx + 1) + ' / ' + selected.points.length;
-  }
-
-  function drawPreview() {
-    const cv = $('liveCanvas');
-    if (!cv || !selected) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = cv.clientWidth || 520, h = Math.max(210, Math.round(w * .56));
-    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-    const ctx = cv.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#06101b'; ctx.fillRect(0, 0, w, h);
-    const pts = selected.points;
-    if (!pts.length) return;
-    let minLat = Math.min(...pts.map(p => p.lat)), maxLat = Math.max(...pts.map(p => p.lat));
-    let minLon = Math.min(...pts.map(p => p.lon)), maxLon = Math.max(...pts.map(p => p.lon));
-    if (maxLon - minLon > 180) {
-      const ref = pts[0].lon;
-      const u = pts.map(p => { let l = p.lon; while (l - ref > 180) l -= 360; while (l - ref < -180) l += 360; return l; });
-      minLon = Math.min(...u); maxLon = Math.max(...u);
-    }
-    const padLat = Math.max(3, (maxLat - minLat) * .18), padLon = Math.max(3, (maxLon - minLon) * .18);
-    minLat -= padLat; maxLat += padLat; minLon -= padLon; maxLon += padLon;
-    const X = lon => 24 + (lon - minLon) / (maxLon - minLon || 1) * (w - 48);
-    const Y = lat => 16 + (maxLat - lat) / (maxLat - minLat || 1) * (h - 34);
-    ctx.strokeStyle = 'rgba(80,135,165,.16)'; ctx.lineWidth = 1;
-    for (let i = 0; i < 5; i++) { const y = 16 + i / 4 * (h - 34); ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(w - 24, y); ctx.stroke(); }
-    for (let i = 0; i < 5; i++) { const x = 24 + i / 4 * (w - 48); ctx.beginPath(); ctx.moveTo(x, 16); ctx.lineTo(x, h - 18); ctx.stroke(); }
-    const fi = Math.max(0, Math.min(pts.length - 1, Math.floor(liveFrac * (pts.length - 1))));
-    if (pts.length > 1) {
-      ctx.strokeStyle = 'rgba(150,190,215,.24)'; ctx.lineWidth = 2;
-      ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(X(p.lon), Y(p.lat)) : ctx.moveTo(X(p.lon), Y(p.lat))); ctx.stroke();
-      for (let i = 1; i <= fi; i++) {
-        const a = pts[i - 1], b = pts[i];
-        ctx.strokeStyle = windColor(classify(b.wind || 0)); ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(X(a.lon), Y(a.lat)); ctx.lineTo(X(b.lon), Y(b.lat)); ctx.stroke();
-      }
-    }
-    for (let i = 0; i <= fi; i++) {
-      const p = pts[i];
-      ctx.beginPath(); ctx.arc(X(p.lon), Y(p.lat), 2.2, 0, 7);
-      ctx.fillStyle = windColor(classify(p.wind || 0)); ctx.fill();
-    }
-    const l = pts[fi];
-    ctx.beginPath(); ctx.arc(X(l.lon), Y(l.lat), 6, 0, 7); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
-    ctx.fillStyle = '#9ff7e8'; ctx.font = '9px monospace';
-    ctx.fillText('LIVE · ' + selected.name + ' · ' + fmtTime(l.time), 26, h - 8);
-  }
-
-  function stopLive() {
-    livePlaying = false;
-    cancelAnimationFrame(liveRaf);
-    const b = $('livePlay');
-    if (b) b.textContent = '▶ 播放';
-  }
-
-  function toggleLive() {
-    if (!selected || selected.points.length < 2) return;
-    if (livePlaying) { stopLive(); return; }
-    livePlaying = true;
-    liveFrac = 0;
-    const b = $('livePlay');
-    if (b) b.textContent = '❚❚ 暂停';
-    const t0 = performance.now(), dur = Math.max(1800, selected.points.length * 80);
-    const tick = now => {
-      if (!livePlaying) return;
-      liveFrac = Math.min(1, (now - t0) / dur);
-      updateFrame(); drawPreview();
-      if (liveFrac < 1) liveRaf = requestAnimationFrame(tick);
-      else stopLive();
-    };
-    liveRaf = requestAnimationFrame(tick);
-  }
-
-  function openLive() {
-    const m = $('liveModal');
-    if (!m) return;
-    m.classList.add('open');
-    m.setAttribute('aria-hidden', 'false');
-    if (!allStorms.length && !cmaStorms.length) useSnapshot();
-    if (source === 'CMA' && !cmaStorms.length) refresh(false);
-    else if (!allStorms.length) refresh(false);
-    else { applySource(false); refresh(false); }
-    clearInterval(refreshTimer);
-    refreshTimer = setInterval(() => { if (m.classList.contains('open')) refresh(false); }, 600000);
-  }
-  function closeLive() {
-    const m = $('liveModal');
-    if (!m) return;
-    m.classList.remove('open');
-    m.setAttribute('aria-hidden', 'true');
-    clearInterval(refreshTimer);
-    refreshTimer = 0;
-    stopLive();
-  }
-
-  window.openLiveFeed = openLive;
-  window.closeLiveFeed = closeLive;
-
-  function initLive() {
-    const refreshBtn = $('liveRefresh');
-    if (refreshBtn) refreshBtn.addEventListener('click', () => refresh(true));
-    const close = $('liveClose');
-    if (close) close.addEventListener('click', closeLive);
-    const play = $('livePlay');
-    if (play) play.addEventListener('click', toggleLive);
-    const range = $('liveRange');
-    if (range) range.addEventListener('input', () => {
-      if (!selected) return;
-      stopLive();
-      liveFrac = +range.value / Math.max(1, selected.points.length - 1);
-      updateFrame(); drawPreview();
-    });
-    const src = $('liveSource');
-    if (src) src.addEventListener('change', () => {
-      source = src.value;
-      if (source === 'CMA' && !cmaStorms.length) { loading = false; refresh(true); }
-      else if (source === 'GDACS' && !gdacsStorms.length) { loading = false; refresh(true); }
-      else { setStatus(source === 'CMA' ? 'CMA · 中央气象台' : source === 'GDACS' ? 'GDACS · 全球预警' : 'NCEI · ' + (source === 'all' ? '全球' : source), 'ok'); setUpdated(Date.now()); applySource(true); }
-    });
-    const m = $('liveModal');
-    if (m) m.addEventListener('click', e => { if (e.target === m) closeLive(); });
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && m && m.classList.contains('open')) closeLive();
-    });
-    window.addEventListener('resize', () => { if (m && m.classList.contains('open')) drawPreview(); });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initLive); else initLive();
-})();
-
 /* ============================================================
    V4.1 PATCH START — Roadmap / Diary / Advanced / Version
    ============================================================ */
@@ -8939,423 +8633,6 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
 })();
 
 /* ============================================================
-   TC Animation Studio — closed-loop director console (v4.2)
-   ============================================================ */
-(function () {
-  'use strict';
-
-  const $ = id => document.getElementById(id);
-  const LEVEL_COLOR = { TD:'#5bb8ff', TS:'#19e2c5', TY:'#ffd166', STY:'#ff9f43', SuperTY:'#ff5d73', Cat5:'#ff3b5c' };
-  let iconUrl = null;
-
-  function isAnimation() {
-    return document.body.classList.contains('mode-animation');
-  }
-
-  function settings() {
-    return (window.SUDRE && window.SUDRE.state && window.SUDRE.state.settings) || {};
-  }
-
-  function setStatus(text, kind) {
-    const el = $('animDataStatus');
-    if (!el) return;
-    el.textContent = text;
-    el.style.color = kind === 'err' ? '#ff8fa3' : kind === 'ok' ? '#7ce8d6' : '';
-  }
-
-  let sandbox = null;
-
-  function saveSandbox() {
-    if (!window.SUDRE) return;
-    const st = window.SUDRE.state;
-    let center = null, zoom = null;
-    try { center = window.SUDRE.map.getCenter(); zoom = window.SUDRE.map.getZoom(); } catch (e) {}
-    sandbox = {
-      mode: st.settings.mode,
-      view: st.settings.view,
-      settings: JSON.parse(JSON.stringify(st.settings)),
-      activeId: st.activeId,
-      frac: st.frac,
-      playing: !!(window.SUDRE.Anim && window.SUDRE.Anim.playing),
-      center, zoom
-    };
-  }
-
-  function forceAnimationMap() {
-    if (!window.SUDRE) return;
-    const st = window.SUDRE.state;
-    st.settings.mode = 'normal';
-    st.settings.view = '2d';
-    document.body.classList.remove('pro', 'pro-mode', 'view-3d');
-    document.querySelectorAll('#modes [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === 'normal'));
-    const inner = document.getElementById('stageInner'), gl = document.getElementById('glView');
-    if (inner) inner.style.visibility = '';
-    if (gl) gl.classList.remove('show');
-    try { window.SUDRE.setView('2d'); } catch (e) {}
-  }
-
-  function restoreSandbox() {
-    if (!sandbox || !window.SUDRE) return;
-    const st = window.SUDRE.state;
-    try { if (window.SUDRE.Anim) { window.SUDRE.Anim.pause(); window.SUDRE.Anim.frac = 0; } } catch (e) {}
-    Object.keys(st.settings).forEach(k => { delete st.settings[k]; });
-    Object.assign(st.settings, sandbox.settings);
-    st.settings.mode = sandbox.mode;
-    st.settings.view = sandbox.view;
-    st.appMode = 'builder';
-    st.activeId = sandbox.activeId;
-    st.frac = sandbox.frac;
-    document.body.classList.toggle('pro', sandbox.mode === 'pro');
-    document.querySelectorAll('#modes [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === sandbox.mode));
-    try {
-      if (window.SUDRE.setView) window.SUDRE.setView(sandbox.view);
-      if (sandbox.center && window.SUDRE.map) window.SUDRE.map.setView([sandbox.center.lat, sandbox.center.lng], sandbox.zoom, { animate: false });
-      window.SUDRE.draw();
-      window.SUDRE.updateTimeline();
-      if (sandbox.playing && window.SUDRE.Anim) window.SUDRE.Anim.play();
-    } catch (e) {}
-    sandbox = null;
-  }
-
-  const AnimPreview = (function () {
-    let exporter = null, key = '', curW = 0, curH = 0;
-    function dims() {
-      const st = window.SUDRE && window.SUDRE.state;
-      const ex = (st && st.settings.export) || {};
-      if (ex.res === '4k') return [3840, 2160];
-      if (ex.res === '2k') return [2560, 1440];
-      if (ex.res === '1080') return [1920, 1080];
-      const stage = document.getElementById('mapStage');
-      return [Math.max(320, (stage && stage.clientWidth) || 1280), Math.max(240, (stage && stage.clientHeight) || 800)];
-    }
-    function fit(canvas, w, h) {
-      const stage = document.getElementById('mapStage');
-      const r = stage ? stage.getBoundingClientRect() : { width: w, height: h };
-      const sc = Math.min(r.width / w, r.height / h);
-      canvas.style.width = Math.round(w * sc) + 'px';
-      canvas.style.height = Math.round(h * sc) + 'px';
-    }
-    function render(frac) {
-      if (!document.body.classList.contains('mode-animation')) return;
-      const st = window.SUDRE && window.SUDRE.state;
-      const storm = window.SUDRE && window.SUDRE.activeStorm && window.SUDRE.activeStorm();
-      const canvas = document.getElementById('animPreview');
-      if (!canvas || !st || !storm || !window.SUDRE.makeExport) return;
-      const [w, h] = dims();
-      const locked = st.settings.followMode === 'lock-center';
-      const k = storm.id + '|' + w + 'x' + h + '|' + (locked ? 'lock' : 'pan') + '|' + (st.settings.mode || 'normal');
-      if (!exporter || key !== k) {
-        exporter = window.SUDRE.makeExport(w, h, storm, { animation: true, locked });
-        key = k; curW = w; curH = h;
-        canvas.width = w; canvas.height = h;
-        fit(canvas, w, h);
-      }
-      curW = w; curH = h;
-      fit(canvas, w, h);
-      window.__animPreviewRendering = true;
-      try { exporter.draw(frac); } finally { window.__animPreviewRendering = false; }
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(exporter.canvas, 0, 0);
-      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-    }
-    function invalidate() { exporter = null; key = ''; }
-    return { render, invalidate, dims, get size() { return [curW, curH]; } };
-  })();
-  window.AnimPreview = AnimPreview;
-
-  function enterAnimationMode() {
-    if (isAnimation()) return;
-    if (typeof window.hideMainMenu === 'function') {
-      try { window.hideMainMenu(true); } catch (e) {}
-    }
-    const home = $('homeHub');
-    if (home) { home.classList.remove('open'); home.setAttribute('aria-hidden', 'true'); }
-    document.body.classList.remove('menu-visible', 'main-menu-open', 'home-open', 'ui-leaving');
-    document.body.classList.add('mode-animation', 'ui-entering');
-    try { window.SUDRE.state.appMode = 'animation'; } catch (e) {}
-    saveSandbox();
-    forceAnimationMap();
-    AnimPreview.invalidate();
-    const panel = $('animControlPanel');
-    if (panel) panel.setAttribute('aria-hidden', 'false');
-    const dataPanel = $('animDataPanel');
-    if (dataPanel) dataPanel.setAttribute('aria-hidden', 'false');
-    syncControls();
-    renderStormList();
-    applyEffects();
-    if (window.SUDRE && window.SUDRE.state && window.SUDRE.state.storms.length) {
-      setTimeout(() => {
-        try { window.SUDRE.flyToStorm(); } catch (e) {}
-        try { window.SUDRE.draw(); } catch (e) {}
-      }, 360);
-      try { window.toast('动画工坊已就绪：左侧导入，右侧调参', 'ok'); } catch (e) {}
-    } else {
-      try { window.toast('动画工坊已就绪：在左侧粘贴报文或载入示例', 'warn'); } catch (e) {}
-    }
-    if (window.playSFX) try { window.playSFX('view_enter'); } catch (e) {}
-  }
-
-  function exitAnimationMode() {
-    if (!isAnimation()) return;
-    document.body.classList.remove('mode-animation', 'anim-trail');
-    const panel = $('animControlPanel');
-    if (panel) panel.setAttribute('aria-hidden', 'true');
-    const dataPanel = $('animDataPanel');
-    if (dataPanel) dataPanel.setAttribute('aria-hidden', 'true');
-    AnimPreview.invalidate();
-    restoreSandbox();
-    if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
-  }
-
-  window.openTCAnimationStudio = function(){ window.location.href = 'tc-animation-studio.html'; };
-  window.enterAnimationMode = enterAnimationMode;
-  window.exitAnimationMode = exitAnimationMode;
-
-  function applyEffects() {
-    const s = settings();
-    const rings = $('animRings');
-    if (rings) {
-      const on = rings.checked;
-      s.wr = { 34: on, 50: on, 64: on };
-    }
-    const trail = $('animTrail');
-    document.body.classList.toggle('anim-trail', !!(trail && trail.checked));
-    const particles = $('animParticles');
-    s.animParticles = !!(particles && particles.checked);
-    const vignette = $('animVignette');
-    s.animVignette = !!(vignette && vignette.checked);
-    const mask = $('maskNum');
-    s.maskNum = !!(mask && mask.checked);
-    if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
-  }
-
-  function syncControls() {
-    const s = settings();
-    const set = (id, val) => { const el = $(id); if (el && val != null) el.value = val; };
-    const check = (id, val) => { const el = $(id); if (el) el.checked = !!val; };
-    set('animLineWidth', s.lineWidth || 3);
-    set('animRadiiAlpha', s.radiiAlpha != null ? s.radiiAlpha : 16);
-    set('animSpeed', s.animSpeed || 1);
-    set('animFollowMode', s.followMode || 'pan');
-    set('animIconScale', s.iconScale || 1);
-    set('animIconX', s.iconX || 0);
-    set('animIconY', s.iconY || 0);
-    set('animIconSpin', s.iconSpin != null ? s.iconSpin : 1);
-    const ex=s.export||{};set('exportRes',ex.res||'1080');set('exportFps',String(ex.fps||30));set('exportBitrate',ex.bitrate||'auto');
-    check('animParticles', s.animParticles !== false);
-    check('animRings', !s.wr || s.wr[34] !== false);
-    check('animTrail', s.animTrail !== false);
-    check('animVignette', s.animVignette !== false);
-    check('maskNum', !!s.maskNum);
-    const lw = $('animLineWidthV'); if (lw) lw.textContent = String(s.lineWidth || 3);
-    const ra = $('animRadiiAlphaV'); if (ra) ra.textContent = String(s.radiiAlpha != null ? s.radiiAlpha : 16);
-    const sp = $('animSpeedV'); if (sp) sp.textContent = (+s.animSpeed || 1).toFixed(1) + '×';
-    const is = $('animIconScaleV'); if (is) is.textContent = (+s.iconScale || 1).toFixed(1);
-    const ix = $('animIconXV'); if (ix) ix.textContent = String(s.iconX || 0);
-    const iy = $('animIconYV'); if (iy) iy.textContent = String(s.iconY || 0);
-    const ir = $('animIconSpinV'); if (ir) ir.textContent = (+s.iconSpin || 0).toFixed(1);
-  }
-
-  function renderStormList() {
-    const box = $('animStormList');
-    if (!box || !window.SUDRE) return;
-    const st = window.SUDRE.state;
-    const list = st.storms.filter(x => !x.hidden && x.points && x.points.length);
-    if (!list.length) {
-      box.innerHTML = '<div class="anim-empty">尚未载入气旋<br>在左侧粘贴报文或载入示例</div>';
-      setStatus('等待报文…');
-      return;
-    }
-    box.innerHTML = list.map(x => {
-      const p = x.points[x.peak] || x.points[0] || {};
-      const col = LEVEL_COLOR[p.level] || '#7fa3c0';
-      const name = String(x.name || x.id).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
-      return '<div class="anim-storm' + (x.id === st.activeId ? ' on' : '') + '" data-id="' + x.id + '">' +
-        '<span class="dot" style="background:' + col + ';color:' + col + '"></span>' +
-        '<span class="nm"><b>' + name + '</b><small>' + x.id + ' · ' + (p.level || '—') + ' · ' + Math.round(p.wind || 0) + 'kt · ' + x.points.length + ' 帧</small></span>' +
-        '</div>';
-    }).join('');
-    setStatus('已载入 ' + list.length + ' 个气旋 · 点击切换');
-  }
-
-  function selectStorm(id) {
-    if (!window.SUDRE) return;
-    const st = window.SUDRE.state;
-    const storm = st.storms.find(x => x.id === id);
-    if (!storm) return;
-    st.activeId = id;
-    st.frac = 0;
-    if (window.SUDRE.Anim) { window.SUDRE.Anim.pause(); window.SUDRE.Anim.frac = 0; }
-    try { window.SUDRE.draw(); window.SUDRE.updateTimeline(); } catch (e) {}
-    try { window.SUDRE.flyToStorm(); } catch (e) {}
-    renderStormList();
-    setStatus('当前：' + (storm.name || storm.id) + ' · ' + storm.points.length + ' 帧');
-  }
-
-  function parsePaste() {
-    const area = $('animPaste');
-    if (!area || !window.SUDRE || !window.SUDRE.ingest) return;
-    const text = area.value.trim();
-    if (!text) { setStatus('请先粘贴报文', 'err'); return; }
-    setStatus('正在解析…');
-    let result = [];
-    try { result = window.SUDRE.ingest(text, '动画工坊'); } catch (e) { setStatus('解析失败：' + e.message, 'err'); return; }
-    if (!result || !result.length) { setStatus('未解析到有效路径', 'err'); return; }
-    setTimeout(() => {
-      renderStormList();
-      const st = window.SUDRE.state;
-      const first = st.storms.find(x => x.id === st.activeId) || st.storms[0];
-      if (first) selectStorm(first.id);
-      setStatus('解析完成：' + result.length + ' 条路径', 'ok');
-    }, 450);
-  }
-
-  function loadSample() {
-    const btn = $('btnSample');
-    if (!btn) { setStatus('示例数据不可用', 'err'); return; }
-    setStatus('正在载入示例…');
-    btn.click();
-    setTimeout(() => {
-      renderStormList();
-      const st = window.SUDRE && window.SUDRE.state;
-      const first = st && (st.storms.find(x => x.id === st.activeId) || st.storms[0]);
-      if (first) selectStorm(first.id);
-      setStatus('示例已载入', 'ok');
-    }, 600);
-  }
-
-  function syncCamera(v) {
-    const s = settings();
-    s.followMode = v;
-    const follow = v !== 'none';
-    s.follow = follow;
-    s.cinema = follow;
-    try { if (window.SUDRE && window.SUDRE.setFollow) window.SUDRE.setFollow(follow, false); } catch (e) {}
-    if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
-  }
-
-  function setView(v) {
-    if (!window.SUDRE) return;
-    try {
-      if (v === 'climax') {
-        window.SUDRE.setView('full3d');
-        window.SUDRE.state.settings.follow = true;
-        window.SUDRE.state.settings.cinema = true;
-        if (window.SUDRE.setFollow) window.SUDRE.setFollow(true, false);
-      } else {
-        window.SUDRE.setView(v);
-      }
-      document.querySelectorAll('[data-aview]').forEach(b => b.classList.toggle('on', b.dataset.aview === v));
-      window.SUDRE.draw();
-    } catch (e) {}
-  }
-
-  function loadCustomIcon(file) {
-    if (!file) return;
-    if (iconUrl) { try { URL.revokeObjectURL(iconUrl); } catch (e) {} iconUrl = null; }
-    const old = window.SUDRE && window.SUDRE.state && window.SUDRE.state.customIcon;
-    if (old && old.element && old.element.parentNode && old.type === 'video') old.element.parentNode.removeChild(old.element);
-    iconUrl = URL.createObjectURL(file);
-    if (/^video\//.test(file.type)) {
-      const video = document.createElement('video');
-      video.src = iconUrl;
-      video.muted = true;
-      video.loop = true;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.style.display = 'none';
-      document.body.appendChild(video);
-      video.onloadeddata = () => {
-        try { video.play(); } catch (e) {}
-        window.SUDRE.state.customIcon = { type: 'video', element: video };
-        setStatus('自定义视频图标已载入', 'ok');
-        try { window.SUDRE.draw(); } catch (e) {}
-      };
-      video.onerror = () => setStatus('视频图标读取失败', 'err');
-    } else if (/^image\//.test(file.type)) {
-      const img = new Image();
-      img.onload = () => {
-        window.SUDRE.state.customIcon = { type: 'image', element: img };
-        setStatus('自定义图片图标已载入', 'ok');
-        try { window.SUDRE.draw(); } catch (e) {}
-      };
-      img.onerror = () => setStatus('图片图标读取失败', 'err');
-      img.src = iconUrl;
-    } else {
-      setStatus('请选择图片或视频文件', 'err');
-    }
-  }
-
-  function init() {
-    const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
-    on('animBtnParse', 'click', parsePaste);
-    on('animBtnSample', 'click', loadSample);
-    const list = $('animStormList');
-    if (list) list.addEventListener('click', e => {
-      const row = e.target.closest('.anim-storm');
-      if (row) selectStorm(row.dataset.id);
-    });
-    on('animLineWidth', 'input', e => {
-      const v = +e.target.value;
-      settings().lineWidth = v;
-      const out = $('animLineWidthV'); if (out) out.textContent = String(v);
-      if (window.SUDRE) try { window.SUDRE.draw(); } catch (err) {}
-    });
-    on('animRadiiAlpha', 'input', e => {
-      const v = +e.target.value;
-      settings().radiiAlpha = v;
-      const out = $('animRadiiAlphaV'); if (out) out.textContent = String(v);
-      if (window.SUDRE) try { window.SUDRE.draw(); } catch (err) {}
-    });
-    on('animSpeed', 'input', e => {
-      const v = +e.target.value;
-      settings().animSpeed = v;
-      const out = $('animSpeedV'); if (out) out.textContent = v.toFixed(1) + '×';
-    });
-    on('animFollowMode', 'change', e => syncCamera(e.target.value));
-    on('animParticles', 'change', applyEffects);
-    on('animRings', 'change', applyEffects);
-    on('animTrail', 'change', applyEffects);
-    on('animVignette', 'change', applyEffects);
-    on('maskNum', 'change', applyEffects);
-    on('customIconUpload', 'change', e => loadCustomIcon(e.target.files && e.target.files[0]));
-    for (const [id,key] of [['exportRes','res'],['exportFps','fps'],['exportBitrate','bitrate']]) {
-      on(id,'change',e=>{const s=settings();s.export=Object.assign({},s.export||{},{[key]:key==='fps'?+e.target.value:e.target.value});if(key==='res'){AnimPreview.invalidate();if(window.SUDRE)try{window.SUDRE.draw();}catch(err){}}});
-    }
-    const smooth = $('animSmooth');
-    if (smooth) smooth.addEventListener('input', () => {
-      const v = +smooth.value;
-      const out = $('animSmoothV'); if (out) out.textContent = v;
-      settings().camSmooth = 1300 - v * 6;
-    });
-    const offset = $('animOffset');
-    if (offset) offset.addEventListener('input', () => {
-      const out = $('animOffsetV'); if (out) out.textContent = offset.value;
-      settings().camOffset = +offset.value;
-    });
-    for (const [id, key, suffix] of [['animIconScale', 'iconScale', 'animIconScaleV'], ['animIconX', 'iconX', 'animIconXV'], ['animIconY', 'iconY', 'animIconYV'], ['animIconSpin', 'iconSpin', 'animIconSpinV']]) {
-      on(id, 'input', e => {
-        const v = +e.target.value;
-        settings()[key] = v;
-        const out = $(suffix);
-        if (out) out.textContent = id === 'animIconScale' ? v.toFixed(1) : (id === 'animIconSpin' ? v.toFixed(1) : String(v));
-        if (window.SUDRE) try { window.SUDRE.draw(); } catch (err) {}
-      });
-    }
-    document.querySelectorAll('[data-aview]').forEach(b => b.addEventListener('click', () => setView(b.dataset.aview)));
-    const rec = $('animRec');
-    if (rec) rec.addEventListener('click', () => {
-      if (window.SUDRE && window.SUDRE.exportMP4) {
-        try { window.SUDRE.exportMP4(); } catch (e) { if (window.toast) window.toast('MP4 导出失败：' + e.message, 'err'); }
-      } else if (window.toast) window.toast('MP4 导出模块未就绪', 'err');
-    });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
-})();
-
-/* ============================================================
    V4.1 PATCH — 图层管理器 / 视图增强 / 快捷键
    ============================================================ */
 (function () {
@@ -9609,6 +8886,170 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   setTimeout(init, 1200);
   setTimeout(init, 2600);
 })();
+
+function makeExport(W,H,st,opts){
+  opts=opts||{};
+  st=st||activeStorm();if(!st)return null;
+  const pro=state.settings.mode==='pro';
+  const transparent=!!opts.transparent;
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  const b=exportBounds(st);
+  const merc=lat=>Math.log(Math.tan(Math.PI/4+clamp(lat,-85,85)*Math.PI/360));
+  const y0=merc(b.la0),y1=merc(b.la1);
+  const sx=W/(b.lo1-b.lo0),sy=H/(y1-y0);
+  const P=(lat,lon)=>[ (lon-b.lo0)*sx, H-(merc(lat)-y0)*sy ];
+  function draw(frac){
+    const proNow=pro;
+    const pts=st.points,n=pts.length;
+    const f=proNow?n-1:clamp(frac,0,n-1),fi=Math.floor(f);
+    const cur=pointAt(st,f);
+    if(transparent){
+      ctx.clearRect(0,0,W,H);
+    }else if(proNow){
+      ctx.fillStyle=state.settings.proBg||'#000000';
+      ctx.fillRect(0,0,W,H);
+    }else{
+      const g=ctx.createLinearGradient(0,0,W,H);
+      g.addColorStop(0,'#081827');g.addColorStop(.5,'#0a1d2e');g.addColorStop(1,'#06111d');
+      ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    }
+    if(!proNow&&!transparent){
+      /* 经纬网 */
+      ctx.strokeStyle='rgba(70,115,150,.18)';ctx.lineWidth=1;
+      for(let lon=Math.ceil(b.lo0/20)*20;lon<=b.lo1;lon+=20){
+        ctx.beginPath();for(let lat=b.la0;lat<=b.la1;lat+=2){const q=P(lat,lon);lat===b.la0?ctx.moveTo(q[0],q[1]):ctx.lineTo(q[0],q[1]);}ctx.stroke();
+      }
+      for(let lat=Math.ceil(b.la0/20)*20;lat<=b.la1;lat+=20){
+        ctx.beginPath();for(let lon=b.lo0;lon<=b.lo1;lon+=2){const q=P(lat,lon);lon===b.lo0?ctx.moveTo(q[0],q[1]):ctx.lineTo(q[0],q[1]);}ctx.stroke();
+      }
+      /* 矢量陆地 */
+      const geo=window.__landGeo;
+      if(geo){
+        ctx.fillStyle='rgba(22,48,70,.92)';ctx.strokeStyle='rgba(85,135,170,.55)';ctx.lineWidth=Math.max(1,W/1600);
+        geo.features.forEach(f=>{
+          const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[];
+          polys.forEach(poly=>poly.forEach(ring=>{
+            ctx.beginPath();let started=false,prevX=null;
+            ring.forEach(c=>{
+              let lon=c[0];while(lon-b.lo0>180)lon-=360;while(lon-b.lo0<-180)lon+=360;
+              const q=P(c[1],lon);
+              if(prevX!=null&&Math.abs(q[0]-prevX)>W*.6){started=false;}
+              if(!started){ctx.moveTo(q[0],q[1]);started=true;}else ctx.lineTo(q[0],q[1]);
+              prevX=q[0];
+            });
+            ctx.closePath();ctx.fill();ctx.stroke();
+          }));
+        });
+      }
+    }
+
+    const drawPath=()=>{
+      const width=proNow?Math.max(1,(state.settings.proLineWidth||5)):Math.max(1.8,W/500);
+      for(let i=1;i<=f;i++){
+        const a=pts[i-1],b2=pts[i];
+        const lv=classify(Math.max(a.wind||0,b2.wind||0));
+        let route=[a,b2];
+        if(state.settings.smooth&&i>1){
+          const p0=pts[i-2],p3=pts[Math.min(n-1,i+1)];
+          route=[];
+          for(let s=0;s<=6;s++){
+            const t=s/6,t2=t*t,t3=t2*t;
+            route.push({lat:.5*((2*a.lat)+(-p0.lat+b2.lat)*t+(2*p0.lat-5*a.lat+4*b2.lat-p3.lat)*t2+(-p0.lat+3*a.lat-3*b2.lat+p3.lat)*t3),
+              lon:.5*((2*a.lon)+(-p0.lon+b2.lon)*t+(2*p0.lon-5*a.lon+4*b2.lon-p3.lon)*t2+(-p0.lon+3*a.lon-3*b2.lon+p3.lon)*t3)});
+          }
+        }
+        const p1=P(route[0].lat,route[0].lon),p2=P(route[route.length-1].lat,route[route.length-1].lon);
+        ctx.strokeStyle=windColor(lv);ctx.lineWidth=width;ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(p1[0],p1[1]);
+        if(route.length>2)for(let k=1;k<route.length;k++){const q=P(route[k].lat,route[k].lon);ctx.lineTo(q[0],q[1]);}
+        else ctx.lineTo(p2[0],p2[1]);
+        ctx.stroke();
+      }
+      if(!proNow&&fi<n-1){
+        ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(140,170,195,.55)';ctx.lineWidth=Math.max(1,W/900);
+        const p1=P(pts[fi].lat,pts[fi].lon),p2=P(pts[fi+1].lat,pts[fi+1].lon);
+        ctx.beginPath();ctx.moveTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);ctx.stroke();ctx.setLineDash([]);
+      }
+    };
+
+    if(proNow){
+      drawPath();
+      if(state.settings.showLandfall){
+        (st.landfalls||[]).forEach(l=>{
+          const q=P(l.lat,l.lon);
+          ctx.beginPath();ctx.moveTo(q[0],q[1]-8);ctx.lineTo(q[0]+8,q[1]+7);ctx.lineTo(q[0]-8,q[1]+7);ctx.closePath();
+          ctx.fillStyle='#ff4d4d';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.2;ctx.stroke();
+          ctx.font='9px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle='#ffb3b3';
+          ctx.fillText('LANDFALL '+fmtUTC(l.time,true),q[0]+10,q[1]+4);
+        });
+      }
+      const q0=P(pts[0].lat,pts[0].lon),q1=P(pts[n-1].lat,pts[n-1].lon);
+      [[q0,'START','#19e2c5'],[q1,'END','#8ecbff']].forEach(([q,txt,col])=>{
+        ctx.beginPath();ctx.arc(q[0],q[1],4,0,7);ctx.fillStyle=col;ctx.fill();ctx.strokeStyle='rgba(0,0,0,.8)';ctx.lineWidth=1.1;ctx.stroke();
+        ctx.font='9px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle=col;ctx.fillText(txt,q[0]+8,q[1]-8);
+      });
+    }else{
+      const rr=cur&&cur.radii;
+      if(rr){
+        [64,50,34].forEach(k=>{
+          const r=rr[k];if(!r||!state.settings.wr[k])return;
+          const quad=[[r.ne,0,90],[r.se,90,180],[r.sw,180,270],[r.nw,270,360]];
+          ctx.beginPath();let started=false;
+          quad.forEach(([rad,a0,a1])=>{if(!rad)return;for(let a=a0;a<=a1;a+=5){const q=destination(cur.lat,cur.lon,a,rad);const p=P(q[1],q[0]);started?ctx.lineTo(p[0],p[1]):(ctx.moveTo(p[0],p[1]),started=true);}});
+          ctx.closePath();ctx.fillStyle=hexA(WR_COLOR[k],.16);ctx.fill();ctx.strokeStyle=hexA(WR_COLOR[k],.55);ctx.lineWidth=1.4;ctx.stroke();
+        });
+      }
+      drawPath();
+      for(let i=0;i<=fi;i++){
+        const p=P(pts[i].lat,pts[i].lon);
+        ctx.beginPath();ctx.arc(p[0],p[1],Math.max(2,W/380),0,7);ctx.fillStyle=windColor(pts[i].level);ctx.fill();
+        ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1;ctx.stroke();
+      }
+      if(cur){
+        const p=P(cur.lat,cur.lon);
+        ctx.beginPath();ctx.arc(p[0],p[1],Math.max(9,W/190),0,7);ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=2;ctx.stroke();
+        const lv=basinLevel(st.basin,cur.wind);
+        ctx.fillStyle=hexA(windColor(classify(cur.wind)),.18);ctx.beginPath();ctx.arc(p[0],p[1],Math.max(18,W/95),0,7);ctx.fill();
+        ctx.font='700 '+Math.round(Math.max(11,W/105))+'px '+getComputedStyle(document.body).fontFamily;
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.strokeStyle='rgba(2,8,14,.9)';ctx.lineWidth=3;ctx.strokeText(lv.key,p[0],p[1]);
+        ctx.fillStyle='#fff';ctx.fillText(lv.key,p[0],p[1]);
+      }
+      if(!transparent){
+        ctx.textAlign='left';ctx.textBaseline='alphabetic';
+        ctx.font='700 '+Math.round(Math.max(15,W/58))+'px '+getComputedStyle(document.body).fontFamily;
+        ctx.fillStyle='#eef8ff';ctx.fillText('Tropical Cyclone '+(st.name||st.id)+' ('+st.id+')',24,38);
+        ctx.font=Math.round(Math.max(9,W/140))+'px '+getComputedStyle(document.body).fontFamily;
+        ctx.fillStyle='#9bb7cf';ctx.fillText('Sudre.Tc ｜ '+fmtUTC(pts[0].time)+' – '+fmtUTC(pts[n-1].time)+' ｜ WGS84',24,58);
+        const levels=LEVELS.filter(l=>l.key!=='DB');
+        let lx=W-24;const ly=H-26;
+        for(let i=levels.length-1;i>=0;i--){
+          const l=levels[i];const tw=34;lx-=tw;
+          ctx.fillStyle=windColor(l.key);ctx.fillRect(lx,ly-9,10,10);
+          ctx.fillStyle='#bcd2e6';ctx.font='10px '+getComputedStyle(document.body).fontFamily;ctx.fillText(l.key,lx+14,ly);
+          lx-=8;
+        }
+        const midLat=cur?cur.lat:(b.la0+b.la1)/2;
+        const nmPerPx=((b.lo1-b.lo0)/W)*60*Math.cos(clamp(midLat,-80,80)*D2R);
+        const choices=[50,100,200,500,1000,2000];let pick=choices[0];
+        for(const c of choices)if(c/nmPerPx<W*.22)pick=c;
+        const len=pick/nmPerPx;
+        ctx.strokeStyle='rgba(190,215,235,.8)';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(24,H-30);ctx.lineTo(24+len,H-30);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(24,H-34);ctx.lineTo(24,H-26);ctx.moveTo(24+len,H-34);ctx.lineTo(24+len,H-26);ctx.stroke();
+        ctx.fillStyle='#b9d2e6';ctx.font='10px '+getComputedStyle(document.body).fontFamily;ctx.fillText(pick+' nm',24,H-38);
+      }
+    }
+    const wm=(state.settings.watermark||'').trim();
+    if(wm){
+      ctx.font='11px '+getComputedStyle(document.body).fontFamily;
+      ctx.fillStyle=proNow?'rgba(205,230,245,.65)':'rgba(205,230,245,.55)';
+      ctx.fillText(wm,16,H-44);
+    }
+  }
+  return {canvas:cv,draw};
+}
 
 /* ============================================================
    V4.1 — BGM + Web Audio SFX
@@ -10045,6 +9486,466 @@ window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"202627
   }
 
   window.__cinematicIntro = { playIntro, closeIntro };
+})();
+
+window.LIVE_SNAPSHOT={"t":"2026-10-25T06:23:47.095614Z","storms":[{"sid":"2026278N12269","name":"SIMON","basin":"EP","number":"80","points":[{"time":"2026-10-04 12:00:00","lat":11.8,"lon":-91.5,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 15:00:00","lat":11.8,"lon":-92.0,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 18:00:00","lat":11.9,"lon":-92.6,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-04 21:00:00","lat":12.0,"lon":-93.2,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 00:00:00","lat":12.0,"lon":-93.8,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 03:00:00","lat":12.0,"lon":-94.4,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 06:00:00","lat":12.0,"lon":-94.9,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-05 09:00:00","lat":12.1,"lon":-95.4,"wind":20,"mslp":null,"status":"DB"},{"time":"2026-10-05 12:00:00","lat":12.2,"lon":-95.8,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 15:00:00","lat":12.3,"lon":-96.1,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 18:00:00","lat":12.4,"lon":-96.4,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-05 21:00:00","lat":12.4,"lon":-96.7,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 00:00:00","lat":12.4,"lon":-97.0,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 03:00:00","lat":12.5,"lon":-97.4,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 06:00:00","lat":12.6,"lon":-97.7,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 09:00:00","lat":12.7,"lon":-98.0,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-06 12:00:00","lat":12.8,"lon":-98.2,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-06 15:00:00","lat":12.8,"lon":-98.4,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-06 18:00:00","lat":13.0,"lon":-98.7,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-06 21:00:00","lat":13.4,"lon":-99.0,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-07 00:00:00","lat":13.9,"lon":-99.4,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 03:00:00","lat":14.2,"lon":-99.7,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 06:00:00","lat":14.5,"lon":-100.0,"wind":25,"mslp":1006,"status":"DB"},{"time":"2026-10-07 09:00:00","lat":14.7,"lon":-100.3,"wind":28,"mslp":1006,"status":"DB"},{"time":"2026-10-07 12:00:00","lat":14.9,"lon":-100.6,"wind":30,"mslp":1006,"status":"TD"},{"time":"2026-10-07 15:00:00","lat":15.1,"lon":-100.9,"wind":33,"mslp":1005,"status":"TD"},{"time":"2026-10-07 18:00:00","lat":15.2,"lon":-101.3,"wind":35,"mslp":1004,"status":"TS"},{"time":"2026-10-07 21:00:00","lat":15.3,"lon":-101.7,"wind":38,"mslp":1003,"status":"TS"},{"time":"2026-10-08 00:00:00","lat":15.3,"lon":-102.1,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-08 03:00:00","lat":15.4,"lon":-102.4,"wind":43,"mslp":1001,"status":"TS"},{"time":"2026-10-08 06:00:00","lat":15.4,"lon":-102.7,"wind":45,"mslp":1000,"status":"TS"},{"time":"2026-10-08 09:00:00","lat":15.4,"lon":-103.0,"wind":50,"mslp":998,"status":"TS"},{"time":"2026-10-08 12:00:00","lat":15.4,"lon":-103.3,"wind":55,"mslp":995,"status":"TS"},{"time":"2026-10-08 15:00:00","lat":15.4,"lon":-103.6,"wind":58,"mslp":994,"status":"TS"},{"time":"2026-10-08 18:00:00","lat":15.4,"lon":-103.8,"wind":60,"mslp":992,"status":"TS"},{"time":"2026-10-08 21:00:00","lat":15.4,"lon":-104.0,"wind":63,"mslp":989,"status":"TS"},{"time":"2026-10-09 00:00:00","lat":15.5,"lon":-104.2,"wind":65,"mslp":985,"status":"HU"},{"time":"2026-10-09 03:00:00","lat":15.6,"lon":-104.3,"wind":73,"mslp":982,"status":"HU"},{"time":"2026-10-09 06:00:00","lat":15.7,"lon":-104.4,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-09 09:00:00","lat":15.7,"lon":-104.5,"wind":83,"mslp":977,"status":"HU"},{"time":"2026-10-09 12:00:00","lat":15.8,"lon":-104.5,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-09 15:00:00","lat":15.9,"lon":-104.6,"wind":88,"mslp":971,"status":"HU"},{"time":"2026-10-09 18:00:00","lat":16.0,"lon":-104.6,"wind":90,"mslp":966,"status":"HU"},{"time":"2026-10-09 21:00:00","lat":16.3,"lon":-104.6,"wind":98,"mslp":959,"status":"HU"},{"time":"2026-10-10 00:00:00","lat":16.6,"lon":-104.6,"wind":105,"mslp":952,"status":"HU"},{"time":"2026-10-10 03:00:00","lat":16.8,"lon":-104.6,"wind":113,"mslp":949,"status":"HU"},{"time":"2026-10-10 06:00:00","lat":17.0,"lon":-104.7,"wind":120,"mslp":945,"status":"HU"},{"time":"2026-10-10 09:00:00","lat":17.2,"lon":-104.8,"wind":125,"mslp":942,"status":"HU"},{"time":"2026-10-10 12:00:00","lat":17.3,"lon":-104.8,"wind":130,"mslp":938,"status":"HU"},{"time":"2026-10-10 15:00:00","lat":17.3,"lon":-104.8,"wind":130,"mslp":935,"status":"HU"},{"time":"2026-10-10 18:00:00","lat":17.4,"lon":-104.8,"wind":130,"mslp":932,"status":"HU"},{"time":"2026-10-10 21:00:00","lat":17.7,"lon":-104.8,"wind":133,"mslp":931,"status":"HU"},{"time":"2026-10-11 00:00:00","lat":18.0,"lon":-104.9,"wind":135,"mslp":930,"status":"HU"},{"time":"2026-10-11 03:00:00","lat":18.2,"lon":-104.9,"wind":135,"mslp":929,"status":"HU"},{"time":"2026-10-11 06:00:00","lat":18.4,"lon":-105.0,"wind":135,"mslp":928,"status":"HU"},{"time":"2026-10-11 09:00:00","lat":18.6,"lon":-105.1,"wind":133,"mslp":931,"status":"HU"},{"time":"2026-10-11 12:00:00","lat":18.9,"lon":-105.2,"wind":130,"mslp":933,"status":"HU"},{"time":"2026-10-11 15:00:00","lat":19.2,"lon":-105.4,"wind":123,"mslp":938,"status":"HU"},{"time":"2026-10-11 18:00:00","lat":19.4,"lon":-105.6,"wind":115,"mslp":943,"status":"HU"},{"time":"2026-10-11 21:00:00","lat":19.5,"lon":-105.7,"wind":108,"mslp":951,"status":"HU"},{"time":"2026-10-12 00:00:00","lat":19.6,"lon":-105.8,"wind":100,"mslp":958,"status":"HU"},{"time":"2026-10-12 03:00:00","lat":19.7,"lon":-105.9,"wind":98,"mslp":960,"status":"HU"},{"time":"2026-10-12 06:00:00","lat":19.8,"lon":-106.0,"wind":95,"mslp":961,"status":"HU"},{"time":"2026-10-12 09:00:00","lat":19.9,"lon":-106.2,"wind":95,"mslp":962,"status":"HU"},{"time":"2026-10-12 12:00:00","lat":20.0,"lon":-106.4,"wind":95,"mslp":962,"status":"HU"},{"time":"2026-10-12 15:00:00","lat":20.0,"lon":-106.6,"wind":93,"mslp":964,"status":"HU"},{"time":"2026-10-12 18:00:00","lat":20.1,"lon":-106.7,"wind":90,"mslp":966,"status":"HU"},{"time":"2026-10-12 21:00:00","lat":20.2,"lon":-106.8,"wind":88,"mslp":968,"status":"HU"},{"time":"2026-10-13 00:00:00","lat":20.3,"lon":-106.9,"wind":85,"mslp":969,"status":"HU"},{"time":"2026-10-13 03:00:00","lat":20.3,"lon":-107.0,"wind":83,"mslp":973,"status":"HU"},{"time":"2026-10-13 06:00:00","lat":20.3,"lon":-107.1,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 09:00:00","lat":20.3,"lon":-107.1,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 12:00:00","lat":20.3,"lon":-107.2,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 15:00:00","lat":20.3,"lon":-107.3,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 18:00:00","lat":20.2,"lon":-107.4,"wind":80,"mslp":977,"status":"HU"},{"time":"2026-10-13 21:00:00","lat":20.2,"lon":-107.4,"wind":85,"mslp":973,"status":"HU"},{"time":"2026-10-14 00:00:00","lat":20.2,"lon":-107.5,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 03:00:00","lat":20.1,"lon":-107.6,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 06:00:00","lat":20.0,"lon":-107.7,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-14 09:00:00","lat":19.9,"lon":-107.9,"wind":88,"mslp":971,"status":"HU"},{"time":"2026-10-14 12:00:00","lat":19.8,"lon":-108.0,"wind":85,"mslp":972,"status":"HU"},{"time":"2026-10-14 15:00:00","lat":19.7,"lon":-108.1,"wind":80,"mslp":976,"status":"HU"},{"time":"2026-10-14 18:00:00","lat":19.5,"lon":-108.2,"wind":75,"mslp":980,"status":"HU"},{"time":"2026-10-14 21:00:00","lat":19.3,"lon":-108.3,"wind":65,"mslp":986,"status":"HU"},{"time":"2026-10-15 00:00:00","lat":19.2,"lon":-108.4,"wind":55,"mslp":991,"status":"TS"},{"time":"2026-10-15 03:00:00","lat":19.1,"lon":-108.4,"wind":55,"mslp":992,"status":"TS"},{"time":"2026-10-15 06:00:00","lat":19.1,"lon":-108.3,"wind":55,"mslp":992,"status":"TS"},{"time":"2026-10-15 09:00:00","lat":19.1,"lon":-108.2,"wind":53,"mslp":994,"status":"TS"},{"time":"2026-10-15 12:00:00","lat":19.1,"lon":-108.1,"wind":50,"mslp":996,"status":"TS"},{"time":"2026-10-15 15:00:00","lat":19.1,"lon":-108.1,"wind":48,"mslp":998,"status":"TS"},{"time":"2026-10-15 18:00:00","lat":19.2,"lon":-108.2,"wind":45,"mslp":999,"status":"TS"},{"time":"2026-10-15 21:00:00","lat":19.3,"lon":-108.2,"wind":43,"mslp":1001,"status":"TS"},{"time":"2026-10-16 00:00:00","lat":19.4,"lon":-108.2,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-16 03:00:00","lat":19.5,"lon":-108.3,"wind":38,"mslp":1002,"status":"TS"},{"time":"2026-10-16 06:00:00","lat":19.7,"lon":-108.5,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 09:00:00","lat":20.0,"lon":-108.8,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 12:00:00","lat":20.4,"lon":-109.2,"wind":35,"mslp":1002,"status":"TS"},{"time":"2026-10-16 15:00:00","lat":20.8,"lon":-109.6,"wind":33,"mslp":1004,"status":"TS"},{"time":"2026-10-16 18:00:00","lat":21.3,"lon":-110.0,"wind":30,"mslp":1006,"status":"DB"}]},{"sid":"2026284N08272","name":"TRUDY","basin":"EP","number":"82","points":[{"time":"2026-10-11 06:00:00","lat":7.6,"lon":-88.0,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 09:00:00","lat":7.5,"lon":-88.6,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 12:00:00","lat":7.4,"lon":-89.2,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 15:00:00","lat":7.3,"lon":-89.8,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 18:00:00","lat":7.2,"lon":-90.4,"wind":15,"mslp":null,"status":"DB"},{"time":"2026-10-11 21:00:00","lat":7.2,"lon":-90.9,"wind":20,"mslp":null,"status":"DB"},{"time":"2026-10-12 00:00:00","lat":7.3,"lon":-91.4,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 03:00:00","lat":7.5,"lon":-91.7,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 06:00:00","lat":7.7,"lon":-92.1,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 09:00:00","lat":7.8,"lon":-92.6,"wind":25,"mslp":1010,"status":"DB"},{"time":"2026-10-12 12:00:00","lat":7.9,"lon":-93.1,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-12 15:00:00","lat":8.0,"lon":-93.5,"wind":25,"mslp":1009,"status":"DB"},{"time":"2026-10-12 18:00:00","lat":8.1,"lon":-93.9,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-12 21:00:00","lat":8.3,"lon":-94.3,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 00:00:00","lat":8.6,"lon":-94.7,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 03:00:00","lat":8.9,"lon":-94.9,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 06:00:00","lat":9.1,"lon":-95.1,"wind":25,"mslp":1008,"status":"DB"},{"time":"2026-10-13 09:00:00","lat":9.3,"lon":-95.3,"wind":28,"mslp":1007,"status":"DB"},{"time":"2026-10-13 12:00:00","lat":9.5,"lon":-95.5,"wind":30,"mslp":1006,"status":"TD"},{"time":"2026-10-13 15:00:00","lat":9.9,"lon":-95.7,"wind":33,"mslp":1006,"status":"TD"},{"time":"2026-10-13 18:00:00","lat":10.3,"lon":-96.0,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-13 21:00:00","lat":10.4,"lon":-96.4,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-14 00:00:00","lat":10.5,"lon":-96.9,"wind":35,"mslp":1004,"status":"TS"},{"time":"2026-10-14 03:00:00","lat":10.7,"lon":-97.7,"wind":38,"mslp":1003,"status":"TS"},{"time":"2026-10-14 06:00:00","lat":10.9,"lon":-98.4,"wind":40,"mslp":1002,"status":"TS"},{"time":"2026-10-14 09:00:00","lat":11.1,"lon":-98.8,"wind":45,"mslp":1001,"status":"TS"},{"time":"2026-10-14 12:00:00","lat":11.3,"lon":-99.1,"wind":50,"mslp":999,"status":"TS"},{"time":"2026-10-14 15:00:00","lat":11.5,"lon":-99.4,"wind":53,"mslp":998,"status":"TS"},{"time":"2026-10-14 18:00:00","lat":11.7,"lon":-99.7,"wind":55,"mslp":997,"status":"TS"},{"time":"2026-10-14 21:00:00","lat":12.0,"lon":-100.1,"wind":58,"mslp":996,"status":"TS"},{"time":"2026-10-15 00:00:00","lat":12.3,"lon":-100.5,"wind":60,"mslp":994,"status":"TS"},{"time":"2026-10-15 03:00:00","lat":12.5,"lon":-100.9,"wind":65,"mslp":989,"status":"TS"},{"time":"2026-10-15 06:00:00","lat":12.6,"lon":-101.2,"wind":70,"mslp":983,"status":"HU"},{"time":"2026-10-15 09:00:00","lat":12.7,"lon":-101.4,"wind":75,"mslp":981,"status":"HU"},{"time":"2026-10-15 12:00:00","lat":12.8,"lon":-101.5,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-15 15:00:00","lat":13.1,"lon":-101.6,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-15 18:00:00","lat":13.5,"lon":-101.6,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-15 21:00:00","lat":13.8,"lon":-101.7,"wind":85,"mslp":974,"status":"HU"},{"time":"2026-10-16 00:00:00","lat":14.0,"lon":-101.9,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-16 03:00:00","lat":14.0,"lon":-102.2,"wind":98,"mslp":963,"status":"HU"},{"time":"2026-10-16 06:00:00","lat":14.0,"lon":-102.4,"wind":105,"mslp":956,"status":"HU"},{"time":"2026-10-16 09:00:00","lat":14.1,"lon":-102.5,"wind":98,"mslp":963,"status":"HU"},{"time":"2026-10-16 12:00:00","lat":14.2,"lon":-102.5,"wind":90,"mslp":969,"status":"HU"},{"time":"2026-10-16 15:00:00","lat":14.4,"lon":-102.4,"wind":83,"mslp":976,"status":"HU"},{"time":"2026-10-16 18:00:00","lat":14.6,"lon":-102.4,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-16 21:00:00","lat":14.8,"lon":-102.5,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-17 00:00:00","lat":15.1,"lon":-102.7,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-17 03:00:00","lat":15.4,"lon":-102.9,"wind":78,"mslp":981,"status":"HU"},{"time":"2026-10-17 06:00:00","lat":15.7,"lon":-103.2,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 09:00:00","lat":15.9,"lon":-103.6,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 12:00:00","lat":16.2,"lon":-104.0,"wind":80,"mslp":979,"status":"HU"},{"time":"2026-10-17 15:00:00","lat":16.6,"lon":-104.5,"wind":83,"mslp":978,"status":"HU"},{"time":"2026-10-17 18:00:00","lat":17.0,"lon":-105.0,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-17 21:00:00","lat":17.4,"lon":-105.3,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-18 00:00:00","lat":17.8,"lon":-105.6,"wind":85,"mslp":976,"status":"HU"},{"time":"2026-10-18 03:00:00","lat":18.1,"lon":-105.9,"wind":88,"mslp":973,"status":"HU"},{"time":"2026-10-18 06:00:00","lat":18.4,"lon":-106.2,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 09:00:00","lat":18.7,"lon":-106.4,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 12:00:00","lat":18.9,"lon":-106.6,"wind":90,"mslp":970,"status":"HU"},{"time":"2026-10-18 15:00:00","lat":19.1,"lon":-106.7,"wind":88,"mslp":972,"status":"HU"},{"time":"2026-10-18 18:00:00","lat":19.3,"lon":-106.9,"wind":85,"mslp":974,"status":"HU"},{"time":"2026-10-18 21:00:00","lat":19.5,"lon":-107.1,"wind":80,"mslp":978,"status":"HU"},{"time":"2026-10-19 00:00:00","lat":19.6,"lon":-107.4,"wind":75,"mslp":982,"status":"HU"},{"time":"2026-10-19 03:00:00","lat":19.7,"lon":-107.6,"wind":65,"mslp":989,"status":"HU"},{"time":"2026-10-19 06:00:00","lat":19.7,"lon":-107.8,"wind":55,"mslp":995,"status":"TS"},{"time":"2026-10-19 09:00:00","lat":19.7,"lon":-107.9,"wind":53,"mslp":997,"status":"TS"},{"time":"2026-10-19 12:00:00","lat":19.6,"lon":-108.0,"wind":50,"mslp":999,"status":"TS"},{"time":"2026-10-19 15:00:00","lat":19.6,"lon":-108.0,"wind":45,"mslp":1002,"status":"TS"},{"time":"2026-10-19 18:00:00","lat":19.5,"lon":-107.9,"wind":40,"mslp":1004,"status":"TS"},{"time":"2026-10-19 21:00:00","lat":19.5,"lon":-107.9,"wind":35,"mslp":1005,"status":"TS"},{"time":"2026-10-20 00:00:00","lat":19.4,"lon":-108.0,"wind":30,"mslp":1005,"status":"TD"}]},{"sid":"2026285N16151","name":"UNNAMED","basin":"WP","number":"83","points":[{"time":"2026-10-12 00:00:00","lat":16.4,"lon":150.8,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 03:00:00","lat":16.6,"lon":150.3,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 06:00:00","lat":16.8,"lon":149.8,"wind":25,"mslp":1006,"status":""},{"time":"2026-10-12 09:00:00","lat":16.9,"lon":149.4,"wind":27,"mslp":1006,"status":""},{"time":"2026-10-12 12:00:00","lat":17.1,"lon":149.1,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 15:00:00","lat":17.3,"lon":148.7,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 18:00:00","lat":17.5,"lon":148.2,"wind":29,"mslp":1006,"status":""},{"time":"2026-10-12 21:00:00","lat":17.7,"lon":147.8,"wind":27,"mslp":1008,"status":""},{"time":"2026-10-13 00:00:00","lat":18.0,"lon":147.3,"wind":25,"mslp":1010,"status":""},{"time":"2026-10-13 03:00:00","lat":18.4,"lon":146.8,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-13 06:00:00","lat":18.8,"lon":146.3,"wind":25,"mslp":1007,"status":""},{"time":"2026-10-13 09:00:00","lat":19.1,"lon":145.8,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 12:00:00","lat":19.4,"lon":145.4,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 15:00:00","lat":19.7,"lon":145.0,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 18:00:00","lat":20.1,"lon":144.5,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-13 21:00:00","lat":20.4,"lon":144.0,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-14 00:00:00","lat":20.7,"lon":143.5,"wind":25,"mslp":1010,"status":""},{"time":"2026-10-14 03:00:00","lat":21.0,"lon":143.1,"wind":25,"mslp":1009,"status":""},{"time":"2026-10-14 06:00:00","lat":21.3,"lon":142.8,"wind":25,"mslp":1008,"status":""},{"time":"2026-10-14 09:00:00","lat":21.6,"lon":142.5,"wind":27,"mslp":1008,"status":""},{"time":"2026-10-14 12:00:00","lat":22.0,"lon":142.1,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 15:00:00","lat":22.4,"lon":141.6,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 18:00:00","lat":22.7,"lon":141.1,"wind":29,"mslp":1007,"status":""},{"time":"2026-10-14 21:00:00","lat":22.5,"lon":140.8,"wind":27,"mslp":1007,"status":""},{"time":"2026-10-15 00:00:00","lat":22.3,"lon":140.6,"wind":25,"mslp":1007,"status":""},{"time":"2026-10-15 03:00:00","lat":22.3,"lon":140.2,"wind":22,"mslp":1008,"status":""},{"time":"2026-10-15 06:00:00","lat":22.5,"lon":139.7,"wind":19,"mslp":1009,"status":""},{"time":"2026-10-15 09:00:00","lat":22.7,"lon":139.2,"wind":19,"mslp":1011,"status":""},{"time":"2026-10-15 12:00:00","lat":22.9,"lon":138.6,"wind":19,"mslp":1012,"status":""}]},{"sid":"2026288N10161","name":"CHAMPI","basin":"WP","number":"84","points":[{"time":"2026-10-14 12:00:00","lat":9.6,"lon":161.2,"wind":29,"mslp":1003,"status":""},{"time":"2026-10-14 15:00:00","lat":10.0,"lon":160.9,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-14 18:00:00","lat":10.4,"lon":160.5,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-14 21:00:00","lat":10.6,"lon":160.0,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-15 00:00:00","lat":10.7,"lon":159.4,"wind":29,"mslp":1004,"status":""},{"time":"2026-10-15 03:00:00","lat":10.8,"lon":158.9,"wind":29,"mslp":1003,"status":""},{"time":"2026-10-15 06:00:00","lat":10.9,"lon":158.4,"wind":29,"mslp":1002,"status":""},{"time":"2026-10-15 09:00:00","lat":10.9,"lon":157.9,"wind":32,"mslp":1002,"status":""},{"time":"2026-10-15 12:00:00","lat":11.0,"lon":157.4,"wind":35,"mslp":1001,"status":""},{"time":"2026-10-15 15:00:00","lat":11.3,"lon":157.1,"wind":37,"mslp":1000,"status":""},{"time":"2026-10-15 18:00:00","lat":11.5,"lon":156.5,"wind":39,"mslp":999,"status":""},{"time":"2026-10-15 21:00:00","lat":11.4,"lon":155.3,"wind":42,"mslp":999,"status":""},{"time":"2026-10-16 00:00:00","lat":11.3,"lon":154.0,"wind":45,"mslp":998,"status":""},{"time":"2026-10-16 03:00:00","lat":11.3,"lon":153.3,"wind":48,"mslp":996,"status":""},{"time":"2026-10-16 06:00:00","lat":11.4,"lon":152.7,"wind":51,"mslp":993,"status":""},{"time":"2026-10-16 09:00:00","lat":11.4,"lon":152.0,"wind":56,"mslp":993,"status":""},{"time":"2026-10-16 12:00:00","lat":11.4,"lon":151.4,"wind":60,"mslp":992,"status":""},{"time":"2026-10-16 15:00:00","lat":11.6,"lon":150.8,"wind":67,"mslp":988,"status":""},{"time":"2026-10-16 18:00:00","lat":11.9,"lon":150.2,"wind":74,"mslp":984,"status":""},{"time":"2026-10-16 21:00:00","lat":12.2,"lon":149.4,"wind":79,"mslp":983,"status":""},{"time":"2026-10-17 00:00:00","lat":12.4,"lon":148.6,"wind":84,"mslp":981,"status":""},{"time":"2026-10-17 03:00:00","lat":12.5,"lon":147.9,"wind":100,"mslp":965,"status":""},{"time":"2026-10-17 06:00:00","lat":12.5,"lon":147.3,"wind":115,"mslp":948,"status":""},{"time":"2026-10-17 09:00:00","lat":12.5,"lon":146.7,"wind":117,"mslp":947,"status":""},{"time":"2026-10-17 12:00:00","lat":12.6,"lon":146.1,"wind":119,"mslp":945,"status":""},{"time":"2026-10-17 15:00:00","lat":12.9,"lon":145.5,"wind":124,"mslp":940,"status":""},{"time":"2026-10-17 18:00:00","lat":13.1,"lon":144.8,"wind":128,"mslp":934,"status":""},{"time":"2026-10-17 21:00:00","lat":13.1,"lon":144.1,"wind":128,"mslp":934,"status":""},{"time":"2026-10-18 00:00:00","lat":13.1,"lon":143.4,"wind":128,"mslp":934,"status":""},{"time":"2026-10-18 03:00:00","lat":13.1,"lon":142.8,"wind":128,"mslp":933,"status":""},{"time":"2026-10-18 06:00:00","lat":13.1,"lon":142.3,"wind":128,"mslp":931,"status":""},{"time":"2026-10-18 09:00:00","lat":13.3,"lon":141.9,"wind":124,"mslp":937,"status":""},{"time":"2026-10-18 12:00:00","lat":13.5,"lon":141.4,"wind":119,"mslp":943,"status":""},{"time":"2026-10-18 15:00:00","lat":13.7,"lon":140.8,"wind":119,"mslp":943,"status":""},{"time":"2026-10-18 18:00:00","lat":13.8,"lon":140.2,"wind":119,"mslp":942,"status":""},{"time":"2026-10-18 21:00:00","lat":13.9,"lon":139.7,"wind":127,"mslp":934,"status":""},{"time":"2026-10-19 00:00:00","lat":14.0,"lon":139.2,"wind":134,"mslp":926,"status":""},{"time":"2026-10-19 03:00:00","lat":14.1,"lon":138.8,"wind":136,"mslp":922,"status":""},{"time":"2026-10-19 06:00:00","lat":14.3,"lon":138.4,"wind":138,"mslp":917,"status":""},{"time":"2026-10-19 09:00:00","lat":14.5,"lon":138.0,"wind":138,"mslp":918,"status":""},{"time":"2026-10-19 12:00:00","lat":14.8,"lon":137.6,"wind":138,"mslp":919,"status":""},{"time":"2026-10-19 15:00:00","lat":15.1,"lon":137.2,"wind":136,"mslp":919,"status":""},{"time":"2026-10-19 18:00:00","lat":15.4,"lon":136.7,"wind":134,"mslp":919,"status":""},{"time":"2026-10-19 21:00:00","lat":15.6,"lon":136.2,"wind":131,"mslp":924,"status":""},{"time":"2026-10-20 00:00:00","lat":15.9,"lon":135.6,"wind":128,"mslp":929,"status":""},{"time":"2026-10-20 03:00:00","lat":16.2,"lon":135.0,"wind":131,"mslp":926,"status":""},{"time":"2026-10-20 06:00:00","lat":16.5,"lon":134.4,"wind":134,"mslp":922,"status":""},{"time":"2026-10-20 09:00:00","lat":16.8,"lon":133.7,"wind":144,"mslp":912,"status":""},{"time":"2026-10-20 12:00:00","lat":17.0,"lon":133.0,"wind":154,"mslp":902,"status":""},{"time":"2026-10-20 15:00:00","lat":17.2,"lon":132.2,"wind":157,"mslp":899,"status":""},{"time":"2026-10-20 18:00:00","lat":17.4,"lon":131.5,"wind":159,"mslp":895,"status":""},{"time":"2026-10-20 21:00:00","lat":17.7,"lon":130.8,"wind":157,"mslp":899,"status":""},{"time":"2026-10-21 00:00:00","lat":18.1,"lon":130.1,"wind":154,"mslp":902,"status":""},{"time":"2026-10-21 03:00:00","lat":18.4,"lon":129.5,"wind":151,"mslp":903,"status":""},{"time":"2026-10-21 06:00:00","lat":18.7,"lon":128.9,"wind":148,"mslp":904,"status":""},{"time":"2026-10-21 09:00:00","lat":19.0,"lon":128.4,"wind":146,"mslp":908,"status":""},{"time":"2026-10-21 12:00:00","lat":19.3,"lon":127.9,"wind":144,"mslp":911,"status":""},{"time":"2026-10-21 15:00:00","lat":19.6,"lon":127.4,"wind":139,"mslp":916,"status":""},{"time":"2026-10-21 18:00:00","lat":19.9,"lon":126.9,"wind":134,"mslp":920,"status":""},{"time":"2026-10-21 21:00:00","lat":20.1,"lon":126.4,"wind":125,"mslp":930,"status":""},{"time":"2026-10-22 00:00:00","lat":20.3,"lon":126.0,"wind":115,"mslp":940,"status":""}]},{"sid":"2026289S11197","name":"WATI","basin":"SP","number":"85","points":[{"time":"2026-10-16 06:00:00","lat":-10.8,"lon":-163.3,"wind":35,"mslp":999,"status":""},{"time":"2026-10-16 09:00:00","lat":-11.1,"lon":-163.2,"wind":37,"mslp":998,"status":""},{"time":"2026-10-16 12:00:00","lat":-11.6,"lon":-163.1,"wind":39,"mslp":997,"status":""},{"time":"2026-10-16 15:00:00","lat":-12.2,"lon":-163.2,"wind":39,"mslp":996,"status":""},{"time":"2026-10-16 18:00:00","lat":-12.7,"lon":-163.4,"wind":39,"mslp":995,"status":""},{"time":"2026-10-16 21:00:00","lat":-12.6,"lon":-163.6,"wind":42,"mslp":995,"status":""},{"time":"2026-10-17 00:00:00","lat":-12.4,"lon":-163.7,"wind":45,"mslp":994,"status":""},{"time":"2026-10-17 03:00:00","lat":-12.7,"lon":-163.5,"wind":53,"mslp":990,"status":""},{"time":"2026-10-17 06:00:00","lat":-13.2,"lon":-163.2,"wind":60,"mslp":986,"status":""},{"time":"2026-10-17 09:00:00","lat":-13.8,"lon":-163.0,"wind":60,"mslp":986,"status":""},{"time":"2026-10-17 12:00:00","lat":-14.4,"lon":-163.0,"wind":60,"mslp":985,"status":""},{"time":"2026-10-17 15:00:00","lat":-14.6,"lon":-163.1,"wind":62,"mslp":985,"status":""},{"time":"2026-10-17 18:00:00","lat":-14.8,"lon":-163.2,"wind":64,"mslp":985,"status":""},{"time":"2026-10-17 21:00:00","lat":-15.3,"lon":-162.9,"wind":64,"mslp":985,"status":""},{"time":"2026-10-18 00:00:00","lat":-15.7,"lon":-162.6,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 03:00:00","lat":-15.9,"lon":-162.5,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 06:00:00","lat":-16.1,"lon":-162.4,"wind":64,"mslp":984,"status":""},{"time":"2026-10-18 09:00:00","lat":-16.7,"lon":-162.2,"wind":62,"mslp":986,"status":""},{"time":"2026-10-18 12:00:00","lat":-17.4,"lon":-161.8,"wind":60,"mslp":988,"status":""},{"time":"2026-10-18 15:00:00","lat":-18.0,"lon":-161.0,"wind":57,"mslp":990,"status":""},{"time":"2026-10-18 18:00:00","lat":-18.6,"lon":-160.2,"wind":54,"mslp":992,"status":""},{"time":"2026-10-18 21:00:00","lat":-19.2,"lon":-159.6,"wind":54,"mslp":992,"status":""},{"time":"2026-10-19 00:00:00","lat":-19.7,"lon":-159.0,"wind":54,"mslp":992,"status":""},{"time":"2026-10-19 03:00:00","lat":-20.2,"lon":-158.0,"wind":50,"mslp":996,"status":""},{"time":"2026-10-19 06:00:00","lat":-20.7,"lon":-156.8,"wind":45,"mslp":999,"status":""}]},{"sid":"2026292N11271","name":"VANCE","basin":"EP","number":"86","points":[{"time":"2026-10-18 18:00:00","lat":10.6,"lon":-89.2,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-18 21:00:00","lat":10.7,"lon":-89.8,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 00:00:00","lat":10.7,"lon":-90.3,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 03:00:00","lat":10.7,"lon":-90.8,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 06:00:00","lat":10.7,"lon":-91.2,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 09:00:00","lat":10.7,"lon":-91.6,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 12:00:00","lat":10.7,"lon":-92.1,"wind":15,"mslp":1011,"status":"DB"},{"time":"2026-10-19 15:00:00","lat":10.7,"lon":-92.5,"wind":18,"mslp":1010,"status":"DB"},{"time":"2026-10-19 18:00:00","lat":10.6,"lon":-93.0,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-19 21:00:00","lat":10.5,"lon":-93.5,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-20 00:00:00","lat":10.3,"lon":-94.0,"wind":20,"mslp":1009,"status":"DB"},{"time":"2026-10-20 03:00:00","lat":10.1,"lon":-94.4,"wind":23,"mslp":1008,"status":"DB"},{"time":"2026-10-20 06:00:00","lat":10.0,"lon":-94.8,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 09:00:00","lat":10.0,"lon":-95.2,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 12:00:00","lat":10.0,"lon":-95.6,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 15:00:00","lat":9.9,"lon":-95.9,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 18:00:00","lat":9.8,"lon":-96.2,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-20 21:00:00","lat":9.7,"lon":-96.5,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 00:00:00","lat":9.7,"lon":-96.9,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 03:00:00","lat":9.6,"lon":-97.3,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 06:00:00","lat":9.6,"lon":-97.8,"wind":25,"mslp":1007,"status":"DB"},{"time":"2026-10-21 09:00:00","lat":9.5,"lon":-98.2,"wind":28,"mslp":1006,"status":"DB"},{"time":"2026-10-21 12:00:00","lat":9.5,"lon":-98.7,"wind":30,"mslp":1005,"status":"TD"},{"time":"2026-10-21 15:00:00","lat":9.4,"lon":-99.2,"wind":33,"mslp":1004,"status":"TD"},{"time":"2026-10-21 18:00:00","lat":9.4,"lon":-99.6,"wind":35,"mslp":1003,"status":"TS"},{"time":"2026-10-21 21:00:00","lat":9.4,"lon":-100.0,"wind":35,"mslp":1003,"status":"TS"},{"time":"2026-10-22 00:00:00","lat":9.5,"lon":-100.5,"wind":35,"mslp":1003,"status":"TS"}]},{"sid":"2026292N31289","name":"JOSEPHINE","basin":"NA","number":"87","points":[{"time":"2026-10-18 18:00:00","lat":31.0,"lon":-71.4,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-18 21:00:00","lat":31.4,"lon":-71.2,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-19 00:00:00","lat":31.8,"lon":-71.0,"wind":40,"mslp":1010,"status":"EX"},{"time":"2026-10-19 03:00:00","lat":32.1,"lon":-70.9,"wind":43,"mslp":1009,"status":"EX"},{"time":"2026-10-19 06:00:00","lat":32.4,"lon":-70.9,"wind":45,"mslp":1008,"status":"EX"},{"time":"2026-10-19 09:00:00","lat":32.6,"lon":-70.9,"wind":45,"mslp":1008,"status":"EX"},{"time":"2026-10-19 12:00:00","lat":32.9,"lon":-70.8,"wind":45,"mslp":1007,"status":"EX"},{"time":"2026-10-19 15:00:00","lat":33.3,"lon":-70.7,"wind":45,"mslp":1005,"status":"EX"},{"time":"2026-10-19 18:00:00","lat":33.8,"lon":-70.6,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-19 21:00:00","lat":34.6,"lon":-70.8,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 00:00:00","lat":35.3,"lon":-70.9,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 03:00:00","lat":35.4,"lon":-70.7,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 06:00:00","lat":35.3,"lon":-70.5,"wind":45,"mslp":1002,"status":"EX"},{"time":"2026-10-20 09:00:00","lat":35.4,"lon":-70.4,"wind":45,"mslp":1001,"status":"EX"},{"time":"2026-10-20 12:00:00","lat":35.6,"lon":-70.2,"wind":45,"mslp":1000,"status":"EX"},{"time":"2026-10-20 15:00:00","lat":36.0,"lon":-69.8,"wind":45,"mslp":999,"status":"EX"},{"time":"2026-10-20 18:00:00","lat":36.3,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-20 21:00:00","lat":36.5,"lon":-69.3,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 00:00:00","lat":36.6,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 03:00:00","lat":36.7,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 06:00:00","lat":36.8,"lon":-69.4,"wind":45,"mslp":997,"status":"EX"},{"time":"2026-10-21 09:00:00","lat":36.9,"lon":-69.4,"wind":48,"mslp":995,"status":"EX"},{"time":"2026-10-21 12:00:00","lat":36.9,"lon":-69.5,"wind":50,"mslp":992,"status":"EX"},{"time":"2026-10-21 15:00:00","lat":37.0,"lon":-69.6,"wind":53,"mslp":991,"status":"EX"},{"time":"2026-10-21 18:00:00","lat":37.1,"lon":-69.6,"wind":55,"mslp":990,"status":"SS"},{"time":"2026-10-21 21:00:00","lat":37.3,"lon":-69.6,"wind":55,"mslp":989,"status":"SS"},{"time":"2026-10-22 00:00:00","lat":37.5,"lon":-69.5,"wind":55,"mslp":988,"status":"SS"}]},{"sid":"2026293S05054","name":"AGUEDA","basin":"SI","number":"88","points":[{"time":"2026-10-20 06:00:00","lat":-4.5,"lon":53.8,"wind":35,"mslp":1006,"status":""},{"time":"2026-10-20 09:00:00","lat":-4.6,"lon":53.5,"wind":37,"mslp":1005,"status":""},{"time":"2026-10-20 12:00:00","lat":-4.7,"lon":53.2,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 15:00:00","lat":-4.9,"lon":53.0,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 18:00:00","lat":-5.1,"lon":52.7,"wind":39,"mslp":1003,"status":""},{"time":"2026-10-20 21:00:00","lat":-5.3,"lon":52.3,"wind":42,"mslp":1003,"status":""},{"time":"2026-10-21 00:00:00","lat":-5.4,"lon":52.0,"wind":45,"mslp":1003,"status":""},{"time":"2026-10-21 03:00:00","lat":-5.3,"lon":52.1,"wind":45,"mslp":1002,"status":""},{"time":"2026-10-21 06:00:00","lat":-5.3,"lon":52.2,"wind":45,"mslp":1000,"status":""},{"time":"2026-10-21 09:00:00","lat":-5.5,"lon":51.9,"wind":48,"mslp":999,"status":""},{"time":"2026-10-21 12:00:00","lat":-5.7,"lon":51.4,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 15:00:00","lat":-5.9,"lon":51.0,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 18:00:00","lat":-6.0,"lon":50.8,"wind":51,"mslp":997,"status":""},{"time":"2026-10-21 21:00:00","lat":-6.0,"lon":50.9,"wind":45,"mslp":999,"status":""},{"time":"2026-10-22 00:00:00","lat":-5.9,"lon":51.1,"wind":39,"mslp":1001,"status":""}]}]};
+
+/* ============================================================
+   Live track bulletin — standalone feed player
+   Sources: NOAA/NCEI IBTrACS ACTIVE, GDACS tropical cyclones
+   ============================================================ */
+(function () {
+  'use strict';
+
+  const NCEI = 'https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ACTIVE.list.v04r01.csv';
+  const GDACS = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=TC&pagesize=30';
+  const CMA_LIST = 'https://typhoon.nmc.cn/weatherservice/typhoon/jsons/list_default';
+  const CMA_VIEW = 'https://typhoon.nmc.cn/weatherservice/typhoon/jsons/view_';
+  const CACHE_KEY = 'sudre_live_ibtracs_v2';
+  const $ = id => document.getElementById(id);
+  let allStorms = [], storms = [], selected = null, source = 'CMA';
+  let loading = false, refreshTimer = 0;
+  let liveFrac = 1, livePlaying = false, liveRaf = 0;
+  let gdacsStorms = [], cmaStorms = [];
+
+  const num = v => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const classify = w => {
+    w = +w || 0;
+    if (w < 34) return 'TD';
+    if (w < 64) return 'TS';
+    if (w < 83) return 'C1';
+    if (w < 96) return 'C2';
+    if (w < 113) return 'C3';
+    if (w < 137) return 'C4';
+    return 'C5';
+  };
+  const windColor = lv => ({ TD: '#55b7ff', TS: '#31d8b2', C1: '#ffd166', C2: '#ffb02e', C3: '#ff8a5b', C4: '#ff6f91', C5: '#d86bff' }[lv] || '#93a9c4');
+  const fmtLat = v => Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'N' : 'S');
+  const fmtLon = v => Math.abs(v).toFixed(1) + '°' + (v >= 0 ? 'E' : 'W');
+  const fmtTime = d => d ? new Date(d).toISOString().slice(0, 16).replace('T', ' ') + 'Z' : '—';
+
+  function parseCsv(text) {
+    const rows = []; let row = [], cur = '', quote = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quote) {
+        if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') quote = false;
+        else cur += c;
+      } else if (c === '"') quote = true;
+      else if (c === ',') { row.push(cur); cur = ''; }
+      else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+      else if (c !== '\r') cur += c;
+    }
+    if (cur.length || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  }
+
+  function normalize(st) {
+    const pts = (st.points || []).map(p => Object.assign({}, p, { time: p.time instanceof Date ? p.time : new Date(String(p.time).replace(' ', 'T') + (String(p.time).endsWith('Z') ? '' : 'Z')) }));
+    pts.sort((a, b) => a.time - b.time);
+    return Object.assign({}, st, { points: pts, last: pts[pts.length - 1], peak: Math.max(...pts.map(p => p.wind || 0)) });
+  }
+
+  function parseNcei(text) {
+    const rows = parseCsv(text);
+    if (rows.length < 3) return [];
+    const header = rows[0].map(x => x.trim().toUpperCase());
+    const ix = name => header.indexOf(name);
+    const iSid = ix('SID'), iName = ix('NAME'), iBasin = ix('BASIN'), iTime = ix('ISO_TIME'),
+      iLat = ix('LAT'), iLon = ix('LON'), iUsaLat = ix('USA_LAT'), iUsaLon = ix('USA_LON'),
+      iWind = ix('USA_WIND'), iWmoWind = ix('WMO_WIND'), iPres = ix('USA_PRES'),
+      iWmoPres = ix('WMO_PRES'), iStatus = ix('USA_STATUS'), iNum = ix('NUMBER');
+    const map = new Map();
+    for (let r = 2; r < rows.length; r++) {
+      const f = rows[r];
+      if (!f || !f[iSid] || !f[iTime]) continue;
+      const sid = f[iSid].trim(), iso = f[iTime].trim();
+      const t = Date.parse(iso.replace(' ', 'T') + (iso.endsWith('Z') ? '' : 'Z'));
+      if (!Number.isFinite(t)) continue;
+      let lat = num(f[iUsaLat]), lon = num(f[iUsaLon]);
+      if (lat == null || lon == null) { lat = num(f[iLat]); lon = num(f[iLon]); }
+      if (lat == null || lon == null) continue;
+      const wind = num(f[iWind]) != null ? num(f[iWind]) : (num(f[iWmoWind]) || 0);
+      const mslp = num(f[iPres]) != null ? num(f[iPres]) : num(f[iWmoPres]);
+      const st = map.get(sid) || {
+        sid, name: (f[iName] || 'UNNAMED').trim(), basin: (f[iBasin] || 'WP').trim(),
+        number: (f[iNum] || '1').trim(), origin: 'NCEI', points: []
+      };
+      st.points.push({ time: new Date(t), lat, lon, wind, mslp, status: (f[iStatus] || '').trim() || (wind >= 64 ? 'TY' : wind >= 34 ? 'TS' : 'TD') });
+      map.set(sid, st);
+    }
+    return [...map.values()].map(normalize).sort((a, b) => b.last.time - a.last.time);
+  }
+
+  function parseGdacs(json) {
+    const feats = (json && json.features) || [];
+    return feats.map(f => {
+      const p = f.properties || {};
+      const c = (f.geometry && f.geometry.coordinates) || [0, 0];
+      const t = Date.parse(p.todate || p.fromdate || new Date().toISOString());
+      const wind = num(p.maxwind || p.wind || 0) || 0;
+      return normalize({
+        sid: 'GDACS-' + (p.eventid || p.eventname || Math.random()),
+        name: (p.eventname || p.name || 'TC').replace(/-26$/, ''),
+        basin: 'GDACS', number: p.eventid || '—', origin: 'GDACS',
+        points: [{ time: new Date(Number.isFinite(t) ? t : Date.now()), lat: c[1], lon: c[0], wind, mslp: null, status: (p.alertlevel || 'TC').toUpperCase() }]
+      });
+    }).sort((a, b) => b.last.time - a.last.time);
+  }
+
+  function parseJsonp(text) {
+    const a = Math.min(...['{','['].map(c => text.indexOf(c)).filter(i => i >= 0));
+    const b = Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'));
+    if (!Number.isFinite(a) || b <= a) throw new Error('JSONP 结构异常');
+    return JSON.parse(text.slice(a, b + 1));
+  }
+
+  function cmaTime(p) {
+    if (p[2] && Number.isFinite(+p[2])) return new Date(+p[2]);
+    const m = String(p[1] || '').match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
+    return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : null;
+  }
+
+  function parseCmaView(payload) {
+    const t = payload && payload.typhoon;
+    if (!Array.isArray(t) || !Array.isArray(t[8])) return null;
+    const points = [];
+    t[8].forEach(p => {
+      if (!Array.isArray(p) || p.length < 8) return;
+      const time = cmaTime(p);
+      const lon = +p[4], lat = +p[5];
+      if (!time || !Number.isFinite(lon) || !Number.isFinite(lat)) return;
+      const windMs = +p[7] || 0;
+      const wind = Math.round(windMs * 1.94384);
+      points.push({ time, lat, lon, wind, mslp: +p[6] || null, status: p[3] || (wind >= 64 ? 'TY' : wind >= 34 ? 'TS' : 'TD') });
+    });
+    if (!points.length) return null;
+    const en = t[1] || 'CMA', cn = t[2] || en;
+    return normalize({
+      sid: 'CMA-' + (t[0] || en), name: cn === en ? en : cn + ' / ' + en,
+      basin: 'WP', number: t[3] || '—', origin: 'CMA', points
+    });
+  }
+
+  async function fetchCma() {
+    setStatus('正在连接 CMA / 中央气象台…', 'loading');
+    try {
+      const listRes = await fetch(CMA_LIST, { cache: 'no-store' });
+      if (!listRes.ok) throw new Error('列表 HTTP ' + listRes.status);
+      const list = parseJsonp(await listRes.text());
+      let rows = (list.typhoonList || []).filter(t => t[7] === 'start');
+      if (!rows.length) rows = (list.typhoonList || []).slice(0, 4);
+      rows = rows.slice(0, 8);
+      const tracks = await Promise.all(rows.map(async t => {
+        try {
+          const r = await fetch(CMA_VIEW + t[0], { cache: 'no-store' });
+          if (!r.ok) return null;
+          return parseCmaView(parseJsonp(await r.text()));
+        } catch (e) { return null; }
+      }));
+      cmaStorms = tracks.filter(Boolean).sort((a, b) => b.last.time - a.last.time);
+      if (!cmaStorms.length) throw new Error('没有解析到 CMA 路径');
+      try { localStorage.setItem('sudre_live_cma_v1', JSON.stringify({ t: Date.now(), storms: cmaStorms })); } catch (e) {}
+      setStatus('已连接 CMA · ' + cmaStorms.length + ' 个活动系统', 'ok');
+      setUpdated(Date.now());
+      applySource(false);
+    } catch (e) {
+      try {
+        const c = JSON.parse(localStorage.getItem('sudre_live_cma_v1') || 'null');
+        if (c && c.storms && c.storms.length) {
+          cmaStorms = c.storms.map(normalize);
+          setStatus('CMA 不可用 · 使用本地缓存', 'warn');
+          setUpdated(c.t);
+          applySource(false);
+          return;
+        }
+      } catch (e2) {}
+      if (!allStorms.length) useSnapshot();
+      setStatus('CMA 连接失败：' + e.message, 'err');
+    } finally { loading = false; }
+  }
+
+  function setStatus(text, kind) {
+    const el = $('liveStatus');
+    if (!el) return;
+    el.textContent = text;
+    el.className = kind || '';
+  }
+  function setUpdated(date) {
+    const el = $('liveUpdated');
+    if (el) el.textContent = date ? new Date(date).toLocaleString('zh-CN', { hour12: false }) : '—';
+  }
+
+  function applySource(pickFirst) {
+    if (source === 'CMA') storms = cmaStorms.slice();
+    else if (source === 'GDACS') storms = gdacsStorms.slice();
+    else if (source === 'all') storms = allStorms.slice();
+    else storms = allStorms.filter(s => s.basin === source);
+    if (selected) {
+      const again = storms.find(s => s.sid === selected.sid);
+      selected = again || null;
+    }
+    if (!selected && storms.length) selected = storms[0];
+    stopLive();
+    renderList();
+    renderDetail();
+  }
+
+  function useSnapshot() {
+    const snap = window.LIVE_SNAPSHOT;
+    if (!snap || !snap.storms || !snap.storms.length) return false;
+    allStorms = snap.storms.map(normalize);
+    setUpdated(snap.t);
+    applySource(true);
+    return true;
+  }
+
+  async function fetchNcei(force) {
+    setStatus('正在连接 NOAA/NCEI…', 'loading');
+    try {
+      const res = await fetch(NCEI, { cache: force ? 'reload' : 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const parsed = parseNcei(await res.text());
+      if (!parsed.length) throw new Error('没有解析到 ACTIVE 路径');
+      allStorms = parsed;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), storms: parsed })); } catch (e) {}
+      setStatus('已连接 NOAA/NCEI · ' + allStorms.length + ' 个系统', 'ok');
+      setUpdated(Date.now());
+      applySource(false);
+    } catch (e) {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const c = JSON.parse(raw);
+          if (c && c.storms && c.storms.length) {
+            allStorms = c.storms.map(normalize);
+            setStatus('实时源不可用 · 使用本地缓存', 'warn');
+            setUpdated(c.t);
+            applySource(false);
+            return;
+          }
+        }
+      } catch (e2) {}
+      if (!allStorms.length) useSnapshot();
+      if (!allStorms.length) setStatus('无法连接 NOAA：' + e.message, 'err');
+      else setStatus('NOAA 刷新失败 · 保留现有数据', 'warn');
+    } finally { loading = false; }
+  }
+
+  async function fetchGdacs() {
+    setStatus('正在连接 GDACS…', 'loading');
+    try {
+      const res = await fetch(GDACS, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      gdacsStorms = parseGdacs(await res.json());
+      setStatus('已连接 GDACS · ' + gdacsStorms.length + ' 个热带气旋预警', 'ok');
+      setUpdated(Date.now());
+      applySource(true);
+    } catch (e) {
+      setStatus('GDACS 连接失败：' + e.message, 'err');
+      if (!gdacsStorms.length) { storms = []; renderList(); renderDetail(); }
+    } finally { loading = false; }
+  }
+
+  function refresh(force) {
+    if (loading) return;
+    loading = true;
+    if (source === 'CMA') fetchCma();
+    else if (source === 'GDACS') fetchGdacs();
+    else fetchNcei(force);
+  }
+
+  function renderList() {
+    const box = $('liveList');
+    if (!box) return;
+    if (!storms.length) {
+      box.innerHTML = '<div class="live-empty">当前数据源没有系统<br><span>点击刷新重试</span></div>';
+      return;
+    }
+    box.innerHTML = storms.map((s, i) => {
+      const lv = s.origin === 'GDACS' ? (s.last.status || 'TC') : classify(s.last.wind || 0);
+      const cls = s.origin === 'GDACS' ? 'GDACS' : lv;
+      return `<button class="live-item${selected && selected.sid === s.sid ? ' on' : ''}" data-i="${i}">
+        <span class="live-basin">${s.origin === 'GDACS' ? 'GDACS' : s.basin}</span>
+        <b>${s.name}</b>
+        <span class="live-coord">${fmtLat(s.last.lat)} ${fmtLon(s.last.lon)}</span>
+        <span class="live-meta"><em class="lv ${cls}">${lv}</em>${Math.round(s.last.wind || 0)} kt · ${s.points.length} 点</span>
+      </button>`;
+    }).join('');
+    box.querySelectorAll('.live-item').forEach(btn => btn.addEventListener('click', () => {
+      const s = storms[+btn.dataset.i];
+      if (!s) return;
+      selected = s; liveFrac = 1; stopLive();
+      renderList(); renderDetail();
+    }));
+  }
+
+  function renderDetail() {
+    const box = $('liveSelected');
+    const play = $('livePlay'), range = $('liveRange');
+    if (!box) return;
+    if (!selected) {
+      box.textContent = '选择左侧系统查看当前定位';
+      if (play) play.disabled = true;
+      if (range) range.disabled = true;
+      return;
+    }
+    const lv = selected.origin === 'GDACS' ? (selected.last.status || 'TC') : classify(selected.last.wind || 0);
+    box.innerHTML = `<div class="live-detail-head"><span class="live-basin">${selected.origin === 'GDACS' ? 'GDACS' : selected.basin}</span>
+      <b>${selected.name}</b><em class="lv ${lv}">${lv}</em></div>
+      <div class="live-kv"><span>最后定位</span><b>${fmtLat(selected.last.lat)} / ${fmtLon(selected.last.lon)}</b></div>
+      <div class="live-kv"><span>强度</span><b>${Math.round(selected.last.wind || 0)} kt</b></div>
+      <div class="live-kv"><span>气压</span><b>${selected.last.mslp != null ? selected.last.mslp + ' hPa' : '—'}</b></div>
+      <div class="live-kv"><span>峰值</span><b>${Math.round(selected.peak || 0)} kt</b></div>
+      <div class="live-kv"><span>观测时次</span><b>${fmtTime(selected.last.time)}</b></div>`;
+    if (play) { play.disabled = selected.points.length < 2; play.textContent = '▶ 播放'; }
+    if (range) {
+      range.disabled = selected.points.length < 2;
+      range.max = Math.max(1, selected.points.length - 1);
+      range.value = Math.max(0, Math.round(liveFrac * (selected.points.length - 1)));
+    }
+    updateFrame();
+    drawPreview();
+  }
+
+  function updateFrame() {
+    const f = $('liveFrame'), r = $('liveRange');
+    if (!selected) return;
+    const idx = Math.round(liveFrac * Math.max(1, selected.points.length - 1));
+    if (r) r.value = idx;
+    if (f) f.textContent = (idx + 1) + ' / ' + selected.points.length;
+  }
+
+  function drawPreview() {
+    const cv = $('liveCanvas');
+    if (!cv || !selected) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = cv.clientWidth || 520, h = Math.max(210, Math.round(w * .56));
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#06101b'; ctx.fillRect(0, 0, w, h);
+    const pts = selected.points;
+    if (!pts.length) return;
+    let minLat = Math.min(...pts.map(p => p.lat)), maxLat = Math.max(...pts.map(p => p.lat));
+    let minLon = Math.min(...pts.map(p => p.lon)), maxLon = Math.max(...pts.map(p => p.lon));
+    if (maxLon - minLon > 180) {
+      const ref = pts[0].lon;
+      const u = pts.map(p => { let l = p.lon; while (l - ref > 180) l -= 360; while (l - ref < -180) l += 360; return l; });
+      minLon = Math.min(...u); maxLon = Math.max(...u);
+    }
+    const padLat = Math.max(3, (maxLat - minLat) * .18), padLon = Math.max(3, (maxLon - minLon) * .18);
+    minLat -= padLat; maxLat += padLat; minLon -= padLon; maxLon += padLon;
+    const X = lon => 24 + (lon - minLon) / (maxLon - minLon || 1) * (w - 48);
+    const Y = lat => 16 + (maxLat - lat) / (maxLat - minLat || 1) * (h - 34);
+    ctx.strokeStyle = 'rgba(80,135,165,.16)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) { const y = 16 + i / 4 * (h - 34); ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(w - 24, y); ctx.stroke(); }
+    for (let i = 0; i < 5; i++) { const x = 24 + i / 4 * (w - 48); ctx.beginPath(); ctx.moveTo(x, 16); ctx.lineTo(x, h - 18); ctx.stroke(); }
+    const fi = Math.max(0, Math.min(pts.length - 1, Math.floor(liveFrac * (pts.length - 1))));
+    if (pts.length > 1) {
+      ctx.strokeStyle = 'rgba(150,190,215,.24)'; ctx.lineWidth = 2;
+      ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(X(p.lon), Y(p.lat)) : ctx.moveTo(X(p.lon), Y(p.lat))); ctx.stroke();
+      for (let i = 1; i <= fi; i++) {
+        const a = pts[i - 1], b = pts[i];
+        ctx.strokeStyle = windColor(classify(b.wind || 0)); ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(X(a.lon), Y(a.lat)); ctx.lineTo(X(b.lon), Y(b.lat)); ctx.stroke();
+      }
+    }
+    for (let i = 0; i <= fi; i++) {
+      const p = pts[i];
+      ctx.beginPath(); ctx.arc(X(p.lon), Y(p.lat), 2.2, 0, 7);
+      ctx.fillStyle = windColor(classify(p.wind || 0)); ctx.fill();
+    }
+    const l = pts[fi];
+    ctx.beginPath(); ctx.arc(X(l.lon), Y(l.lat), 6, 0, 7); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.fillStyle = '#9ff7e8'; ctx.font = '9px monospace';
+    ctx.fillText('LIVE · ' + selected.name + ' · ' + fmtTime(l.time), 26, h - 8);
+  }
+
+  function stopLive() {
+    livePlaying = false;
+    cancelAnimationFrame(liveRaf);
+    const b = $('livePlay');
+    if (b) b.textContent = '▶ 播放';
+  }
+
+  function toggleLive() {
+    if (!selected || selected.points.length < 2) return;
+    if (livePlaying) { stopLive(); return; }
+    livePlaying = true;
+    liveFrac = 0;
+    const b = $('livePlay');
+    if (b) b.textContent = '❚❚ 暂停';
+    const t0 = performance.now(), dur = Math.max(1800, selected.points.length * 80);
+    const tick = now => {
+      if (!livePlaying) return;
+      liveFrac = Math.min(1, (now - t0) / dur);
+      updateFrame(); drawPreview();
+      if (liveFrac < 1) liveRaf = requestAnimationFrame(tick);
+      else stopLive();
+    };
+    liveRaf = requestAnimationFrame(tick);
+  }
+
+  function openLive() {
+    const m = $('liveModal');
+    if (!m) return;
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+    if (!allStorms.length && !cmaStorms.length) useSnapshot();
+    if (source === 'CMA' && !cmaStorms.length) refresh(false);
+    else if (!allStorms.length) refresh(false);
+    else { applySource(false); refresh(false); }
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => { if (m.classList.contains('open')) refresh(false); }, 600000);
+  }
+  function closeLive() {
+    const m = $('liveModal');
+    if (!m) return;
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+    clearInterval(refreshTimer);
+    refreshTimer = 0;
+    stopLive();
+  }
+
+  window.openLiveFeed = openLive;
+  window.closeLiveFeed = closeLive;
+
+  function initLive() {
+    const refreshBtn = $('liveRefresh');
+    if (refreshBtn) refreshBtn.addEventListener('click', () => refresh(true));
+    const close = $('liveClose');
+    if (close) close.addEventListener('click', closeLive);
+    const play = $('livePlay');
+    if (play) play.addEventListener('click', toggleLive);
+    const range = $('liveRange');
+    if (range) range.addEventListener('input', () => {
+      if (!selected) return;
+      stopLive();
+      liveFrac = +range.value / Math.max(1, selected.points.length - 1);
+      updateFrame(); drawPreview();
+    });
+    const src = $('liveSource');
+    if (src) src.addEventListener('change', () => {
+      source = src.value;
+      if (source === 'CMA' && !cmaStorms.length) { loading = false; refresh(true); }
+      else if (source === 'GDACS' && !gdacsStorms.length) { loading = false; refresh(true); }
+      else { setStatus(source === 'CMA' ? 'CMA · 中央气象台' : source === 'GDACS' ? 'GDACS · 全球预警' : 'NCEI · ' + (source === 'all' ? '全球' : source), 'ok'); setUpdated(Date.now()); applySource(true); }
+    });
+    const m = $('liveModal');
+    if (m) m.addEventListener('click', e => { if (e.target === m) closeLive(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && m && m.classList.contains('open')) closeLive();
+    });
+    window.addEventListener('resize', () => { if (m && m.classList.contains('open')) drawPreview(); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initLive); else initLive();
 })();
 
 /* IBTrACS v04r01 WP subset: 1985-2024, 6-hourly best-track positions.
@@ -11237,6 +11138,423 @@ window.IBTRACS_TRACKS=[{"s":"1985005N04157","n":"ELSIE","y":1985,"m":1,"p":[[3.6
     const modal = $('#simulatorModal');
     if (e.key === 'Escape' && modal && modal.classList.contains('open')) closeSimulator();
   });
+})();
+
+/* ============================================================
+   TC Animation Studio — closed-loop director console (v4.2)
+   ============================================================ */
+(function () {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const LEVEL_COLOR = { TD:'#5bb8ff', TS:'#19e2c5', TY:'#ffd166', STY:'#ff9f43', SuperTY:'#ff5d73', Cat5:'#ff3b5c' };
+  let iconUrl = null;
+
+  function isAnimation() {
+    return document.body.classList.contains('mode-animation');
+  }
+
+  function settings() {
+    return (window.SUDRE && window.SUDRE.state && window.SUDRE.state.settings) || {};
+  }
+
+  function setStatus(text, kind) {
+    const el = $('animDataStatus');
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = kind === 'err' ? '#ff8fa3' : kind === 'ok' ? '#7ce8d6' : '';
+  }
+
+  let sandbox = null;
+
+  function saveSandbox() {
+    if (!window.SUDRE) return;
+    const st = window.SUDRE.state;
+    let center = null, zoom = null;
+    try { center = window.SUDRE.map.getCenter(); zoom = window.SUDRE.map.getZoom(); } catch (e) {}
+    sandbox = {
+      mode: st.settings.mode,
+      view: st.settings.view,
+      settings: JSON.parse(JSON.stringify(st.settings)),
+      activeId: st.activeId,
+      frac: st.frac,
+      playing: !!(window.SUDRE.Anim && window.SUDRE.Anim.playing),
+      center, zoom
+    };
+  }
+
+  function forceAnimationMap() {
+    if (!window.SUDRE) return;
+    const st = window.SUDRE.state;
+    st.settings.mode = 'normal';
+    st.settings.view = '2d';
+    document.body.classList.remove('pro', 'pro-mode', 'view-3d');
+    document.querySelectorAll('#modes [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === 'normal'));
+    const inner = document.getElementById('stageInner'), gl = document.getElementById('glView');
+    if (inner) inner.style.visibility = '';
+    if (gl) gl.classList.remove('show');
+    try { window.SUDRE.setView('2d'); } catch (e) {}
+  }
+
+  function restoreSandbox() {
+    if (!sandbox || !window.SUDRE) return;
+    const st = window.SUDRE.state;
+    try { if (window.SUDRE.Anim) { window.SUDRE.Anim.pause(); window.SUDRE.Anim.frac = 0; } } catch (e) {}
+    Object.keys(st.settings).forEach(k => { delete st.settings[k]; });
+    Object.assign(st.settings, sandbox.settings);
+    st.settings.mode = sandbox.mode;
+    st.settings.view = sandbox.view;
+    st.appMode = 'builder';
+    st.activeId = sandbox.activeId;
+    st.frac = sandbox.frac;
+    document.body.classList.toggle('pro', sandbox.mode === 'pro');
+    document.querySelectorAll('#modes [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === sandbox.mode));
+    try {
+      if (window.SUDRE.setView) window.SUDRE.setView(sandbox.view);
+      if (sandbox.center && window.SUDRE.map) window.SUDRE.map.setView([sandbox.center.lat, sandbox.center.lng], sandbox.zoom, { animate: false });
+      window.SUDRE.draw();
+      window.SUDRE.updateTimeline();
+      if (sandbox.playing && window.SUDRE.Anim) window.SUDRE.Anim.play();
+    } catch (e) {}
+    sandbox = null;
+  }
+
+  const AnimPreview = (function () {
+    let exporter = null, key = '', curW = 0, curH = 0;
+    function dims() {
+      const st = window.SUDRE && window.SUDRE.state;
+      const ex = (st && st.settings.export) || {};
+      if (ex.res === '4k') return [3840, 2160];
+      if (ex.res === '2k') return [2560, 1440];
+      if (ex.res === '1080') return [1920, 1080];
+      const stage = document.getElementById('mapStage');
+      return [Math.max(320, (stage && stage.clientWidth) || 1280), Math.max(240, (stage && stage.clientHeight) || 800)];
+    }
+    function fit(canvas, w, h) {
+      const stage = document.getElementById('mapStage');
+      const r = stage ? stage.getBoundingClientRect() : { width: w, height: h };
+      const sc = Math.min(r.width / w, r.height / h);
+      canvas.style.width = Math.round(w * sc) + 'px';
+      canvas.style.height = Math.round(h * sc) + 'px';
+    }
+    function render(frac) {
+      if (!document.body.classList.contains('mode-animation')) return;
+      const st = window.SUDRE && window.SUDRE.state;
+      const storm = window.SUDRE && window.SUDRE.activeStorm && window.SUDRE.activeStorm();
+      const canvas = document.getElementById('animPreview');
+      if (!canvas || !st || !storm || !window.SUDRE.makeExport) return;
+      const [w, h] = dims();
+      const locked = st.settings.followMode === 'lock-center';
+      const k = storm.id + '|' + w + 'x' + h + '|' + (locked ? 'lock' : 'pan') + '|' + (st.settings.mode || 'normal');
+      if (!exporter || key !== k) {
+        exporter = window.SUDRE.makeExport(w, h, storm, { animation: true, locked });
+        key = k; curW = w; curH = h;
+        canvas.width = w; canvas.height = h;
+        fit(canvas, w, h);
+      }
+      curW = w; curH = h;
+      fit(canvas, w, h);
+      window.__animPreviewRendering = true;
+      try { exporter.draw(frac); } finally { window.__animPreviewRendering = false; }
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(exporter.canvas, 0, 0);
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    }
+    function invalidate() { exporter = null; key = ''; }
+    return { render, invalidate, dims, get size() { return [curW, curH]; } };
+  })();
+  window.AnimPreview = AnimPreview;
+
+  function enterAnimationMode() {
+    if (isAnimation()) return;
+    if (typeof window.hideMainMenu === 'function') {
+      try { window.hideMainMenu(true); } catch (e) {}
+    }
+    const home = $('homeHub');
+    if (home) { home.classList.remove('open'); home.setAttribute('aria-hidden', 'true'); }
+    document.body.classList.remove('menu-visible', 'main-menu-open', 'home-open', 'ui-leaving');
+    document.body.classList.add('mode-animation', 'ui-entering');
+    try { window.SUDRE.state.appMode = 'animation'; } catch (e) {}
+    saveSandbox();
+    forceAnimationMap();
+    AnimPreview.invalidate();
+    const panel = $('animControlPanel');
+    if (panel) panel.setAttribute('aria-hidden', 'false');
+    const dataPanel = $('animDataPanel');
+    if (dataPanel) dataPanel.setAttribute('aria-hidden', 'false');
+    syncControls();
+    renderStormList();
+    applyEffects();
+    if (window.SUDRE && window.SUDRE.state && window.SUDRE.state.storms.length) {
+      setTimeout(() => {
+        try { window.SUDRE.flyToStorm(); } catch (e) {}
+        try { window.SUDRE.draw(); } catch (e) {}
+      }, 360);
+      try { window.toast('动画工坊已就绪：左侧导入，右侧调参', 'ok'); } catch (e) {}
+    } else {
+      try { window.toast('动画工坊已就绪：在左侧粘贴报文或载入示例', 'warn'); } catch (e) {}
+    }
+    if (window.playSFX) try { window.playSFX('view_enter'); } catch (e) {}
+  }
+
+  function exitAnimationMode() {
+    if (!isAnimation()) return;
+    document.body.classList.remove('mode-animation', 'anim-trail');
+    const panel = $('animControlPanel');
+    if (panel) panel.setAttribute('aria-hidden', 'true');
+    const dataPanel = $('animDataPanel');
+    if (dataPanel) dataPanel.setAttribute('aria-hidden', 'true');
+    AnimPreview.invalidate();
+    restoreSandbox();
+    if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
+  }
+
+  window.openTCAnimationStudio = function(){ window.location.href = 'tc-animation-studio.html'; };
+  window.enterAnimationMode = enterAnimationMode;
+  window.exitAnimationMode = exitAnimationMode;
+
+  function applyEffects() {
+    const s = settings();
+    const rings = $('animRings');
+    if (rings) {
+      const on = rings.checked;
+      s.wr = { 34: on, 50: on, 64: on };
+    }
+    const trail = $('animTrail');
+    document.body.classList.toggle('anim-trail', !!(trail && trail.checked));
+    const particles = $('animParticles');
+    s.animParticles = !!(particles && particles.checked);
+    const vignette = $('animVignette');
+    s.animVignette = !!(vignette && vignette.checked);
+    const mask = $('maskNum');
+    s.maskNum = !!(mask && mask.checked);
+    if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
+  }
+
+  function syncControls() {
+    const s = settings();
+    const set = (id, val) => { const el = $(id); if (el && val != null) el.value = val; };
+    const check = (id, val) => { const el = $(id); if (el) el.checked = !!val; };
+    set('animLineWidth', s.lineWidth || 3);
+    set('animRadiiAlpha', s.radiiAlpha != null ? s.radiiAlpha : 16);
+    set('animSpeed', s.animSpeed || 1);
+    set('animFollowMode', s.followMode || 'pan');
+    set('animIconScale', s.iconScale || 1);
+    set('animIconX', s.iconX || 0);
+    set('animIconY', s.iconY || 0);
+    set('animIconSpin', s.iconSpin != null ? s.iconSpin : 1);
+    const ex=s.export||{};set('exportRes',ex.res||'1080');set('exportFps',String(ex.fps||30));set('exportBitrate',ex.bitrate||'auto');
+    check('animParticles', s.animParticles !== false);
+    check('animRings', !s.wr || s.wr[34] !== false);
+    check('animTrail', s.animTrail !== false);
+    check('animVignette', s.animVignette !== false);
+    check('maskNum', !!s.maskNum);
+    const lw = $('animLineWidthV'); if (lw) lw.textContent = String(s.lineWidth || 3);
+    const ra = $('animRadiiAlphaV'); if (ra) ra.textContent = String(s.radiiAlpha != null ? s.radiiAlpha : 16);
+    const sp = $('animSpeedV'); if (sp) sp.textContent = (+s.animSpeed || 1).toFixed(1) + '×';
+    const is = $('animIconScaleV'); if (is) is.textContent = (+s.iconScale || 1).toFixed(1);
+    const ix = $('animIconXV'); if (ix) ix.textContent = String(s.iconX || 0);
+    const iy = $('animIconYV'); if (iy) iy.textContent = String(s.iconY || 0);
+    const ir = $('animIconSpinV'); if (ir) ir.textContent = (+s.iconSpin || 0).toFixed(1);
+  }
+
+  function renderStormList() {
+    const box = $('animStormList');
+    if (!box || !window.SUDRE) return;
+    const st = window.SUDRE.state;
+    const list = st.storms.filter(x => !x.hidden && x.points && x.points.length);
+    if (!list.length) {
+      box.innerHTML = '<div class="anim-empty">尚未载入气旋<br>在左侧粘贴报文或载入示例</div>';
+      setStatus('等待报文…');
+      return;
+    }
+    box.innerHTML = list.map(x => {
+      const p = x.points[x.peak] || x.points[0] || {};
+      const col = LEVEL_COLOR[p.level] || '#7fa3c0';
+      const name = String(x.name || x.id).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+      return '<div class="anim-storm' + (x.id === st.activeId ? ' on' : '') + '" data-id="' + x.id + '">' +
+        '<span class="dot" style="background:' + col + ';color:' + col + '"></span>' +
+        '<span class="nm"><b>' + name + '</b><small>' + x.id + ' · ' + (p.level || '—') + ' · ' + Math.round(p.wind || 0) + 'kt · ' + x.points.length + ' 帧</small></span>' +
+        '</div>';
+    }).join('');
+    setStatus('已载入 ' + list.length + ' 个气旋 · 点击切换');
+  }
+
+  function selectStorm(id) {
+    if (!window.SUDRE) return;
+    const st = window.SUDRE.state;
+    const storm = st.storms.find(x => x.id === id);
+    if (!storm) return;
+    st.activeId = id;
+    st.frac = 0;
+    if (window.SUDRE.Anim) { window.SUDRE.Anim.pause(); window.SUDRE.Anim.frac = 0; }
+    try { window.SUDRE.draw(); window.SUDRE.updateTimeline(); } catch (e) {}
+    try { window.SUDRE.flyToStorm(); } catch (e) {}
+    renderStormList();
+    setStatus('当前：' + (storm.name || storm.id) + ' · ' + storm.points.length + ' 帧');
+  }
+
+  function parsePaste() {
+    const area = $('animPaste');
+    if (!area || !window.SUDRE || !window.SUDRE.ingest) return;
+    const text = area.value.trim();
+    if (!text) { setStatus('请先粘贴报文', 'err'); return; }
+    setStatus('正在解析…');
+    let result = [];
+    try { result = window.SUDRE.ingest(text, '动画工坊'); } catch (e) { setStatus('解析失败：' + e.message, 'err'); return; }
+    if (!result || !result.length) { setStatus('未解析到有效路径', 'err'); return; }
+    setTimeout(() => {
+      renderStormList();
+      const st = window.SUDRE.state;
+      const first = st.storms.find(x => x.id === st.activeId) || st.storms[0];
+      if (first) selectStorm(first.id);
+      setStatus('解析完成：' + result.length + ' 条路径', 'ok');
+    }, 450);
+  }
+
+  function loadSample() {
+    const btn = $('btnSample');
+    if (!btn) { setStatus('示例数据不可用', 'err'); return; }
+    setStatus('正在载入示例…');
+    btn.click();
+    setTimeout(() => {
+      renderStormList();
+      const st = window.SUDRE && window.SUDRE.state;
+      const first = st && (st.storms.find(x => x.id === st.activeId) || st.storms[0]);
+      if (first) selectStorm(first.id);
+      setStatus('示例已载入', 'ok');
+    }, 600);
+  }
+
+  function syncCamera(v) {
+    const s = settings();
+    s.followMode = v;
+    const follow = v !== 'none';
+    s.follow = follow;
+    s.cinema = follow;
+    try { if (window.SUDRE && window.SUDRE.setFollow) window.SUDRE.setFollow(follow, false); } catch (e) {}
+    if (window.SUDRE && window.SUDRE.draw) { try { window.SUDRE.draw(); } catch (e) {} }
+  }
+
+  function setView(v) {
+    if (!window.SUDRE) return;
+    try {
+      if (v === 'climax') {
+        window.SUDRE.setView('full3d');
+        window.SUDRE.state.settings.follow = true;
+        window.SUDRE.state.settings.cinema = true;
+        if (window.SUDRE.setFollow) window.SUDRE.setFollow(true, false);
+      } else {
+        window.SUDRE.setView(v);
+      }
+      document.querySelectorAll('[data-aview]').forEach(b => b.classList.toggle('on', b.dataset.aview === v));
+      window.SUDRE.draw();
+    } catch (e) {}
+  }
+
+  function loadCustomIcon(file) {
+    if (!file) return;
+    if (iconUrl) { try { URL.revokeObjectURL(iconUrl); } catch (e) {} iconUrl = null; }
+    const old = window.SUDRE && window.SUDRE.state && window.SUDRE.state.customIcon;
+    if (old && old.element && old.element.parentNode && old.type === 'video') old.element.parentNode.removeChild(old.element);
+    iconUrl = URL.createObjectURL(file);
+    if (/^video\//.test(file.type)) {
+      const video = document.createElement('video');
+      video.src = iconUrl;
+      video.muted = true;
+      video.loop = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.style.display = 'none';
+      document.body.appendChild(video);
+      video.onloadeddata = () => {
+        try { video.play(); } catch (e) {}
+        window.SUDRE.state.customIcon = { type: 'video', element: video };
+        setStatus('自定义视频图标已载入', 'ok');
+        try { window.SUDRE.draw(); } catch (e) {}
+      };
+      video.onerror = () => setStatus('视频图标读取失败', 'err');
+    } else if (/^image\//.test(file.type)) {
+      const img = new Image();
+      img.onload = () => {
+        window.SUDRE.state.customIcon = { type: 'image', element: img };
+        setStatus('自定义图片图标已载入', 'ok');
+        try { window.SUDRE.draw(); } catch (e) {}
+      };
+      img.onerror = () => setStatus('图片图标读取失败', 'err');
+      img.src = iconUrl;
+    } else {
+      setStatus('请选择图片或视频文件', 'err');
+    }
+  }
+
+  function init() {
+    const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+    on('animBtnParse', 'click', parsePaste);
+    on('animBtnSample', 'click', loadSample);
+    const list = $('animStormList');
+    if (list) list.addEventListener('click', e => {
+      const row = e.target.closest('.anim-storm');
+      if (row) selectStorm(row.dataset.id);
+    });
+    on('animLineWidth', 'input', e => {
+      const v = +e.target.value;
+      settings().lineWidth = v;
+      const out = $('animLineWidthV'); if (out) out.textContent = String(v);
+      if (window.SUDRE) try { window.SUDRE.draw(); } catch (err) {}
+    });
+    on('animRadiiAlpha', 'input', e => {
+      const v = +e.target.value;
+      settings().radiiAlpha = v;
+      const out = $('animRadiiAlphaV'); if (out) out.textContent = String(v);
+      if (window.SUDRE) try { window.SUDRE.draw(); } catch (err) {}
+    });
+    on('animSpeed', 'input', e => {
+      const v = +e.target.value;
+      settings().animSpeed = v;
+      const out = $('animSpeedV'); if (out) out.textContent = v.toFixed(1) + '×';
+    });
+    on('animFollowMode', 'change', e => syncCamera(e.target.value));
+    on('animParticles', 'change', applyEffects);
+    on('animRings', 'change', applyEffects);
+    on('animTrail', 'change', applyEffects);
+    on('animVignette', 'change', applyEffects);
+    on('maskNum', 'change', applyEffects);
+    on('customIconUpload', 'change', e => loadCustomIcon(e.target.files && e.target.files[0]));
+    for (const [id,key] of [['exportRes','res'],['exportFps','fps'],['exportBitrate','bitrate']]) {
+      on(id,'change',e=>{const s=settings();s.export=Object.assign({},s.export||{},{[key]:key==='fps'?+e.target.value:e.target.value});if(key==='res'){AnimPreview.invalidate();if(window.SUDRE)try{window.SUDRE.draw();}catch(err){}}});
+    }
+    const smooth = $('animSmooth');
+    if (smooth) smooth.addEventListener('input', () => {
+      const v = +smooth.value;
+      const out = $('animSmoothV'); if (out) out.textContent = v;
+      settings().camSmooth = 1300 - v * 6;
+    });
+    const offset = $('animOffset');
+    if (offset) offset.addEventListener('input', () => {
+      const out = $('animOffsetV'); if (out) out.textContent = offset.value;
+      settings().camOffset = +offset.value;
+    });
+    for (const [id, key, suffix] of [['animIconScale', 'iconScale', 'animIconScaleV'], ['animIconX', 'iconX', 'animIconXV'], ['animIconY', 'iconY', 'animIconYV'], ['animIconSpin', 'iconSpin', 'animIconSpinV']]) {
+      on(id, 'input', e => {
+        const v = +e.target.value;
+        settings()[key] = v;
+        const out = $(suffix);
+        if (out) out.textContent = id === 'animIconScale' ? v.toFixed(1) : (id === 'animIconSpin' ? v.toFixed(1) : String(v));
+        if (window.SUDRE) try { window.SUDRE.draw(); } catch (err) {}
+      });
+    }
+    document.querySelectorAll('[data-aview]').forEach(b => b.addEventListener('click', () => setView(b.dataset.aview)));
+    const rec = $('animRec');
+    if (rec) rec.addEventListener('click', () => {
+      if (window.SUDRE && window.SUDRE.exportMP4) {
+        try { window.SUDRE.exportMP4(); } catch (e) { if (window.toast) window.toast('MP4 导出失败：' + e.message, 'err'); }
+      } else if (window.toast) window.toast('MP4 导出模块未就绪', 'err');
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
 })();
 
 
