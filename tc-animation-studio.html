@@ -5,19 +5,31 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>TC Animation Studio · Sudre.Tc</title>
 <style>
-:root{--bg:#03080e;--panel:rgba(6,18,30,.86);--line:#1b3a54;--txt:#dceaf7;--txt2:#8fa9bf;--txt3:#55748d;--teal:#19e2c5;--mono:ui-monospace,SFMono-Regular,Consolas,monospace;--sans:Inter,"Segoe UI","Microsoft YaHei",sans-serif;--hdr:52px;--tl:64px}
+:root{--bg:#03080e;--panel:rgba(6,18,30,.86);--line:#1b3a54;--txt:#dceaf7;--txt2:#8fa9bf;--txt3:#55748d;--teal:#19e2c5;--mono:ui-monospace,SFMono-Regular,Consolas,monospace;--sans:Inter,"Segoe UI","Microsoft YaHei",sans-serif;--hdr:58px;--tl:64px}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--sans);overflow:hidden}
 body{display:flex;flex-direction:column}
 button,select,input,textarea{font-family:inherit;color:inherit}
 button{cursor:pointer}
-#hdr{height:var(--hdr);flex:0 0 var(--hdr);display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid rgba(39,77,106,.65);background:rgba(5,15,26,.9);backdrop-filter:blur(14px);z-index:20}
-.brand{display:flex;align-items:center;gap:8px;min-width:0}
+#hdr{height:var(--hdr);flex:0 0 var(--hdr);display:flex;align-items:center;gap:11px;padding:0 14px;border-bottom:1px solid rgba(39,77,106,.72);background:linear-gradient(180deg,rgba(7,21,35,.96),rgba(4,14,24,.9));backdrop-filter:blur(18px);box-shadow:0 6px 24px rgba(0,0,0,.28);z-index:20}
+.brand{display:flex;align-items:center;gap:9px;min-width:0;text-decoration:none;color:inherit;flex:0 0 auto}
+.hdr-div{width:1px;height:24px;background:rgba(39,77,106,.75);flex:0 0 auto}
+.hdr-project{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.hdr-project>span{font:7px var(--mono);letter-spacing:.18em;color:var(--txt3)}
+.hdr-project b{font-size:11px;letter-spacing:.05em;color:#e9f8ff;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.hdr-project small{font:7px var(--mono);color:var(--txt3);margin-top:1px;letter-spacing:.04em}
+.hdr-meta{display:flex;align-items:center;gap:9px;font:7px var(--mono);letter-spacing:.06em;color:var(--txt3);white-space:nowrap}
+.hdr-meta .dot{width:5px;height:5px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.hdr-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto}
 .mark{width:27px;height:27px;border:1px solid rgba(25,226,197,.45);border-radius:7px;display:grid;place-items:center;color:var(--teal);font:700 15px var(--mono)}
 .brand b{font-size:13px;letter-spacing:.03em}.brand b i{font-style:normal;color:var(--teal)}.brand small{display:block;font:7px var(--mono);letter-spacing:.22em;color:var(--txt3);margin-top:1px}
 .tag{font:8px var(--mono);letter-spacing:.1em;color:var(--teal);border:1px solid rgba(25,226,197,.35);border-radius:999px;padding:3px 7px;margin-left:5px}
 .spacer{flex:1}
-.hbtn{height:27px;border:1px solid var(--line);border-radius:4px;background:rgba(14,35,54,.6);color:var(--txt2);font-size:9px;padding:0 10px;display:inline-flex;align-items:center;gap:5px}
+.hbtn{height:28px;border:1px solid rgba(39,77,106,.9);border-radius:5px;background:rgba(12,31,48,.58);color:var(--txt2);font-size:8px;padding:0 9px;display:inline-flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap}
+.hbtn svg{opacity:.78;flex:0 0 auto}
+.hbtn:hover svg,.hbtn.primary svg{opacity:1}
+.hbtn.on{border-color:rgba(25,226,197,.45);background:rgba(25,226,197,.09);color:var(--teal)}
+.hbtn-icon{width:28px;padding:0;justify-content:center}
 .hbtn:hover{border-color:rgba(25,226,197,.5);color:#eaffff}
 .hbtn.primary{border-color:rgba(25,226,197,.55);background:rgba(25,226,197,.12);color:var(--teal)}
 #wrap{flex:1;min-height:0;display:flex;position:relative;overflow:hidden}
@@ -69,7 +81,8 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 #toast.show{opacity:1;transform:none}
 #toast.err{border-left-color:#ff6b81;color:#ffb3bd}
 @media(max-width:1100px){.panel{width:232px;flex-basis:232px}#time{min-width:105px}}
-@media(max-width:820px){.panel{position:absolute;top:8px;bottom:8px;width:210px;display:none}.panel.open{display:flex}#left{left:8px}#right{right:8px}#stage{min-height:0}#ft{display:none}}
+@media(max-width:1100px){.hdr-meta{display:none}}
+@media(max-width:820px){.panel{position:absolute;top:8px;bottom:8px;width:210px;display:none}.panel.open{display:flex}#left{left:8px}#right{right:8px}#stage{min-height:0}#ft{display:none}.hdr-project,.hdr-div{display:none}.brand small{display:none}.hbtn span{display:none}.hbtn{padding:0 7px}.hbtn-icon{width:28px}}
 #globe{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#02070d;box-shadow:0 24px 80px rgba(0,0,0,.65)}#globeHud{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
 .level-icons{display:flex;flex-direction:column;gap:4px;margin:3px 0 7px;max-height:170px;overflow:auto;padding-right:2px}
 .level-row{display:flex;align-items:center;gap:5px;border:1px solid rgba(39,77,106,.55);border-radius:4px;padding:4px 5px;background:rgba(4,14,23,.55)}
@@ -88,13 +101,19 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 </head>
 <body>
 <header id="hdr">
-  <div class="brand"><div class="mark">S</div><div><b>Sudre<i>.Tc</i></b><small>TC ANIMATION STUDIO</small></div><span class="tag">v1.0</span></div>
+  <a class="brand" href="index.html" title="返回主站"><div class="mark">S</div><div><b>Sudre<i>.Tc</i></b><small>TC ANIMATION STUDIO</small></div><span class="tag">v1.0</span></a>
+  <div class="hdr-div"></div>
+  <div class="hdr-project"><span>PROJECT / TC ANIMATION</span><b id="hdrProject">POLO</b><small id="hdrSub">WP01 · BEST TRACK</small></div>
   <div class="spacer"></div>
-  <button class="hbtn" id="btnLeft">数据</button>
-  <button class="hbtn" id="btnRight">参数</button>
-  <button class="hbtn" id="sfxBtn">音效 开</button>
-  <button class="hbtn" id="btnPng">PNG</button>
-  <button class="hbtn primary" id="btnMp4">● 导出 MP4</button>
+  <div class="hdr-meta"><span class="dot"></span><span id="hdrMode">2D MAP</span><span id="hdrRes">1920×1080</span><span id="hdrFps">30 FPS</span></div>
+  <div class="hdr-actions">
+    <button class="hbtn" id="btnLeft" title="数据面板"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>数据</span></button>
+    <button class="hbtn" id="btnRight" title="参数面板"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15" cy="7" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="17" r="2" stroke="currentColor" stroke-width="1.6"/></svg><span>参数</span></button>
+    <button class="hbtn" id="sfxBtn" title="音效开关"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 4V5L8 9H4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M16 9a4 4 0 010 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>音效 开</span></button>
+    <button class="hbtn" id="btnPng" title="导出 PNG"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>PNG</span></button>
+    <button class="hbtn primary" id="btnMp4" title="导出 MP4"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M10 9l5 3-5 3V9z" fill="currentColor"/></svg><span>导出 MP4</span></button>
+    <button class="hbtn hbtn-icon" id="btnFull" title="全屏"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
 </header>
 
 <div id="wrap">
@@ -156,8 +175,9 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
         <div class="lbl"><label>Y 偏移</label><input id="iconY" type="range" min="-100" max="100" step="1" value="0"><span id="iconYV">0</span></div>
         <div class="lbl"><label>旋转</label><input id="iconSpin" type="range" min="0" max="5" step=".1" value="0"><span id="iconSpinV">0</span></div>
         <label class="chk"><input type="checkbox" id="maskNum">遮挡原生数字</label>
-        <div class="lbl"><label>去黑底</label><select id="keyingMode"><option value="none">不去除</option><option value="screen" selected>滤色 Screen</option><option value="threshold">阈值抠像</option></select></div>
+        <div class="lbl"><label>去黑底</label><select id="keyingMode"><option value="none">不去除</option><option value="screen" selected>滤色 Screen</option><option value="threshold">阈值抠像</option><option value="mix">混合模式</option></select></div>
         <div class="lbl"><label>阈值</label><input id="keyingThreshold" type="range" min="0" max="50" step="1" value="20" disabled><span id="keyingThresholdV">20</span></div>
+        <div class="lbl"><label>混合</label><select id="blendMode" disabled><option value="screen" selected>滤色</option><option value="lighter">相加</option><option value="lighten">变亮</option><option value="overlay">叠加</option></select></div>
       </div>
       <div class="sec"><h5>导出 <em>EXPORT</em></h5>
         <div class="lbl"><label>画质</label><select id="res"><option value="1080" selected>1080p</option><option value="2k">2K</option><option value="4k">4K</option></select></div>
@@ -195,7 +215,7 @@ const state = {
   palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
   W:1920, H:1080, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0, view:'2d',
   fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,clouds:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
-  lineW:4, logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, keyCache:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
+  lineW:4, logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
@@ -503,6 +523,7 @@ function levelBlend(w){
   for(let i=0;i<bounds.length;i++){const b=bounds[i];if(w>=b-band&&w<=b+band){return {a:keys[i],b:keys[i+1],t:(w-(b-band))/(2*band)};}}
   return {a:iconLevel(w),b:null,t:0};
 }
+function iconPhase(){const t=(state.exporting&&state.iconExportTime!=null)?state.iconExportTime:performance.now()/1000;return t*state.iconSpin;}
 function drawIntensityIcon(ctx,W,H,cam,frac){
   const cur=pointAt(frac);if(!cur)return;
   const p=project(cur.lat,cur.lon,cam,W,H);
@@ -516,9 +537,10 @@ function drawIntensityIcon(ctx,W,H,cam,frac){
     const ih=iw*((el.videoHeight||el.naturalHeight||256)/(el.videoWidth||el.naturalWidth||256));
     const src=keyedSource(el,ci.type,level);
     ctx.save();ctx.globalAlpha=alpha;ctx.translate(x,y);
-    const ang=performance.now()/1000*state.iconSpin+(+ci.baseAngle||0)*D2R;
+    const ang=iconPhase()+(+ci.baseAngle||0)*D2R;
     if(ang)ctx.rotate(ang);
     if(state.keyingMode==='screen')ctx.globalCompositeOperation='screen';
+    else if(state.keyingMode==='mix')ctx.globalCompositeOperation=state.blendMode||'screen';
     try{ctx.drawImage(src||el,-iw/2,-ih/2,iw,ih);}catch(e){ctx.restore();return false;}
     ctx.restore();ctx.globalCompositeOperation='source-over';
     return true;
@@ -538,7 +560,8 @@ function drawIntensityIcon(ctx,W,H,cam,frac){
       ctx.strokeStyle='rgba(2,8,14,.85)';ctx.lineWidth=2;ctx.stroke();
       ctx.font='700 '+Math.round(mr*.95)+'px '+getComputedStyle(document.body).fontFamily;
       ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';
-      ctx.fillText(shortLevel(cur.wind),x,y);ctx.restore();
+      if(blend.b){const tt=Math.max(0,Math.min(1,blend.t));ctx.globalAlpha=1-tt;ctx.fillText(blend.a,x,y);ctx.globalAlpha=tt;ctx.fillText(blend.b,x,y);}else{ctx.fillText(iconLevel(cur.wind),x,y);}
+      ctx.restore();
     }
     return;
   }
@@ -646,6 +669,7 @@ function resizeCanvas(){
   const gl=$('globe');if(gl){gl.style.width=Math.round(w*sc)+'px';gl.style.height=Math.round(h*sc)+'px';}
   const gh=$('globeHud');if(gh){gh.width=w;gh.height=h;gh.style.width=Math.round(w*sc)+'px';gh.style.height=Math.round(h*sc)+'px';}
   $('renderStat').textContent=w+' × '+h+' · '+state.fps+' fps';
+  updateHeader();
 }
 let G3=null;
 function sphereVec(lat,lon,r){
@@ -764,7 +788,7 @@ function renderGlobeFrame(ctx,W,H,frac){
   return true;
 }
 function setViewMode(v){
-  state.view=v;
+  state.view=v;updateHeader();
   const cv=document.getElementById('cv'),gl=document.getElementById('globe');
   if(v==='3d'){cv.style.display='none';gl.style.display='block';document.getElementById('globeHud').style.display='block';initGlobe();resizeCanvas();}
   else{cv.style.display='block';gl.style.display='none';document.getElementById('globeHud').style.display='none';resizeCanvas();}
@@ -790,7 +814,7 @@ function renderKeys(){const el=$('keyList');if(!el)return;el.textContent=state.k
 function loadStorm(st){
   if(!st||!st.points.length)return;
   state.storm=st;state.points=st.points;state.frac=0;if(G3)buildGlobeTrack();
-  renderStormList();setFrac(0);drawPreview();
+  renderStormList();setFrac(0);updateHeader();drawPreview();
 }
 function renderStormList(){
   const box=$('stormList');if(!state.storm){box.innerHTML='<div class="stat">尚未载入气旋</div>';return;}
@@ -838,6 +862,16 @@ function initLevelIcons(){
   box.innerHTML=levels.map(l=>'<div class="level-row"><b>'+l+'</b><span class="lv-name">'+names[l]+'</span><input type="file" id="iconUpload_'+l+'" accept="video/mp4,video/webm,image/png"><button type="button" class="clear" data-clear="'+l+'" title="清除">✕</button><input class="angle" id="iconAngle_'+l+'" type="number" min="-180" max="180" step="1" value="0" title="校准角度"><span class="level-status" id="iconStatus_'+l+'">未上传</span></div>').join('');
   levels.forEach(l=>{const inp=document.getElementById('iconUpload_'+l);if(inp)inp.onchange=e=>loadLevelIcon(l,e.target.files[0]);const cl=box.querySelector('[data-clear="'+l+'"]');if(cl)cl.onclick=()=>clearLevelIcon(l);const an=document.getElementById('iconAngle_'+l);if(an)an.onchange=()=>{const ci=state.customIcons[l];if(ci)ci.baseAngle=+an.value||0;drawPreview();};});
 }
+function updateHeader(){
+  const st=state.storm;
+  const title=(state.titleText||(st&&st.name)||'未命名项目').toUpperCase();
+  const sub=st?(st.id+' · BEST TRACK'):'等待载入路径';
+  const hp=document.getElementById('hdrProject'),hs=document.getElementById('hdrSub');
+  const hm=document.getElementById('hdrMode'),hr=document.getElementById('hdrRes'),hf=document.getElementById('hdrFps');
+  if(hp)hp.textContent=title;if(hs)hs.textContent=sub;
+  if(hm)hm.textContent=state.view==='3d'?'3D GLOBE':'2D MAP';
+  if(hr)hr.textContent=state.W+'×'+state.H;if(hf)hf.textContent=state.fps+' FPS';
+}
 function bindUI(){
   $('btnParse').onclick=parseAndLoad;$('btnSample').onclick=loadSample;
   $('btnPng').onclick=()=>{const a=document.createElement('a');a.href=$('cv').toDataURL('image/png');a.download='SudreTc_TC_'+Date.now()+'.png';a.click();};
@@ -864,19 +898,22 @@ function bindUI(){
   $('iconY').oninput=e=>{state.iconY=+e.target.value;$('iconYV').textContent=state.iconY;drawPreview();};
   $('iconSpin').oninput=e=>{state.iconSpin=+e.target.value;$('iconSpinV').textContent=state.iconSpin.toFixed(1);drawPreview();};
   $('maskNum').onchange=e=>{state.maskNum=e.target.checked;drawPreview();};
-  $('keyingMode').onchange=e=>{state.keyingMode=e.target.value;state.keyCache=null;$('keyingThreshold').disabled=e.target.value!=='threshold';drawPreview();};
+  $('keyingMode').onchange=e=>{state.keyingMode=e.target.value;state.keyCache=null;$('keyingThreshold').disabled=e.target.value!=='threshold';$('blendMode').disabled=e.target.value!=='mix';drawPreview();};
   $('keyingThreshold').oninput=e=>{state.keyingThreshold=+e.target.value;$('keyingThresholdV').textContent=e.target.value;state.keyCache=null;drawPreview();};
+  $('blendMode').onchange=e=>{state.blendMode=e.target.value;drawPreview();};
   $('iconFile')?.remove?.();
   initLevelIcons();
   $('logoFile').onchange=e=>loadLogo(e.target.files[0]);
   document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{sfx('preset');state.palette=b.dataset.preset;buildWorldTexture();drawPreview();});
   const tt=$('titleText'),ts=$('subtitleText');
-  if(tt)tt.oninput=e=>{state.titleText=e.target.value;drawPreview();};
+  if(tt)tt.oninput=e=>{state.titleText=e.target.value;updateHeader();drawPreview();};
   if(ts)ts.oninput=e=>{state.subtitleText=e.target.value;drawPreview();};
   $('grade').onchange=e=>{state.grade=e.target.value;drawPreview();};
   $('keyAdd').onclick=()=>{sfx('key');state.keys.push({p:state.frac/Math.max(1,state.points.length-1),zoom:state.camPush});state.keys.sort((a,b)=>a.p-b.p);renderKeys();drawPreview();};
   $('keyClear').onclick=()=>{state.keys=[];renderKeys();drawPreview();};
-  $('btnLeft').onclick=()=>$('left').classList.toggle('open');$('btnRight').onclick=()=>$('right').classList.toggle('open');
+  $('btnLeft').onclick=()=>{const on=$('left').classList.toggle('open');$('btnLeft').classList.toggle('on',on);};
+  $('btnRight').onclick=()=>{const on=$('right').classList.toggle('open');$('btnRight').classList.toggle('on',on);};
+  $('btnFull').onclick=()=>{if(!document.fullscreenElement){if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();}else if(document.exitFullscreen){document.exitFullscreen();}};
   window.addEventListener('resize',()=>{resizeCanvas();drawPreview();});
 }
 function loadLogo(file){if(!file)return;const url=URL.createObjectURL(file);const img=new Image();img.onload=()=>{state.logo=img;toast('品牌 Logo 已载入');drawPreview();};img.src=url;}
@@ -959,12 +996,13 @@ async function exportMP4(){
     const enc=new VideoEncoder({output:(chunk,meta)=>{try{muxer.addVideoChunk(chunk,meta);}catch(e){}},error:e=>toast(e.message,true)});
     enc.configure(cfg);
     for(let k=0;k<total;k++){
-      const frac=(k/(total-1))*(n-1);if(state.view==='3d')renderGlobeFrame(ctx,W,H,frac);else renderScene(ctx,W,H,frac);
+      const frac=(k/(total-1))*(n-1);state.iconExportTime=k/fps;if(state.view==='3d')renderGlobeFrame(ctx,W,H,frac);else renderScene(ctx,W,H,frac);
       const vf=new VideoFrame(cv,{timestamp:Math.round(k*1e6/fps),duration:Math.round(1e6/fps)});
       enc.encode(vf,{keyFrame:k%(fps*2)===0});vf.close();
       while(enc.encodeQueueSize>(W>=3000?3:8))await new Promise(r=>setTimeout(r,6));
       if(k%5===0){$('btnMp4').textContent='导出 '+Math.round((k+1)/total*100)+'%';await new Promise(r=>setTimeout(r,0));}
     }
+    state.iconExportTime=null;
     await enc.flush();
     if(audioCfg){try{const ab=await renderSfxTrack(total/fps);await encodeAudioTrack(muxer,ab);}catch(e){console.warn('audio',e);}}
     muxer.finalize();
@@ -981,7 +1019,7 @@ async function loadLand(){
   $('splash').classList.add('hide');
 }
 function init(){
-  bindUI();loadSample();resizeCanvas();drawPreview();loadLand().then(()=>drawPreview());
+  bindUI();loadSample();resizeCanvas();updateHeader();drawPreview();loadLand().then(()=>drawPreview());
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
