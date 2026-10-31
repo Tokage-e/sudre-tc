@@ -3731,7 +3731,8 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
           </div>
           <div class="card">
             <h5>导出选项</h5>
-            <label class="chk"><input type="checkbox" id="sTransparent">PNG 透明背景（不画底图 / 网格）</label>
+            <div class="row"><label>导出模式</label><select id="exportMode"><option value="normal" selected>标准地图</option><option value="pro">专业模式</option><option value="current">当前视图</option></select></div>
+          <label class="chk"><input type="checkbox" id="sTransparent">PNG 透明背景（不画底图 / 网格）</label>
             <div class="row"><label>导出坐标系</label><select id="sCrs">
               <option value="wgs84">WGS84（推荐）</option>
               <option value="cgcs2000">CGCS2000</option>
@@ -7637,6 +7638,7 @@ function makeExport(W,H,st,opts){
   }
   return {canvas:cv,draw};
 }
+function currentExportMode(){const el=document.getElementById('exportMode');const v=el?el.value:'normal';return v==='current'?(state.settings.mode==='pro'?'pro':'normal'):v;}
 function exportPNG(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
   showLoading(true,'渲染 PNG…');
@@ -7654,7 +7656,7 @@ function exportPNG(){
           }
         }catch(e3){}
       }
-      const ex=makeExport(W,H,st,{transparent});ex.draw(state.frac);
+      const ex=makeExport(W,H,st,{transparent,mode:currentExportMode()});ex.draw(state.frac);
       ex.canvas.toBlob(b=>{
         const suffix=view==='tilt'?'_TILT':view==='raised'?'_RAISED':view==='full3d'?'_3D':'';downloadBlob(b,'SudreTc_'+st.id+suffix+'_'+new Date().toISOString().slice(0,10)+'.png');
         showLoading(false);toast('PNG 已导出（1600×1000）','ok');
@@ -7667,7 +7669,7 @@ function exportPNG(){
 async function exportWebM(){
   const st=activeStorm();if(!st){toast('请先导入路径','warn');return;}
   if(!window.MediaRecorder){toast('浏览器不支持 MediaRecorder','err');return;}
-  const ex=makeExport(1280,800,st,{animation:state.appMode==='animation',locked:state.settings.followMode==='lock-center'});
+  const ex=makeExport(1280,800,st,{animation:state.appMode==='animation',locked:state.settings.followMode==='lock-center',mode:currentExportMode()});
   const fps=+((document.getElementById('webmFps')||{}).value||30);const stream=ex.canvas.captureStream(fps);
   let mime='video/webm;codecs=vp9';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';
   const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8e6});
@@ -7726,7 +7728,7 @@ async function exportMP4(){
   const frameLimit=W*H>=3000*1600?3:8;
   const hold=W*H>=3000*1600?8:clamp(+($('#mp4Hold')||{}).value||36,16,120);
 
-  const ex=makeExport(W,H,st,{animation:state.appMode==='animation',locked:state.settings.followMode==='lock-center'});
+  const ex=makeExport(W,H,st,{animation:state.appMode==='animation',locked:state.settings.followMode==='lock-center',mode:currentExportMode()});
   MP4.busy=true;MP4.cancel=false;MP4.paused=false;
   $('#mp4Modal').classList.add('open');$('#mp4Pause').textContent='暂停';$('#mp4Fill').style.width='0%';
   $('#mp4Info').textContent='0% · 0/'+totalFrames+' 帧 · '+W+'×'+H+' @'+fps+'fps · '+Math.round(bitrate/1e6)+'Mbps';
@@ -8921,7 +8923,8 @@ else boot();
 function makeExport(W,H,st,opts){
   opts=opts||{};
   st=st||activeStorm();if(!st)return null;
-  const pro=state.settings.mode==='pro';
+  const mode=opts.mode||(state.settings.mode==='pro'?'pro':'normal');
+  const pro=mode==='pro';
   const transparent=!!opts.transparent;
   const cv=document.createElement('canvas');cv.width=W;cv.height=H;
   const ctx=cv.getContext('2d');
