@@ -504,7 +504,7 @@ function processKeyPixels(cv,threshold){
   c.putImageData(img,0,0);
 }
 function iconLevel(w){if(w<34)return'TD';if(w<64)return'TS';if(w<83)return'C1';if(w<96)return'C2';if(w<113)return'C3';if(w<137)return'C4';return'C5';}
-const STATUS_CN={DB:'热带扰动',MD:'季风低压',TD:'热带低压',TS:'热带风暴',TY:'台风',STY:'超强台风',SuperTY:'超强台风',SS:'副热带风暴',SD:'副热带低压',ET:'温带气旋',LO:'低压',WV:'热带波',HU:'飓风',MH:'强飓风'};
+const STATUS_CN={DB:'热带扰动',MD:'季风低压',TD:'热带低压',TS:'热带风暴',TY:'台风',STY:'强台风',SuperTY:'超强台风',SS:'副热带风暴',SD:'副热带低压',ET:'温带气旋',LO:'低压',WV:'热带波',HU:'飓风',MH:'强飓风'};
 function statusCn(s){return STATUS_CN[String(s||'').toUpperCase()]||String(s||'');}
 function statusToIcon(status,w){const s=String(status||'').toUpperCase();const m={DB:'TD',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',HU:'C1',MH:'C3',ET:'TD',LO:'TD',WV:'TD'};return m[s]||iconLevel(w);}
 function keyedSource(el,type,level){

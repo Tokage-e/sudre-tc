@@ -4217,7 +4217,7 @@ function classify(w){
   return 'C5';
 }
 const STATUS_LEVEL={DB:'DB',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',HU:'C1',MH:'C3',ET:'DB',LO:'DB',WV:'DB'};
-const STATUS_CN={DB:'热带扰动',MD:'季风低压',TD:'热带低压',TS:'热带风暴',TY:'台风',STY:'超强台风',SuperTY:'超强台风',SS:'副热带风暴',SD:'副热带低压',ET:'温带气旋',LO:'低压',WV:'热带波',HU:'飓风',MH:'强飓风'};
+const STATUS_CN={DB:'热带扰动',MD:'季风低压',TD:'热带低压',TS:'热带风暴',TY:'台风',STY:'强台风',SuperTY:'超强台风',SS:'副热带风暴',SD:'副热带低压',ET:'温带气旋',LO:'低压',WV:'热带波',HU:'飓风',MH:'强飓风'};
 function statusCn(s){return STATUS_CN[String(s||'').toUpperCase()]||String(s||'');}
 function levelForStatus(status,w){const s=String(status||'').toUpperCase();return STATUS_LEVEL[s]||classify(w);}
 function historicalRank(w){
