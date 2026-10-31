@@ -4216,7 +4216,9 @@ function classify(w){
   if(w<=136)return 'C4';
   return 'C5';
 }
-const STATUS_LEVEL={DB:'DB',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',SS:'C5',HU:'C1',MH:'C3',ET:'DB',LO:'DB',WV:'DB'};
+const STATUS_LEVEL={DB:'DB',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',HU:'C1',MH:'C3',ET:'DB',LO:'DB',WV:'DB'};
+const STATUS_CN={DB:'热带扰动',MD:'季风低压',TD:'热带低压',TS:'热带风暴',TY:'台风',STY:'超强台风',SuperTY:'超强台风',SS:'副热带风暴',SD:'副热带低压',ET:'温带气旋',LO:'低压',WV:'热带波',HU:'飓风',MH:'强飓风'};
+function statusCn(s){return STATUS_CN[String(s||'').toUpperCase()]||String(s||'');}
 function levelForStatus(status,w){const s=String(status||'').toUpperCase();return STATUS_LEVEL[s]||classify(w);}
 function historicalRank(w){
   w=+w||0;
@@ -5572,7 +5574,7 @@ function drawLabels(P,w,h){
   const pk=st.points[st.peak];
   if(pk&&P.fi>=st.peak){
     const q=project(pk.lat,pk.lon);
-    label(q[0]+7,q[1]-9,'PEAK '+st.peak+'kt '+(pk.status||pk.level||''),'#ffe28a');
+    label(q[0]+7,q[1]-9,'PEAK '+st.peak+'kt '+(pk.status?statusCn(pk.status):(pk.level||'')),'#ffe28a');
   }
   /* 每 12h 时刻 */
   P.pts.forEach((p,i)=>{
@@ -5588,7 +5590,7 @@ function drawCurrent(P,w,h){
   const q=project(cur.lat,cur.lon);
   fctx.save();
   fctx.beginPath();fctx.arc(q[0],q[1],12,0,7);fctx.strokeStyle='rgba(255,255,255,.9)';fctx.lineWidth=2;fctx.stroke();
-  if(cur.status){fctx.font='700 9px '+getComputedStyle(document.body).fontFamily;fctx.textAlign='left';fctx.fillStyle='#eaffff';fctx.fillText(cur.status,q[0]+15,q[1]-12);}
+  if(cur.status){fctx.font='700 9px '+getComputedStyle(document.body).fontFamily;fctx.textAlign='left';fctx.fillStyle='#eaffff';fctx.fillText(statusCn(cur.status),q[0]+15,q[1]-12);}
   fctx.beginPath();fctx.arc(q[0],q[1],4,0,7);fctx.fillStyle='#fff';fctx.fill();
   fctx.restore();
 }

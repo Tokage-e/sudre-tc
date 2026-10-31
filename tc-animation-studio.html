@@ -281,7 +281,7 @@ function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 function lerp(a,b,t){return a+(b-a)*t;}
 function ease(t){t=clamp(t,0,1);return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
 function fmtUTC(ms,short){const d=new Date(ms);const p=n=>String(n).padStart(2,'0');return short?p(d.getUTCMonth()+1)+'/'+p(d.getUTCDate())+' '+p(d.getUTCHours())+'Z':d.getUTCFullYear()+'-'+p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate())+' '+p(d.getUTCHours())+'Z';}
-function levelOf(w){if(w>=137)return'SS';if(w>=105)return'SuperTY';if(w>=83)return'STY';if(w>=64)return'TY';if(w>=48)return'TS';if(w>=34)return'TS';if(w>=25)return'TD';return'MD';}
+function levelOf(w){if(w>=137)return'SuperTY';if(w>=105)return'SuperTY';if(w>=83)return'STY';if(w>=64)return'TY';if(w>=34)return'TS';if(w>=25)return'TD';return'MD';}
 function colorOf(w){return C[levelOf(w)]||C.TY;}
 function shortLevel(w){const l=levelOf(w);return l==='SuperTY'?'STY':l;}
 function parseDeck(text){
@@ -504,7 +504,9 @@ function processKeyPixels(cv,threshold){
   c.putImageData(img,0,0);
 }
 function iconLevel(w){if(w<34)return'TD';if(w<64)return'TS';if(w<83)return'C1';if(w<96)return'C2';if(w<113)return'C3';if(w<137)return'C4';return'C5';}
-function statusToIcon(status,w){const s=String(status||'').toUpperCase();const m={DB:'TD',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',SS:'C5',HU:'C1',MH:'C3',ET:'TD',LO:'TD',WV:'TD'};return m[s]||iconLevel(w);}
+const STATUS_CN={DB:'热带扰动',MD:'季风低压',TD:'热带低压',TS:'热带风暴',TY:'台风',STY:'超强台风',SuperTY:'超强台风',SS:'副热带风暴',SD:'副热带低压',ET:'温带气旋',LO:'低压',WV:'热带波',HU:'飓风',MH:'强飓风'};
+function statusCn(s){return STATUS_CN[String(s||'').toUpperCase()]||String(s||'');}
+function statusToIcon(status,w){const s=String(status||'').toUpperCase();const m={DB:'TD',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',HU:'C1',MH:'C3',ET:'TD',LO:'TD',WV:'TD'};return m[s]||iconLevel(w);}
 function keyedSource(el,type,level){
   if(!el)return null;
   const mode=state.keyingMode,th=state.keyingThreshold;
@@ -621,12 +623,12 @@ function drawHUD(ctx,W,H,pal,frac){
   ctx.fillStyle='rgba(225,250,255,.95)';ctx.font='700 '+Math.round(H*.052)+'px '+FONT_FAMILY;
   ctx.fillText((state.titleText||st.name||'TC').toUpperCase(),W*.026,H*.15);
   ctx.fillStyle='rgba(160,205,225,.75)';ctx.font=Math.round(H*.015)+'px '+FONT_FAMILY;
-  ctx.fillText((state.subtitleText||st.id)+'  ·  '+iconLevel(cur.wind)+' · '+(cur.status||levelOf(cur.wind))+'  ·  '+Math.round(cur.wind)+' kt  ·  '+Math.round(cur.mslp)+' hPa',W*.026,H*.185);
+  ctx.fillText((state.subtitleText||st.id)+'  ·  '+iconLevel(cur.wind)+' · '+(cur.status?statusCn(cur.status):levelOf(cur.wind))+'  ·  '+Math.round(cur.wind)+' kt  ·  '+Math.round(cur.mslp)+' hPa',W*.026,H*.185);
   // time
   ctx.fillStyle='rgba(220,245,255,.9)';ctx.font='600 '+Math.round(H*.02)+'px '+FONT_FAMILY;ctx.fillText(fmtUTC(cur.time),W*.026,H*.9);
   ctx.fillStyle='rgba(120,170,195,.65)';ctx.font=Math.round(H*.012)+'px '+FONT_FAMILY;ctx.fillText('UTC  ·  WGS84  ·  SUDRE.TC ANIMATION',W*.026,H*.925);
   // legend
-  const keys=['MD','TD','TS','TY','STY','SS'];let x=W*.63;
+  const keys=['MD','TD','TS','TY','STY','SuperTY'];let x=W*.63;
   ctx.font=Math.round(H*.011)+'px '+FONT_FAMILY;
   keys.forEach(k=>{ctx.fillStyle=C[k]||'#7fa3c0';ctx.fillRect(x,H*.915,7,7);ctx.fillStyle='rgba(165,200,220,.75)';ctx.fillText(k,x+10,H*.921);x+=Math.max(42,W*.043);});
   ctx.restore();
@@ -858,7 +860,7 @@ function loadStorm(st){
 function renderStormList(){
   const box=$('stormList');if(!state.storm){box.innerHTML='<div class="stat">尚未载入气旋</div>';return;}
   const p=state.storm.points[0];
-  box.innerHTML='<div class="storm on"><span class="dot"></span><div><b>'+state.storm.name+'</b><small>'+state.storm.id+' · '+state.storm.points.length+' 帧 · '+iconLevel(p.wind)+' / '+(p.status||levelOf(p.wind))+' · '+Math.round(p.wind)+' kt</small></div></div>';
+  box.innerHTML='<div class="storm on"><span class="dot"></span><div><b>'+state.storm.name+'</b><small>'+state.storm.id+' · '+state.storm.points.length+' 帧 · '+iconLevel(p.wind)+' / '+(p.status?statusCn(p.status):levelOf(p.wind))+' · '+Math.round(p.wind)+' kt</small></div></div>';
 }
 function parseAndLoad(){
   const st=parseDeck($('paste').value);if(!st){toast('未解析到有效路径',true);return;}
