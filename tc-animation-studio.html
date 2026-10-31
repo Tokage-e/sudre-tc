@@ -293,10 +293,11 @@ function parseDeck(text){
     const latRaw=parseFloat(String(f[6]).replace(/[A-Za-z]/g,'')),lonRaw=parseFloat(String(f[7]).replace(/[A-Za-z]/g,''));
     if(!Number.isFinite(latRaw)||!Number.isFinite(lonRaw))continue;
     const lat=latRaw/10*(/S/i.test(f[6])?-1:1),lon=lonRaw/10*(/W/i.test(f[7])?-1:1);
-    const wind=parseFloat(f[8])||0, mslp=parseFloat(f[9])||null;
+    const wind=parseFloat(f[8])||0, mslp=parseFloat(f[9])||null, status=(f[10]||'').toUpperCase();
     const dt=Date.UTC(+time.slice(0,4),+time.slice(4,6)-1,+time.slice(6,8),+time.slice(8,10));
     let p=map.get(time);
-    if(!p){p={time:dt,lat,lon,wind,mslp,radii:{}};map.set(time,p);}
+    if(!p){p={time:dt,lat,lon,wind,mslp,status:status,radii:{}};map.set(time,p);}
+    if(status)p.status=status;
     p.wind=Math.max(p.wind,wind); if(mslp)p.mslp=mslp;
     if(f[11]==='34'||f[11]==='50'||f[11]==='64'){
       p.radii[f[11]]={ne:+f[13]||0,se:+f[14]||0,sw:+f[15]||0,nw:+f[16]||0};
@@ -309,7 +310,7 @@ function pointAt(frac){
   const pts=state.points,n=pts.length;if(!n)return null;
   const f=clamp(frac,0,n-1),i=Math.floor(f);if(i>=n-1)return pts[n-1];
   const a=pts[i],b=pts[i+1],t=f-i;
-  return {lat:lerp(a.lat,b.lat,t),lon:lerp(a.lon,b.lon,t),wind:lerp(a.wind,b.wind,t),mslp:lerp(a.mslp||b.mslp||1000,b.mslp||a.mslp||1000,t),time:lerp(a.time,b.time,t),radii:b.radii||a.radii};
+  return {lat:lerp(a.lat,b.lat,t),lon:lerp(a.lon,b.lon,t),wind:lerp(a.wind,b.wind,t),mslp:lerp(a.mslp||b.mslp||1000,b.mslp||a.mslp||1000,t),time:lerp(a.time,b.time,t),status:(t<.5?a.status:b.status)||a.status||b.status,radii:b.radii||a.radii};
 }
 function radiiAt(frac){
   const pts=state.points,n=pts.length,f=clamp(frac,0,n-1),i=Math.floor(f),j=Math.min(n-1,i+1),t=f-i;
@@ -503,6 +504,7 @@ function processKeyPixels(cv,threshold){
   c.putImageData(img,0,0);
 }
 function iconLevel(w){if(w<34)return'TD';if(w<64)return'TS';if(w<83)return'C1';if(w<96)return'C2';if(w<113)return'C3';if(w<137)return'C4';return'C5';}
+function statusToIcon(status,w){const s=String(status||'').toUpperCase();const m={DB:'TD',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',SS:'C5',HU:'C1',MH:'C3',ET:'TD',LO:'TD',WV:'TD'};return m[s]||iconLevel(w);}
 function keyedSource(el,type,level){
   if(!el)return null;
   const mode=state.keyingMode,th=state.keyingThreshold;
@@ -584,7 +586,7 @@ function drawIntensityIcon(ctx,W,H,cam,frac){
       ctx.strokeStyle='rgba(2,8,14,.85)';ctx.lineWidth=2;ctx.stroke();
       ctx.font='700 '+Math.round(mr*.95)+'px '+FONT_FAMILY;
       ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';
-      if(blend.b){const tt=Math.max(0,Math.min(1,blend.t));ctx.globalAlpha=1-tt;ctx.fillText(blend.a,x,y);ctx.globalAlpha=tt;ctx.fillText(blend.b,x,y);}else{ctx.fillText(iconLevel(cur.wind),x,y);}
+      if(blend.b){const tt=Math.max(0,Math.min(1,blend.t));ctx.globalAlpha=1-tt;ctx.fillText(blend.a,x,y);ctx.globalAlpha=tt;ctx.fillText(blend.b,x,y);}else{ctx.fillText(cur.status||iconLevel(cur.wind),x,y);}
       ctx.restore();
     }
     return;
@@ -619,7 +621,7 @@ function drawHUD(ctx,W,H,pal,frac){
   ctx.fillStyle='rgba(225,250,255,.95)';ctx.font='700 '+Math.round(H*.052)+'px '+FONT_FAMILY;
   ctx.fillText((state.titleText||st.name||'TC').toUpperCase(),W*.026,H*.15);
   ctx.fillStyle='rgba(160,205,225,.75)';ctx.font=Math.round(H*.015)+'px '+FONT_FAMILY;
-  ctx.fillText((state.subtitleText||st.id)+'  ·  '+iconLevel(cur.wind)+' · '+levelOf(cur.wind)+'  ·  '+Math.round(cur.wind)+' kt  ·  '+Math.round(cur.mslp)+' hPa',W*.026,H*.185);
+  ctx.fillText((state.subtitleText||st.id)+'  ·  '+iconLevel(cur.wind)+' · '+(cur.status||levelOf(cur.wind))+'  ·  '+Math.round(cur.wind)+' kt  ·  '+Math.round(cur.mslp)+' hPa',W*.026,H*.185);
   // time
   ctx.fillStyle='rgba(220,245,255,.9)';ctx.font='600 '+Math.round(H*.02)+'px '+FONT_FAMILY;ctx.fillText(fmtUTC(cur.time),W*.026,H*.9);
   ctx.fillStyle='rgba(120,170,195,.65)';ctx.font=Math.round(H*.012)+'px '+FONT_FAMILY;ctx.fillText('UTC  ·  WGS84  ·  SUDRE.TC ANIMATION',W*.026,H*.925);
@@ -856,7 +858,7 @@ function loadStorm(st){
 function renderStormList(){
   const box=$('stormList');if(!state.storm){box.innerHTML='<div class="stat">尚未载入气旋</div>';return;}
   const p=state.storm.points[0];
-  box.innerHTML='<div class="storm on"><span class="dot"></span><div><b>'+state.storm.name+'</b><small>'+state.storm.id+' · '+state.storm.points.length+' 帧 · '+iconLevel(p.wind)+' / '+levelOf(p.wind)+' · '+Math.round(p.wind)+' kt</small></div></div>';
+  box.innerHTML='<div class="storm on"><span class="dot"></span><div><b>'+state.storm.name+'</b><small>'+state.storm.id+' · '+state.storm.points.length+' 帧 · '+iconLevel(p.wind)+' / '+(p.status||levelOf(p.wind))+' · '+Math.round(p.wind)+' kt</small></div></div>';
 }
 function parseAndLoad(){
   const st=parseDeck($('paste').value);if(!st){toast('未解析到有效路径',true);return;}

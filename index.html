@@ -4216,6 +4216,8 @@ function classify(w){
   if(w<=136)return 'C4';
   return 'C5';
 }
+const STATUS_LEVEL={DB:'DB',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',SS:'C5',HU:'C1',MH:'C3',ET:'DB',LO:'DB',WV:'DB'};
+function levelForStatus(status,w){const s=String(status||'').toUpperCase();return STATUS_LEVEL[s]||classify(w);}
 function historicalRank(w){
   w=+w||0;
   const table=[[0,18],[34,62],[64,82],[83,91],[96,95.5],[113,98],[137,99.6],[160,99.9]];
@@ -4629,7 +4631,7 @@ function finalizeStorm(st){
     try{pushLog('warn','智能纠错：'+st.id+' 补齐 '+corrected+' 个缺失风速/气压值（已标注黄色）');}catch(e){}
   }
   pts.forEach((p,i)=>{
-    p.level=classify(p.wind);
+    p.status=String(p.status||'').toUpperCase();p.level=levelForStatus(p.status,p.wind);
     if(i>0){
       const q=pts[i-1],dt=(p.time-q.time)/3600000;
       p.dir=bearing(q.lat,q.lon,p.lat,p.lon);
@@ -4691,7 +4693,7 @@ function pointAt(st,frac){
   let dl=b.lon-a.lon;if(dl>180)dl-=360;else if(dl<-180)dl+=360;
   return {lat:lerp(a.lat,b.lat,t),lon:a.lon+dl*t,wind:lerp(a.wind||0,b.wind||0,t),
     mslp:a.mslp!=null&&b.mslp!=null?lerp(a.mslp,b.mslp,t):(a.mslp!=null?a.mslp:b.mslp),
-    level:classify(lerp(a.wind||0,b.wind||0,t)),radii:a.radii,time:lerp(a.time,b.time,t),
+    level:levelForStatus(t<.5?a.status:b.status,lerp(a.wind||0,b.wind||0,t)),status:(t<.5?a.status:b.status)||a.status||b.status,radii:a.radii,time:lerp(a.time,b.time,t),
     dir:a.dir,spd:a.spd,index:i};
 }
 function stormStats(st){
@@ -5570,7 +5572,7 @@ function drawLabels(P,w,h){
   const pk=st.points[st.peak];
   if(pk&&P.fi>=st.peak){
     const q=project(pk.lat,pk.lon);
-    label(q[0]+7,q[1]-9,'PEAK '+st.peak+'kt '+(pk.level||''),'#ffe28a');
+    label(q[0]+7,q[1]-9,'PEAK '+st.peak+'kt '+(pk.status||pk.level||''),'#ffe28a');
   }
   /* 每 12h 时刻 */
   P.pts.forEach((p,i)=>{
@@ -5586,6 +5588,7 @@ function drawCurrent(P,w,h){
   const q=project(cur.lat,cur.lon);
   fctx.save();
   fctx.beginPath();fctx.arc(q[0],q[1],12,0,7);fctx.strokeStyle='rgba(255,255,255,.9)';fctx.lineWidth=2;fctx.stroke();
+  if(cur.status){fctx.font='700 9px '+getComputedStyle(document.body).fontFamily;fctx.textAlign='left';fctx.fillStyle='#eaffff';fctx.fillText(cur.status,q[0]+15,q[1]-12);}
   fctx.beginPath();fctx.arc(q[0],q[1],4,0,7);fctx.fillStyle='#fff';fctx.fill();
   fctx.restore();
 }
