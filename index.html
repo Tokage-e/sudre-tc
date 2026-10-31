@@ -5488,7 +5488,7 @@ function drawTrack(P,w,h){
   for(let i=1;i<past.length;i++){
     const a=past[i-1],b=past[i];
     const lv=a.level||b.level||classify(Math.max(a.wind||0,b.wind||0));
-    const dash=isDashStatus(a.status)||isDashStatus(b.status);
+    const dash=isDashStatus(a.status||a.level)||isDashStatus(b.status||b.level);
     const key=lv+(dash?'|D':'');
     const g=segs[segs.length-1];
     if(g&&g.key===key)g.pts.push(b);else segs.push({key,lv,dash,pts:[a,b]});
@@ -5565,7 +5565,7 @@ function drawStatusLabels(P){
   fctx.save();fctx.font='700 7px '+getComputedStyle(document.body).fontFamily;fctx.textAlign='left';
   for(let i=0;i<P.pts.length;i++){
     if(i>P.fi+0.001)break;
-    const p=P.pts[i],s=String(p.status||'').toUpperCase();if(!s||s===last)continue;last=s;
+    const p=P.pts[i],s=String(p.status||p.level||'').toUpperCase();if(!s||s===last)continue;last=s;
     const q=project(p.lat,p.lon);
     fctx.strokeStyle='rgba(3,10,18,.9)';fctx.lineWidth=2.5;fctx.strokeText(s,q[0]+7,q[1]-9);
     fctx.fillStyle=windColor(p.level||classify(p.wind));fctx.fillText(s,q[0]+7,q[1]-9);
@@ -8983,7 +8983,7 @@ function makeExport(W,H,st,opts){
       for(let i=1;i<=f;i++){
         const a=pts[i-1],b2=pts[i];
         const lv=a.level||b2.level||classify(Math.max(a.wind||0,b2.wind||0));
-        const dash=isDashStatus(a.status)||isDashStatus(b2.status);
+        const dash=isDashStatus(a.status||a.level)||isDashStatus(b2.status||b2.level);
         let route=[a,b2];
         if(state.settings.smooth&&i>1){
           const p0=pts[i-2],p3=pts[Math.min(n-1,i+1)];
@@ -9046,7 +9046,7 @@ function makeExport(W,H,st,opts){
       let lastStatus='';
       ctx.save();ctx.font='700 '+Math.max(7,W/320)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='left';
       for(let i=0;i<=fi;i++){
-        const p=pts[i],s=String(p.status||'').toUpperCase();if(!s||s===lastStatus)continue;lastStatus=s;
+        const p=pts[i],s=String(p.status||p.level||'').toUpperCase();if(!s||s===lastStatus)continue;lastStatus=s;
         const q=P(p.lat,p.lon);
         ctx.strokeStyle='rgba(3,10,18,.9)';ctx.lineWidth=2.5;ctx.strokeText(s,q[0]+6,q[1]-8);
         ctx.fillStyle=windColor(p.level||classify(p.wind));ctx.fillText(s,q[0]+6,q[1]-8);
