@@ -426,8 +426,8 @@ function drawRadii(ctx,W,H,cam,frac,pal){
 function hexA(hex,a){const h=hex.replace('#','');const n=parseInt(h,16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 function route(frac){
   const pts=state.points,n=pts.length,f=clamp(frac,0,n-1),i=Math.floor(f);
-  const out=pts.slice(0,i+1).map(p=>({lat:p.lat,lon:p.lon,wind:p.wind,time:p.time}));
-  const c=pointAt(frac);if(c)out.push({lat:c.lat,lon:c.lon,wind:c.wind,time:c.time});
+  const out=pts.slice(0,i+1).map(p=>({lat:p.lat,lon:p.lon,wind:p.wind,time:p.time,status:p.status}));
+  const c=pointAt(frac);if(c)out.push({lat:c.lat,lon:c.lon,wind:c.wind,time:c.time,status:c.status});
   return out;
 }
 function drawTrack(ctx,W,H,cam,frac,pal){
@@ -438,15 +438,18 @@ function drawTrack(ctx,W,H,cam,frac,pal){
   ctx.globalCompositeOperation='lighter';
   for(let i=1;i<q.length;i++){
     const w=(r[i].wind+r[i-1].wind)/2,col=colorOf(w);
+    ctx.setLineDash((isDashStatus(r[i].status)||isDashStatus(r[i-1].status))?[6,5]:[]);
     ctx.strokeStyle=hexA(col,.16);ctx.lineWidth=state.lineW*4.8;ctx.shadowColor=col;ctx.shadowBlur=22;
     ctx.beginPath();ctx.moveTo(q[i-1][0],q[i-1][1]);ctx.lineTo(q[i][0],q[i][1]);ctx.stroke();
   }
   // colored core
   for(let i=1;i<q.length;i++){
     const w=(r[i].wind+r[i-1].wind)/2,col=colorOf(w);
+    ctx.setLineDash((isDashStatus(r[i].status)||isDashStatus(r[i-1].status))?[6,5]:[]);
     ctx.strokeStyle=col;ctx.lineWidth=state.lineW;ctx.shadowColor=col;ctx.shadowBlur=10;
     ctx.beginPath();ctx.moveTo(q[i-1][0],q[i-1][1]);ctx.lineTo(q[i][0],q[i][1]);ctx.stroke();
   }
+  ctx.setLineDash([]);
   // tail gradient
   const i0=Math.max(0,q.length-9),a=q[i0],b=q[q.length-1];
   if(a&&b&&Math.hypot(b[0]-a[0],b[1]-a[1])>2){
@@ -505,6 +508,7 @@ function processKeyPixels(cv,threshold){
 }
 function iconLevel(w){if(w<34)return'TD';if(w<64)return'TS';if(w<83)return'C1';if(w<96)return'C2';if(w<113)return'C3';if(w<137)return'C4';return'C5';}
 const STATUS_CN={DB:'热带扰动',MD:'季风低压',TD:'热带低压',TS:'热带风暴',TY:'台风',STY:'强台风',SuperTY:'超强台风',SS:'副热带风暴',SD:'副热带低压',ET:'温带气旋',LO:'低压',WV:'热带波',HU:'飓风',MH:'强飓风'};
+function isDashStatus(s){const x=String(s||'').toUpperCase();return x==='DB'||x==='LO'||x==='WV'||x==='EX'||x==='ET'||x==='SD';}
 function statusCn(s){return STATUS_CN[String(s||'').toUpperCase()]||String(s||'');}
 function statusToIcon(status,w){const s=String(status||'').toUpperCase();const m={DB:'TD',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',HU:'C1',MH:'C3',ET:'TD',LO:'TD',WV:'TD'};return m[s]||iconLevel(w);}
 function keyedSource(el,type,level){

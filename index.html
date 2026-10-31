@@ -4151,6 +4151,16 @@ const LEVELS=[
   {key:'DB',cn:'热带扰动',en:'DISTURBANCE',color:'#8a929e',wind:'<34 kt'},
   {key:'TD',cn:'热带低压',en:'TROP. DEP.',color:'#5ebaff',wind:'<34 kt'},
   {key:'TS',cn:'热带风暴',en:'TROP. STORM',color:'#00cd64',wind:'34–63 kt'},
+  {key:'MD',cn:'季风低压',en:'MONSOON DEP.',color:'#b7c7d6',wind:'<34 kt'},
+  {key:'STY',cn:'强台风',en:'SEVERE TYPHOON',color:'#ff7a1f',wind:'83–104 kt'},
+  {key:'SuperTY',cn:'超强台风',en:'SUPER TYPHOON',color:'#ff4d4d',wind:'≥105 kt'},
+  {key:'SS',cn:'副热带风暴',en:'SUBTROPICAL STORM',color:'#c98cff',wind:'性质'},
+  {key:'SD',cn:'副热带低压',en:'SUBTROPICAL DEP.',color:'#9c8fbc',wind:'性质'},
+  {key:'EX',cn:'温带气旋',en:'EXTRATROPICAL',color:'#8a929e',wind:'性质'},
+  {key:'LO',cn:'低压',en:'LOW',color:'#7d8794',wind:'性质'},
+  {key:'WV',cn:'热带波',en:'TROPICAL WAVE',color:'#7d8794',wind:'性质'},
+  {key:'HU',cn:'飓风',en:'HURRICANE',color:'#ff9f2e',wind:'≥64 kt'},
+  {key:'MH',cn:'强飓风',en:'MAJOR HURRICANE',color:'#ff4d4d',wind:'≥96 kt'},
   {key:'C1',cn:'一级飓风',en:'CAT 1',color:'#ffe14d',wind:'64–82 kt'},
   {key:'C2',cn:'二级飓风',en:'CAT 2',color:'#ff9f2e',wind:'83–95 kt'},
   {key:'C3',cn:'三级飓风',en:'CAT 3',color:'#ff4d4d',wind:'96–112 kt'},
@@ -4158,7 +4168,7 @@ const LEVELS=[
   {key:'C5',cn:'五级飓风',en:'CAT 5',color:'#b96bff',wind:'≥137 kt'}
 ];
 const LVL=Object.fromEntries(LEVELS.map(l=>[l.key,l]));
-const CB={DB:'#999999',TD:'#56B4E9',TS:'#009E73',C1:'#F0E442',C2:'#E69F00',C3:'#D55E00',C4:'#0072B2',C5:'#CC79A7'};
+const CB={DB:'#999999',MD:'#b7c7d6',TD:'#56B4E9',TS:'#009E73',STY:'#ff7a1f',SuperTY:'#ff4d4d',SS:'#c98cff',SD:'#9c8fbc',EX:'#8a929e',LO:'#7d8794',WV:'#7d8794',HU:'#ff9f2e',MH:'#ff4d4d',C1:'#F0E442',C2:'#E69F00',C3:'#D55E00',C4:'#0072B2',C5:'#CC79A7'};
 const WR_COLOR={34:'#f7b500',50:'#ff7a1f',64:'#ff3b30'};
 const BASIN_NAME={WP:'西北太平洋 JTWC',AL:'大西洋 NHC',EP:'东北太平洋 NHC',CP:'中北太平洋 NHC',
   IO:'北印度洋 IMD',SH:'南印度洋',AU:'澳大利亚海域',SP:'南太平洋'};
@@ -4219,7 +4229,7 @@ function classify(w){
 const STATUS_LEVEL={DB:'DB',MD:'TD',TD:'TD',TS:'TS',STS:'TS',TY:'C1',STY:'C3',SuperTY:'C5',HU:'C1',MH:'C3',ET:'DB',LO:'DB',WV:'DB'};
 const STATUS_CN={DB:'热带扰动',MD:'季风低压',TD:'热带低压',TS:'热带风暴',TY:'台风',STY:'强台风',SuperTY:'超强台风',SS:'副热带风暴',SD:'副热带低压',ET:'温带气旋',LO:'低压',WV:'热带波',HU:'飓风',MH:'强飓风'};
 function statusCn(s){return STATUS_CN[String(s||'').toUpperCase()]||String(s||'');}
-function levelForStatus(status,w){const s=String(status||'').toUpperCase();return STATUS_LEVEL[s]||classify(w);}
+function levelForStatus(status,w){const s=String(status||'').toUpperCase();return LVL[s]?s:classify(w);}
 function historicalRank(w){
   w=+w||0;
   const table=[[0,18],[34,62],[64,82],[83,91],[96,95.5],[113,98],[137,99.6],[160,99.9]];
@@ -5473,16 +5483,16 @@ function drawTrack(P,w,h){
   const lift=raised?state.settings.raisedH:0;
   const lineW=pro?Math.max(1,(state.settings.proLineWidth||5)):(state.settings.lineWidth||3);
   const past=pts.slice(0,fi+1);
-  /* 分段按强度 */
   const segs=[];
   for(let i=1;i<past.length;i++){
     const a=past[i-1],b=past[i];
-    const lv=classify(Math.max(a.wind||0,b.wind||0));
+    const lv=a.level||b.level||classify(Math.max(a.wind||0,b.wind||0));
+    const dash=isDashStatus(a.status)||isDashStatus(b.status);
+    const key=lv+(dash?'|D':'');
     const g=segs[segs.length-1];
-    if(g&&g.lv===lv)g.pts.push(b);else segs.push({lv,pts:[a,b]});
+    if(g&&g.key===key)g.pts.push(b);else segs.push({key,lv,dash,pts:[a,b]});
   }
   if(raised){
-    /* 先画半透明“侧壁”，让抬升的路径与地面之间有可见体积 */
     for(const s of segs){
       const q=s.pts.map(p=>project(p.lat,p.lon));
       fctx.save();fctx.beginPath();
@@ -5493,15 +5503,14 @@ function drawTrack(P,w,h){
     }
     fctx.save();
     fctx.strokeStyle='rgba(0,0,0,.42)';fctx.lineWidth=(state.settings.lineWidth||3)+4;
-    for(const s of segs)strokeSegment(s.pts,10,16);
+    for(const s of segs)strokeSegment(s.pts,10,16,null,null,null,s.dash?[6,5]:null);
     fctx.restore();
   }
   for(const s of segs){
     const col=windColor(s.lv);
     const route=state.settings.smooth?smoothPts(s.pts):s.pts;
-    strokeSegment(route,0,-lift,col,lineW,1);
+    strokeSegment(route,0,-lift,col,lineW,1,s.dash?[6,5]:null);
   }
-  /* 未来段：专业模式只保留已观测路径 */
   if(!pro&&state.settings.layers.forecast&&fi<pts.length-1){
     const fut=pts.slice(fi);
     fctx.save();fctx.setLineDash([6,6]);fctx.lineWidth=Math.max(1.4,(state.settings.lineWidth||3)-1);
@@ -5512,7 +5521,6 @@ function drawTrack(P,w,h){
     fctx.restore();
   }
   if(raised){
-    /* 立柱 */
     fctx.save();fctx.lineWidth=1.2;
     for(let i=0;i<past.length;i+=2){
       const q=project(past[i].lat,past[i].lon);
@@ -5522,10 +5530,11 @@ function drawTrack(P,w,h){
     fctx.restore();
   }
 }
-function strokeSegment(pts,dx,dy,color,width,alpha){
+function isDashStatus(s){const x=String(s||'').toUpperCase();return x==='DB'||x==='LO'||x==='WV'||x==='EX'||x==='ET'||x==='SD';}
+function strokeSegment(pts,dx,dy,color,width,alpha,dash){
   const segs=splitScreen(pts);
   fctx.save();fctx.translate(dx||0,dy||0);fctx.globalAlpha*=(alpha==null?1:alpha);
-  fctx.lineJoin='round';fctx.lineCap='round';fctx.lineWidth=width||3;
+  fctx.lineJoin='round';fctx.lineCap='round';fctx.lineWidth=width||3;fctx.setLineDash(dash||[]);
   for(const seg of segs){
     fctx.beginPath();seg.forEach((q,i)=>{i?fctx.lineTo(q.x,q.y):fctx.moveTo(q.x,q.y);});
     if(color){fctx.strokeStyle=color;fctx.shadowColor=color;fctx.shadowBlur=8;}
@@ -6967,7 +6976,7 @@ function renderTable(){
   const arrow=k=>(sort.key===k?(sort.dir>0?' ↑':' ↓'):'');
   let h='<table class="dtable"><thead><tr>'+
     ['i','time','lat','lon','level','wind','ms','mslp','r34','r50','r64','dir','spd'].map(k=>{
-      const label={i:'#',time:'时间',lat:'纬度',lon:'经度',level:'等级',wind:'风速 '+(state.settings.unit||'kt'),ms:'m/s',mslp:'气压 hPa',
+      const label={i:'#',time:'时间',lat:'纬度',lon:'经度',level:'性质',wind:'风速 '+(state.settings.unit||'kt'),ms:'m/s',mslp:'气压 hPa',
         r34:'34kt NE/SE/SW/NW',r50:'50kt',r64:'64kt',dir:'移向',spd:'移速 kt'}[k];
       return '<th data-sort="'+k+'">'+label+arrow(k)+'</th>';
     }).join('')+'</tr></thead><tbody>';
@@ -6992,7 +7001,7 @@ function renderTable(){
 }
 function tableTSV(st){
   if(!st)return '';
-  const head=['#','UTC_YYYY-MM-DD HHZ','LAT','LON','LEVEL','VMAX_kt','VMAX_ms','MSLP_hPa',
+  const head=['#','UTC_YYYY-MM-DD HHZ','LAT','LON','STATUS','VMAX_kt','VMAX_ms','MSLP_hPa',
     'R34_NE','R34_SE','R34_SW','R34_NW','R50_NE','R50_SE','R50_SW','R50_NW','R64_NE','R64_SE','R64_SW','R64_NW','DIR_DEG','SPD_kt'];
   const lines=[head.join('\t')];
   st.points.forEach((p,i)=>{
