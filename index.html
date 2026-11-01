@@ -4332,9 +4332,7 @@ const SpiralDefaultIcon = (() => {
     return remember(eyeCache, color, canvas);
   }
 
-  window.SpiralDefaultIcon = SpiralDefaultIcon;
-
-function drawDefaultIcon(ctx, cx, cy, radius, levelColor, time) {
+  function drawDefaultIcon(ctx, cx, cy, radius, levelColor, time) {
     const color = levelColor || '#7fe8ff';
     const arms = makeArmSprite(color);
     const eye = makeEyeSprite(color);
