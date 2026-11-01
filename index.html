@@ -4133,6 +4133,243 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
 <audio id="bgmAudio" loop preload="none"></audio>
 <script>
 /* ============================================================
+   Sudre.Tc — logarithmic spiral fallback icon
+   drawDefaultIcon(ctx, cx, cy, radius, levelColor, time)
+   - 3 spiral arms, 3 blurred cloud layers, eye + eyewall glow
+   - pre-rendered sprites: no per-frame gradients or filter setup
+   - export-safe: the same function is used by preview and makeExport
+   ============================================================ */
+
+const SpiralDefaultIcon = (() => {
+  const TAU = Math.PI * 2;
+  const SPRITE = 384;
+  const SPRITE_RADIUS = 160;
+  const CACHE_LIMIT = 24;
+  const armCache = new Map();
+  const eyeCache = new Map();
+
+  const supportsFilter = (() => {
+    const probe = document.createElement('canvas').getContext('2d');
+    if (!probe || !('filter' in probe)) return false;
+    probe.filter = 'blur(2px)';
+    return probe.filter === 'blur(2px)';
+  })();
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function hexToRgb(hex) {
+    let h = String(hex || '').trim();
+    if (h[0] === '#') h = h.slice(1);
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (!/^[0-9a-f]{6}$/i.test(h)) return [150, 225, 255];
+    return [
+      parseInt(h.slice(0, 2), 16),
+      parseInt(h.slice(2, 4), 16),
+      parseInt(h.slice(4, 6), 16)
+    ];
+  }
+
+  function colorAlpha(color, alpha) {
+    if (alpha == null) alpha = 1;
+    alpha = clamp(alpha, 0, 1);
+    if (alpha >= 1) return color;
+    const rgb = hexToRgb(color);
+    return 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha + ')';
+  }
+
+  function remember(cache, key, value) {
+    if (cache.size >= CACHE_LIMIT) {
+      const oldest = cache.keys().next().value;
+      cache.delete(oldest);
+    }
+    cache.set(key, value);
+    return value;
+  }
+
+  function drawHalo(ctx, radius, color) {
+    const halo = ctx.createRadialGradient(0, 0, radius * 0.05, 0, 0, radius * 1.18);
+    halo.addColorStop(0, colorAlpha(color, 0.16));
+    halo.addColorStop(0.34, colorAlpha(color, 0.10));
+    halo.addColorStop(0.68, colorAlpha(color, 0.035));
+    halo.addColorStop(1, colorAlpha(color, 0));
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 1.18, 0, TAU);
+    ctx.fill();
+  }
+
+  function drawSpiralLayer(ctx, radius, color, cfg) {
+    const arms = 3;
+    const turns = 2;
+    const thetaMax = TAU * turns;
+    const growth = 0.20;
+    const inner = radius * 0.10;
+    const outer = inner * Math.exp(growth * thetaMax);
+    const norm = (radius * cfg.reach) / outer;
+    const step = 0.1;
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = radius * cfg.glow;
+    if (supportsFilter && cfg.filter) ctx.filter = 'blur(' + Math.max(0.4, cfg.blur * (SPRITE_RADIUS / 160)) + 'px)';
+
+    for (let arm = 0; arm < arms; arm++) {
+      const offset = (TAU / arms) * arm + cfg.phase;
+      let previous = null;
+
+      for (let theta = 0; theta <= thetaMax + step * 0.5; theta += step) {
+        const t = clamp(theta / thetaMax, 0, 1);
+        const spiralRadius = inner * Math.exp(growth * theta) * norm * cfg.scale;
+        const angle = theta + offset;
+        const x = Math.cos(angle) * spiralRadius;
+        const y = Math.sin(angle) * spiralRadius;
+
+        if (previous) {
+          const taper = Math.pow(1 - t, 0.88);
+          const width = radius * (cfg.width * taper + 0.006);
+          const alpha = cfg.alpha * Math.pow(1 - t, 1.15);
+          ctx.strokeStyle = colorAlpha(color, alpha);
+          ctx.lineWidth = Math.max(0.7, width);
+          ctx.beginPath();
+          ctx.moveTo(previous.x, previous.y);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+
+        }
+
+        previous = { x: x, y: y };
+      }
+    }
+
+    ctx.restore();
+  }
+
+  function makeArmSprite(color) {
+    const cached = armCache.get(color);
+    if (cached) return cached;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = SPRITE;
+    canvas.height = SPRITE;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(SPRITE / 2, SPRITE / 2);
+
+    drawHalo(ctx, SPRITE_RADIUS, color);
+
+    ctx.globalCompositeOperation = 'source-over';
+    drawSpiralLayer(ctx, SPRITE_RADIUS, color, {
+      scale: 1.08,
+      reach: 1.02,
+      width: 0.26,
+      alpha: 0.26,
+      glow: 0.12,
+      blur: 9,
+      filter: true,
+      phase: 0.10
+    });
+    drawSpiralLayer(ctx, SPRITE_RADIUS, color, {
+      scale: 0.97,
+      reach: 0.96,
+      width: 0.14,
+      alpha: 0.58,
+      glow: 0.10,
+      blur: 4,
+      filter: true,
+      phase: 0.42
+    });
+    drawSpiralLayer(ctx, SPRITE_RADIUS, color, {
+      scale: 0.84,
+      reach: 0.90,
+      width: 0.075,
+      alpha: 0.98,
+      glow: 0.075,
+      blur: 1.4,
+      filter: false,
+      phase: 0.76
+    });
+    ctx.globalCompositeOperation = 'source-over';
+
+    return remember(armCache, color, canvas);
+  }
+
+  function makeEyeSprite(color) {
+    const cached = eyeCache.get(color);
+    if (cached) return cached;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = SPRITE;
+    canvas.height = SPRITE;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(SPRITE / 2, SPRITE / 2);
+
+    const eyeRadius = SPRITE_RADIUS * 0.15;
+    const wall = ctx.createRadialGradient(0, 0, eyeRadius * 0.55, 0, 0, SPRITE_RADIUS * 0.44);
+    wall.addColorStop(0, colorAlpha(color, 0.02));
+    wall.addColorStop(0.20, colorAlpha(color, 0.72));
+    wall.addColorStop(0.48, colorAlpha(color, 0.26));
+    wall.addColorStop(1, colorAlpha(color, 0));
+    ctx.fillStyle = wall;
+    ctx.beginPath();
+    ctx.arc(0, 0, SPRITE_RADIUS * 0.44, 0, TAU);
+    ctx.fill();
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(2,5,8,0.92)';
+    ctx.beginPath();
+    ctx.arc(0, 0, eyeRadius, 0, TAU);
+    ctx.fill();
+
+    ctx.strokeStyle = colorAlpha(color, 0.58);
+    ctx.lineWidth = SPRITE_RADIUS * 0.008;
+    ctx.beginPath();
+    ctx.arc(0, 0, eyeRadius * 1.06, 0, TAU);
+    ctx.stroke();
+
+    return remember(eyeCache, color, canvas);
+  }
+
+  window.SpiralDefaultIcon = SpiralDefaultIcon;
+
+function drawDefaultIcon(ctx, cx, cy, radius, levelColor, time) {
+    const color = levelColor || '#7fe8ff';
+    const arms = makeArmSprite(color);
+    const eye = makeEyeSprite(color);
+    const breath = 1 + Math.sin(Number(time || 0) * 0.85) * 0.012;
+    const size = radius * 2.36 * breath;
+    const rotation = -Number(time || 0) * 0.92;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotation);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(arms, -size / 2, -size / 2, size, size);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(eye, -size / 2, -size / 2, size, size);
+    ctx.restore();
+  }
+
+  return {
+    drawDefaultIcon: drawDefaultIcon,
+    clearCache: function () {
+      armCache.clear();
+      eyeCache.clear();
+    }
+  };
+})();
+
+function drawDefaultIcon(ctx, cx, cy, radius, levelColor, time) {
+  SpiralDefaultIcon.drawDefaultIcon(ctx, cx, cy, radius, levelColor, time);
+}
+
+/* ============================================================
    Sudre.Tc · TC Track Studio 3.0 Rebuild — application core
    1) 常量/工具  2) 解析器  3) 地图  4) Canvas  5) 动画
    6) 3D  7) 影棚  8) 历史库  9) 报告/导出  10) 开场
@@ -7964,243 +8201,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 else boot();
 
 })();
-
-/* ============================================================
-   Sudre.Tc — logarithmic spiral fallback icon
-   drawDefaultIcon(ctx, cx, cy, radius, levelColor, time)
-   - 3 spiral arms, 3 blurred cloud layers, eye + eyewall glow
-   - pre-rendered sprites: no per-frame gradients or filter setup
-   - export-safe: the same function is used by preview and makeExport
-   ============================================================ */
-
-const SpiralDefaultIcon = (() => {
-  const TAU = Math.PI * 2;
-  const SPRITE = 384;
-  const SPRITE_RADIUS = 160;
-  const CACHE_LIMIT = 24;
-  const armCache = new Map();
-  const eyeCache = new Map();
-
-  const supportsFilter = (() => {
-    const probe = document.createElement('canvas').getContext('2d');
-    if (!probe || !('filter' in probe)) return false;
-    probe.filter = 'blur(2px)';
-    return probe.filter === 'blur(2px)';
-  })();
-
-  function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  function hexToRgb(hex) {
-    let h = String(hex || '').trim();
-    if (h[0] === '#') h = h.slice(1);
-    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    if (!/^[0-9a-f]{6}$/i.test(h)) return [150, 225, 255];
-    return [
-      parseInt(h.slice(0, 2), 16),
-      parseInt(h.slice(2, 4), 16),
-      parseInt(h.slice(4, 6), 16)
-    ];
-  }
-
-  function colorAlpha(color, alpha) {
-    if (alpha == null) alpha = 1;
-    alpha = clamp(alpha, 0, 1);
-    if (alpha >= 1) return color;
-    const rgb = hexToRgb(color);
-    return 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha + ')';
-  }
-
-  function remember(cache, key, value) {
-    if (cache.size >= CACHE_LIMIT) {
-      const oldest = cache.keys().next().value;
-      cache.delete(oldest);
-    }
-    cache.set(key, value);
-    return value;
-  }
-
-  function drawHalo(ctx, radius, color) {
-    const halo = ctx.createRadialGradient(0, 0, radius * 0.05, 0, 0, radius * 1.18);
-    halo.addColorStop(0, colorAlpha(color, 0.16));
-    halo.addColorStop(0.34, colorAlpha(color, 0.10));
-    halo.addColorStop(0.68, colorAlpha(color, 0.035));
-    halo.addColorStop(1, colorAlpha(color, 0));
-    ctx.fillStyle = halo;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius * 1.18, 0, TAU);
-    ctx.fill();
-  }
-
-  function drawSpiralLayer(ctx, radius, color, cfg) {
-    const arms = 3;
-    const turns = 2;
-    const thetaMax = TAU * turns;
-    const growth = 0.20;
-    const inner = radius * 0.10;
-    const outer = inner * Math.exp(growth * thetaMax);
-    const norm = (radius * cfg.reach) / outer;
-    const step = 0.1;
-
-    ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowColor = color;
-    ctx.shadowBlur = radius * cfg.glow;
-    if (supportsFilter && cfg.filter) ctx.filter = 'blur(' + Math.max(0.4, cfg.blur * (SPRITE_RADIUS / 160)) + 'px)';
-
-    for (let arm = 0; arm < arms; arm++) {
-      const offset = (TAU / arms) * arm + cfg.phase;
-      let previous = null;
-
-      for (let theta = 0; theta <= thetaMax + step * 0.5; theta += step) {
-        const t = clamp(theta / thetaMax, 0, 1);
-        const spiralRadius = inner * Math.exp(growth * theta) * norm * cfg.scale;
-        const angle = theta + offset;
-        const x = Math.cos(angle) * spiralRadius;
-        const y = Math.sin(angle) * spiralRadius;
-
-        if (previous) {
-          const taper = Math.pow(1 - t, 0.88);
-          const width = radius * (cfg.width * taper + 0.006);
-          const alpha = cfg.alpha * Math.pow(1 - t, 1.15);
-          ctx.strokeStyle = colorAlpha(color, alpha);
-          ctx.lineWidth = Math.max(0.7, width);
-          ctx.beginPath();
-          ctx.moveTo(previous.x, previous.y);
-          ctx.lineTo(x, y);
-          ctx.stroke();
-
-        }
-
-        previous = { x: x, y: y };
-      }
-    }
-
-    ctx.restore();
-  }
-
-  function makeArmSprite(color) {
-    const cached = armCache.get(color);
-    if (cached) return cached;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = SPRITE;
-    canvas.height = SPRITE;
-    const ctx = canvas.getContext('2d');
-    ctx.translate(SPRITE / 2, SPRITE / 2);
-
-    drawHalo(ctx, SPRITE_RADIUS, color);
-
-    ctx.globalCompositeOperation = 'source-over';
-    drawSpiralLayer(ctx, SPRITE_RADIUS, color, {
-      scale: 1.08,
-      reach: 1.02,
-      width: 0.26,
-      alpha: 0.26,
-      glow: 0.12,
-      blur: 9,
-      filter: true,
-      phase: 0.10
-    });
-    drawSpiralLayer(ctx, SPRITE_RADIUS, color, {
-      scale: 0.97,
-      reach: 0.96,
-      width: 0.14,
-      alpha: 0.58,
-      glow: 0.10,
-      blur: 4,
-      filter: true,
-      phase: 0.42
-    });
-    drawSpiralLayer(ctx, SPRITE_RADIUS, color, {
-      scale: 0.84,
-      reach: 0.90,
-      width: 0.075,
-      alpha: 0.98,
-      glow: 0.075,
-      blur: 1.4,
-      filter: false,
-      phase: 0.76
-    });
-    ctx.globalCompositeOperation = 'source-over';
-
-    return remember(armCache, color, canvas);
-  }
-
-  function makeEyeSprite(color) {
-    const cached = eyeCache.get(color);
-    if (cached) return cached;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = SPRITE;
-    canvas.height = SPRITE;
-    const ctx = canvas.getContext('2d');
-    ctx.translate(SPRITE / 2, SPRITE / 2);
-
-    const eyeRadius = SPRITE_RADIUS * 0.15;
-    const wall = ctx.createRadialGradient(0, 0, eyeRadius * 0.55, 0, 0, SPRITE_RADIUS * 0.44);
-    wall.addColorStop(0, colorAlpha(color, 0.02));
-    wall.addColorStop(0.20, colorAlpha(color, 0.72));
-    wall.addColorStop(0.48, colorAlpha(color, 0.26));
-    wall.addColorStop(1, colorAlpha(color, 0));
-    ctx.fillStyle = wall;
-    ctx.beginPath();
-    ctx.arc(0, 0, SPRITE_RADIUS * 0.44, 0, TAU);
-    ctx.fill();
-
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(2,5,8,0.92)';
-    ctx.beginPath();
-    ctx.arc(0, 0, eyeRadius, 0, TAU);
-    ctx.fill();
-
-    ctx.strokeStyle = colorAlpha(color, 0.58);
-    ctx.lineWidth = SPRITE_RADIUS * 0.008;
-    ctx.beginPath();
-    ctx.arc(0, 0, eyeRadius * 1.06, 0, TAU);
-    ctx.stroke();
-
-    return remember(eyeCache, color, canvas);
-  }
-
-  window.SpiralDefaultIcon = SpiralDefaultIcon;
-
-function drawDefaultIcon(ctx, cx, cy, radius, levelColor, time) {
-    const color = levelColor || '#7fe8ff';
-    const arms = makeArmSprite(color);
-    const eye = makeEyeSprite(color);
-    const breath = 1 + Math.sin(Number(time || 0) * 0.85) * 0.012;
-    const size = radius * 2.36 * breath;
-    const rotation = -Number(time || 0) * 0.92;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rotation);
-    ctx.globalCompositeOperation = 'screen';
-    ctx.drawImage(arms, -size / 2, -size / 2, size, size);
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(eye, -size / 2, -size / 2, size, size);
-    ctx.restore();
-  }
-
-  return {
-    drawDefaultIcon: drawDefaultIcon,
-    clearCache: function () {
-      armCache.clear();
-      eyeCache.clear();
-    }
-  };
-})();
-
-function drawDefaultIcon(ctx, cx, cy, radius, levelColor, time) {
-  SpiralDefaultIcon.drawDefaultIcon(ctx, cx, cy, radius, levelColor, time);
-}
 
 /* ============================================================
    V4.1 PATCH START — Roadmap / Diary / Advanced / Version
