@@ -3470,7 +3470,7 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
         <div class="card">
           <h5>底图</h5>
           <div class="row"><label>矢量精度</label><select id="mapPrec"><option value="110">110m 全球</option><option value="50">50m 高精度</option><option value="10">10m 极高精度</option></select></div>
-          <div class="row"><label>影像 / 地形</label><select id="baseLayer"><option value="vector">深色矢量（离线）</option><option value="terrain">Esri 地形</option><option value="satellite">Esri 卫星影像</option><option value="topo">Esri 地形图</option></select></div>
+          <div class="row"><label>影像 / 地形</label><select id="baseLayer"><option value="vector">深色矢量（离线）</option><option value="terrain">Esri 地形</option><option value="satellite">Esri 卫星影像</option><option value="topo">Esri 地形图</option><option value="dark">Carto 深色</option><option value="voyager">Carto 航图</option></select></div>
           <div class="note">影像图层来自 Esri 公开服务，网络不可用时自动回退矢量底图。</div>
         </div>
         <div class="card">
@@ -3668,7 +3668,7 @@ body.mode-animation #stageInner,body.mode-animation #glView,body.mode-animation 
           <div class="card">
             <h5>底图与精度</h5>
             <div class="row"><label>矢量精度</label><select id="sPrec"><option value="110">110m</option><option value="50">50m</option><option value="10">10m</option></select></div>
-            <div class="row"><label>影像 / 地形</label><select id="sBase"><option value="vector">深色矢量</option><option value="terrain">Esri 地形（高清）</option><option value="satellite">Esri 卫星影像</option><option value="topo">Esri 地形图</option></select></div>
+            <div class="row"><label>影像 / 地形</label><select id="sBase"><option value="vector">深色矢量</option><option value="terrain">Esri 地形（高清）</option><option value="satellite">Esri 卫星影像</option><option value="topo">Esri 地形图</option><option value="dark">Carto 深色</option><option value="voyager">Carto 航图</option></select></div>
             <div class="row"><label>经纬网</label><label class="chk"><input type="checkbox" id="sGrid" checked>显示</label></div>
           </div>
           <div class="card">
@@ -5104,14 +5104,16 @@ const CITIES=[
 const TILE={
   terrain:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
   satellite:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  topo:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'
+  topo:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+  dark:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  voyager:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
 };
 function setBase(kind){
   baseKind=kind;
   if(tileLayer){map.removeLayer(tileLayer);tileLayer=null;}
   if(kind!=='vector'&&TILE[kind]){
     let warned=false;
-    tileLayer=L.tileLayer(TILE[kind],{maxZoom:12,opacity:.92,attribution:'Esri'});
+    tileLayer=L.tileLayer(TILE[kind],{maxZoom:19,opacity:.92,attribution:'Map tiles: Esri / CARTO'});
     tileLayer.on('tileerror',()=>{if(!warned){warned=true;toast('影像瓦片加载失败，已保留矢量底图','warn',3200);}});
     tileLayer.addTo(map);tileLayer.bringToBack();
   }

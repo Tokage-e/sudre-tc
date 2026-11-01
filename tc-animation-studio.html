@@ -180,10 +180,14 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
       <div class="sec"><h5>自定义图标 <em>ICON</em></h5>
         <div id="levelIcons" class="level-icons"></div>
         <input class="iconfile" type="file" id="logoFile" accept="image/*">
-        <div class="lbl"><label>缩放</label><input id="iconScale" type="range" min=".3" max="3" step=".05" value="1"><span id="iconScaleV">1.0</span></div>
+        <div class="lbl"><label>缩放</label><input id="iconScale" type="range" min=".3" max="4" step=".05" value="1"><span id="iconScaleV">1.0</span></div>
         <div class="lbl"><label>X 偏移</label><input id="iconX" type="range" min="-100" max="100" step="1" value="0"><span id="iconXV">0</span></div>
         <div class="lbl"><label>Y 偏移</label><input id="iconY" type="range" min="-100" max="100" step="1" value="0"><span id="iconYV">0</span></div>
-        <div class="lbl"><label>旋转</label><input id="iconSpin" type="range" min="0" max="5" step=".1" value="0"><span id="iconSpinV">0</span></div>
+        <div class="lbl"><label>旋转</label><input id="iconSpin" type="range" min="0" max="10" step=".1" value="0"><span id="iconSpinV">0</span></div>
+        <label class="chk"><input type="checkbox" id="iconRings" checked>图标装饰环</label>
+        <label class="chk"><input type="checkbox" id="iconSparks" checked>图标碎光</label>
+        <label class="chk"><input type="checkbox" id="iconGlow" checked>图标辉光</label>
+        <div class="lbl"><label>地图精度</label><select id="mapRes"><option value="110">低 110m</option><option value="50">高 50m</option><option value="10">超高 10m</option></select></div>
         <label class="chk"><input type="checkbox" id="maskNum">遮挡原生数字</label>
         <div class="lbl"><label>去黑底</label><select id="keyingMode"><option value="none">不去除</option><option value="screen" selected>滤色 Screen</option><option value="threshold">阈值抠像</option><option value="mix">混合模式</option></select></div>
         <div class="lbl"><label>阈值</label><input id="keyingThreshold" type="range" min="0" max="50" step="1" value="20" disabled><span id="keyingThresholdV">20</span></div>
@@ -227,7 +231,7 @@ const state = {
   palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
   W:1920, H:1080, previewW:1280, previewH:720, lastPreview:0, _fpsFrames:0, _fpsT0:0, _lastQChange:0, lowQuality:false, adaptive:true, exportCancel:false, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0, view:'2d',
   fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,clouds:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
-  lineW:4, logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
+  lineW:4, iconFx:{rings:true,sparks:true,glow:true}, mapRes:'110', logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
@@ -283,6 +287,10 @@ function ease(t){t=clamp(t,0,1);return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
 function fmtUTC(ms,short){const d=new Date(ms);const p=n=>String(n).padStart(2,'0');return short?p(d.getUTCMonth()+1)+'/'+p(d.getUTCDate())+' '+p(d.getUTCHours())+'Z':d.getUTCFullYear()+'-'+p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate())+' '+p(d.getUTCHours())+'Z';}
 function levelOf(w){if(w>=137)return'SuperTY';if(w>=105)return'SuperTY';if(w>=83)return'STY';if(w>=64)return'TY';if(w>=34)return'TS';if(w>=25)return'TD';return'MD';}
 function colorOf(w){return C[levelOf(w)]||C.TY;}
+function saffirInfo(w){if(w<34)return{code:'TD',short:'TD',label:'热带低压'};if(w<64)return{code:'TS',short:'TS',label:'热带风暴'};if(w<83)return{code:'C1',short:'C1',label:'一级飓风'};if(w<96)return{code:'C2',short:'C2',label:'二级飓风'};if(w<113)return{code:'C3',short:'C3',label:'三级飓风'};if(w<137)return{code:'C4',short:'C4',label:'四级飓风'};return{code:'C5',short:'C5',label:'五级飓风'};}
+const LEVEL_WIND={TD:30,TS:50,C1:70,C2:90,C3:105,C4:125,C5:145};
+function levelColor(level){return colorOf(LEVEL_WIND[level]||70);}
+function mixColor(a,b,t){const p=x=>{x=x.replace('#','');return [parseInt(x.slice(0,2),16),parseInt(x.slice(2,4),16),parseInt(x.slice(4,6),16)]};const A=p(a),B=p(b);return 'rgb('+Math.round(A[0]+(B[0]-A[0])*t)+','+Math.round(A[1]+(B[1]-A[1])*t)+','+Math.round(A[2]+(B[2]-A[2])*t)+')';}
 function shortLevel(w){const l=levelOf(w);return l==='SuperTY'?'STY':l;}
 function parseDeck(text){
   const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
@@ -833,8 +841,13 @@ function drawIntensityIcon(ctx,W,H,cam,frac){
     return;
   }
   const t = (state.exporting && state.iconExportTime != null ? state.iconExportTime : performance.now() / 1000);
-  const fallbackRadius = Math.max(20, base * .78 * state.iconScale);
-  drawDefaultIcon(ctx, x, y, fallbackRadius, col, t * (state.iconSpin > 0 ? state.iconSpin : 1));
+  const bA=blend.a,bB=blend.b,bT=blend.b?Math.max(0,Math.min(1,blend.t)):0;
+  const iconCol=blend.b?mixColor(levelColor(bA),levelColor(bB),bT):levelColor(bA);
+  const fallbackRadius = Math.max(20, base * .78 * state.iconScale * (1 + .035 * (bT - .5)));
+  drawDefaultIcon(ctx, x, y, fallbackRadius, iconCol, t * (state.iconSpin > 0 ? state.iconSpin : 1));
+  if(state.iconFx.rings){ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=.45;ctx.strokeStyle=iconCol;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.22,0,7);ctx.stroke();ctx.globalAlpha=.2;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.34,0,7);ctx.stroke();ctx.restore();}
+  if(state.iconFx.sparks){ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<8;i++){const a=t*.5+i*2.399,r=fallbackRadius*(1.15+((i*17)%20)/100);ctx.beginPath();ctx.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,Math.max(1,fallbackRadius*.025),0,7);ctx.fillStyle=iconCol;ctx.globalAlpha=.18+(i%3)*.08;ctx.fill();}ctx.restore();}
+  if(state.iconFx.glow){ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.12;ctx.strokeStyle=iconCol;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.48,0,7);ctx.stroke();ctx.restore();}
   const txt = cur.status || iconLevel(cur.wind);
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
@@ -870,7 +883,7 @@ function drawHUD(ctx,W,H,pal,frac){
   ctx.fillStyle='rgba(225,250,255,.95)';ctx.font='700 '+Math.round(H*.052)+'px '+FONT_FAMILY;
   ctx.fillText((state.titleText||st.name||'TC').toUpperCase(),W*.026,H*.15);
   ctx.fillStyle='rgba(160,205,225,.75)';ctx.font=Math.round(H*.015)+'px '+FONT_FAMILY;
-  ctx.fillText((state.subtitleText||st.id)+'  ·  '+iconLevel(cur.wind)+' · '+(cur.status?statusCn(cur.status):levelOf(cur.wind))+'  ·  '+Math.round(cur.wind)+' kt  ·  '+Math.round(cur.mslp)+' hPa',W*.026,H*.185);
+  ctx.fillText((state.subtitleText||st.id)+'  ·  '+iconLevel(cur.wind)+' · '+(cur.status?statusCn(cur.status):levelOf(cur.wind))+'  ·  '+saffirInfo(cur.wind).label+'  ·  '+Math.round(cur.wind)+' kt  ·  '+Math.round(cur.mslp)+' hPa',W*.026,H*.185);
   // time
   ctx.fillStyle='rgba(220,245,255,.9)';ctx.font='600 '+Math.round(H*.02)+'px '+FONT_FAMILY;ctx.fillText(fmtUTC(cur.time),W*.026,H*.9);
   ctx.fillStyle='rgba(120,170,195,.65)';ctx.font=Math.round(H*.012)+'px '+FONT_FAMILY;ctx.fillText('UTC  ·  WGS84  ·  SUDRE.TC ANIMATION',W*.026,H*.925);
@@ -1226,6 +1239,10 @@ function bindUI(){
   $('iconY').oninput=e=>{state.iconY=+e.target.value;$('iconYV').textContent=state.iconY;drawPreview();};
   $('iconSpin').oninput=e=>{state.iconSpin=+e.target.value;$('iconSpinV').textContent=state.iconSpin.toFixed(1);drawPreview();};
   $('maskNum').onchange=e=>{state.maskNum=e.target.checked;drawPreview();};
+  $('iconRings').onchange=e=>{state.iconFx.rings=e.target.checked;drawPreview();};
+  $('iconSparks').onchange=e=>{state.iconFx.sparks=e.target.checked;drawPreview();};
+  $('iconGlow').onchange=e=>{state.iconFx.glow=e.target.checked;drawPreview();};
+  $('mapRes').onchange=e=>{state.mapRes=e.target.value;toast('正在加载 '+state.mapRes+'m 地图');loadLand(state.mapRes).then(()=>{resizeCanvas();drawPreview();});};
   $('keyingMode').onchange=e=>{state.keyingMode=e.target.value;state.keyCache=null;$('keyingThreshold').disabled=e.target.value!=='threshold';$('blendMode').disabled=e.target.value!=='mix';drawPreview();};
   $('keyingThreshold').oninput=e=>{state.keyingThreshold=+e.target.value;$('keyingThresholdV').textContent=e.target.value;state.keyCache=null;drawPreview();};
   $('blendMode').onchange=e=>{state.blendMode=e.target.value;drawPreview();};
@@ -1346,10 +1363,11 @@ async function exportMP4(){
   }catch(e){if(e.message!=='已取消')toast('导出失败：'+e.message,true);else toast('已取消导出','warn');}
   finally{state.exporting=false;state.iconExportTime=null;setExportUI(false);setMp4Label('导出 MP4');}
 }
-async function loadLand(){
+async function loadLand(res){
+  const precision=res||state.mapRes||'110';
   try{
-    const topo=await (await fetch('https://unpkg.com/world-atlas@2.0.2/countries-110m.json')).json();
-    state.land=topojson.feature(topo,topo.objects.countries);try{buildWorldTexture();}catch(e){console.warn(e);}if(G3)buildGlobeLand();
+    const topo=await (await fetch('https://unpkg.com/world-atlas@2.0.2/countries-'+precision+'m.json')).json();
+    state.land=topojson.feature(topo,topo.objects.countries);state.mapRes=precision;try{buildWorldTexture();}catch(e){console.warn(e);}if(G3)buildGlobeLand();
   }catch(e){toast('地图数据加载失败，使用经纬网',true);}
   $('splash').classList.add('hide');
 }
