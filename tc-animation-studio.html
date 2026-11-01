@@ -184,12 +184,15 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
         <div class="lbl"><label>X 偏移</label><input id="iconX" type="range" min="-100" max="100" step="1" value="0"><span id="iconXV">0</span></div>
         <div class="lbl"><label>Y 偏移</label><input id="iconY" type="range" min="-100" max="100" step="1" value="0"><span id="iconYV">0</span></div>
         <div class="lbl"><label>旋转</label><input id="iconSpin" type="range" min="0" max="10" step=".1" value="0"><span id="iconSpinV">0</span></div>
+        <div class="lbl"><label>过渡带宽</label><input id="iconBlend" type="range" min=".5" max="4" step=".1" value="1.5"><span id="iconBlendV">1.5</span></div>
+        
         <label class="chk"><input type="checkbox" id="iconRings" checked>图标装饰环</label>
         <label class="chk"><input type="checkbox" id="iconSparks" checked>图标碎光</label>
         <label class="chk"><input type="checkbox" id="iconGlow" checked>图标辉光</label>
         <label class="chk"><input type="checkbox" id="iconBolts" checked>图标闪电</label>
         <div class="lbl"><label>地图精度</label><select id="mapRes"><option value="110">低 110m</option><option value="50">高 50m</option><option value="10">超高 10m</option></select></div>
         <div class="lbl"><label>经纬网</label><select id="gridStep"><option value="20">20°</option><option value="15">15°</option><option value="10" selected>10°</option><option value="5">5°</option></select></div>
+        <div class="lbl"><label>地图</label><button id="mapReset" style="height:24px;border:1px solid var(--line);border-radius:4px;background:#071522;color:var(--txt2);font-size:8px">重置缩放/平移</button></div>
         <label class="chk"><input type="checkbox" id="maskNum">遮挡原生数字</label>
         <div class="lbl"><label>去黑底</label><select id="keyingMode"><option value="none">不去除</option><option value="screen" selected>滤色 Screen</option><option value="threshold">阈值抠像</option><option value="mix">混合模式</option></select></div>
         <div class="lbl"><label>阈值</label><input id="keyingThreshold" type="range" min="0" max="50" step="1" value="20" disabled><span id="keyingThresholdV">20</span></div>
@@ -232,7 +235,7 @@ const state = {
   palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
   W:1920, H:1080, previewW:1280, previewH:720, lastPreview:0, _fpsFrames:0, _fpsT0:0, _lastQChange:0, lowQuality:false, adaptive:true, exportCancel:false, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0, view:'2d',
   fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,clouds:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
-  lineW:4, iconFx:{rings:true,sparks:true,glow:true,bolts:true}, mapRes:'110', gridStep:10, logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
+  lineW:4, blendBand:1.5, viewZoom:1, viewLon:0, viewLat:0, viewManual:false, iconFx:{rings:true,sparks:true,glow:true,bolts:true}, mapRes:'110', gridStep:10, logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
@@ -363,6 +366,7 @@ function cameraFor(frac,W,H){
     sc=fit*lerp(a.zoom,b.zoom,ease(t))*windBoost;
   }
   if(state.camOrbit){centerLon+=Math.sin(frac*.62)*state.camOrbit*4;centerLat+=Math.cos(frac*.48)*state.camOrbit*1.8;}
+  centerLon+=state.viewLon||0;centerLat+=state.viewLat||0;sc*=state.viewZoom||1;
   return {lat:centerLat,lon:centerLon,scale:sc,roll:state.camRoll*D2R};
 }
 function drawBase(ctx,W,H,pal){
@@ -548,7 +552,7 @@ function keyedSource(el,type,level){
   return cache.canvas;
 }
 function levelBlend(w){
-  const keys=['TD','TS','C1','C2','C3','C4','C5'],bounds=[34,64,83,96,113,137],band=1.5;
+  const keys=['TD','TS','C1','C2','C3','C4','C5'],bounds=[34,64,83,96,113,137],band=+state.blendBand||1.5;
   for(let i=0;i<bounds.length;i++){const b=bounds[i];if(w>=b-band&&w<=b+band){return {a:keys[i],b:keys[i+1],t:(w-(b-band))/(2*band)};}}
   return {a:iconLevel(w),b:null,t:0};
 }
@@ -1374,7 +1378,7 @@ async function loadLand(res){
   $('splash').classList.add('hide');
 }
 function init(){
-  bindUI();document.addEventListener('keydown',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable)return;if(e.code==='Space'){e.preventDefault();document.getElementById('play').click();}else if(e.key==='ArrowLeft'){e.preventDefault();setPlaying(false);setFrac(state.frac-1);}else if(e.key==='ArrowRight'){e.preventDefault();setPlaying(false);setFrac(state.frac+1);}else if(e.key==='Home'){e.preventDefault();setFrac(0);}else if(e.key==='End'){e.preventDefault();setFrac(state.points.length-1);}else if(e.key==='f'||e.key==='F'){e.preventDefault();document.getElementById('btnFull').click();}else if(e.key==='1'){setViewMode('2d');}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveStudioProject();}});loadSample();resizeCanvas();updateHeader();drawPreview();setInterval(()=>{if(!state.points||!state.points.length)return;try{localStorage.setItem('sudre_studio_auto',JSON.stringify(studioSnapshot()));}catch(e){}},10000);loadLand().then(()=>drawPreview());
+  bindUI();(function(){const cv=document.getElementById("cv");let drag=null;const reset=()=>{state.viewZoom=1;state.viewLon=0;state.viewLat=0;drawPreview();};cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId);});cv.addEventListener('pointermove',e=>{if(!drag)return;const cam=state.cam||cameraFor(state.frac,state.previewW,state.previewH);state.viewLon-=(e.clientX-drag.x)/Math.max(1,cam.scale);state.viewLat+=(e.clientY-drag.y)/Math.max(1,cam.scale*1.02);drag={x:e.clientX,y:e.clientY};drawPreview();});cv.addEventListener('pointerup',()=>{drag=null;});cv.addEventListener('dblclick',reset);cv.addEventListener('wheel',e=>{e.preventDefault();state.viewZoom=Math.max(.5,Math.min(6,state.viewZoom*Math.exp(-e.deltaY*.001)));drawPreview();},{passive:false});mapReset.onclick=reset;})();document.addEventListener('keydown',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable)return;if(e.code==='Space'){e.preventDefault();document.getElementById('play').click();}else if(e.key==='ArrowLeft'){e.preventDefault();setPlaying(false);setFrac(state.frac-1);}else if(e.key==='ArrowRight'){e.preventDefault();setPlaying(false);setFrac(state.frac+1);}else if(e.key==='Home'){e.preventDefault();setFrac(0);}else if(e.key==='End'){e.preventDefault();setFrac(state.points.length-1);}else if(e.key==='f'||e.key==='F'){e.preventDefault();document.getElementById('btnFull').click();}else if(e.key==='1'){setViewMode('2d');}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveStudioProject();}});loadSample();resizeCanvas();updateHeader();drawPreview();setInterval(()=>{if(!state.points||!state.points.length)return;try{localStorage.setItem('sudre_studio_auto',JSON.stringify(studioSnapshot()));}catch(e){}},10000);loadLand().then(()=>drawPreview());
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
