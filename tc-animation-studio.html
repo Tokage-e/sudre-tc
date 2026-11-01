@@ -156,7 +156,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
     <div class="p-head"><div><b>导演参数</b><small>DIRECTOR · CAMERA · FX</small></div><span class="tag">LIVE</span></div>
     <div class="p-body">
       <div class="sec"><h5>镜头 <em>CAMERA</em></h5>
-        <div class="lbl"><label>视图</label><select id="viewMode"><option value="2d" selected>2D 地图</option><option value="3d">3D 地球</option></select></div>
+        <div class="lbl"><label>视图</label><span style="font-size:8px;color:var(--txt3)">2D 地图 · 3D 地球已移除</span></div>
         <div class="lbl"><label>模式</label><select id="camMode"><option value="director" selected>导演自动</option><option value="follow">跟随</option><option value="wide">广角</option><option value="lock">中心锁死</option></select></div>
         <div class="lbl"><label>强度</label><input id="camPush" type="range" min=".8" max="2.2" step=".05" value="1.25"><span id="camPushV">1.25</span></div>
         <div class="lbl"><label>速度</label><input id="speed" type="range" min=".1" max="5" step=".1" value="1"><span id="speedV">1.0×</span></div>
@@ -187,7 +187,9 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
         <label class="chk"><input type="checkbox" id="iconRings" checked>图标装饰环</label>
         <label class="chk"><input type="checkbox" id="iconSparks" checked>图标碎光</label>
         <label class="chk"><input type="checkbox" id="iconGlow" checked>图标辉光</label>
+        <label class="chk"><input type="checkbox" id="iconBolts" checked>图标闪电</label>
         <div class="lbl"><label>地图精度</label><select id="mapRes"><option value="110">低 110m</option><option value="50">高 50m</option><option value="10">超高 10m</option></select></div>
+        <div class="lbl"><label>经纬网</label><select id="gridStep"><option value="20">20°</option><option value="15">15°</option><option value="10" selected>10°</option><option value="5">5°</option></select></div>
         <label class="chk"><input type="checkbox" id="maskNum">遮挡原生数字</label>
         <div class="lbl"><label>去黑底</label><select id="keyingMode"><option value="none">不去除</option><option value="screen" selected>滤色 Screen</option><option value="threshold">阈值抠像</option><option value="mix">混合模式</option></select></div>
         <div class="lbl"><label>阈值</label><input id="keyingThreshold" type="range" min="0" max="50" step="1" value="20" disabled><span id="keyingThresholdV">20</span></div>
@@ -212,7 +214,6 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
 </footer>
 <div id="toast"></div>
 
-<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
 <script src="https://unpkg.com/topojson-client@3"></script>
 <script src="https://unpkg.com/mp4-muxer@5.2.1/build/mp4-muxer.js"></script>
 <script>
@@ -231,7 +232,7 @@ const state = {
   palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
   W:1920, H:1080, previewW:1280, previewH:720, lastPreview:0, _fpsFrames:0, _fpsT0:0, _lastQChange:0, lowQuality:false, adaptive:true, exportCancel:false, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0, view:'2d',
   fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,clouds:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
-  lineW:4, iconFx:{rings:true,sparks:true,glow:true}, mapRes:'110', logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
+  lineW:4, iconFx:{rings:true,sparks:true,glow:true,bolts:true}, mapRes:'110', gridStep:10, logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
@@ -374,8 +375,8 @@ function drawBase(ctx,W,H,pal){
 function drawGrid(ctx,W,H,cam,pal){
   if(!state.fx.grid)return;
   ctx.save();ctx.strokeStyle=pal.grid;ctx.lineWidth=Math.max(1,W/1700);ctx.setLineDash([3,7]);
-  for(let lon=Math.ceil((cam.lon-90)/10)*10;lon<=cam.lon+90;lon+=10){const a=project(-80,lon,cam,W,H),b=project(80,lon,cam,W,H);ctx.beginPath();ctx.moveTo(a[0],0);ctx.lineTo(b[0],H);ctx.stroke();}
-  for(let lat=-80;lat<=80;lat+=10){const y=project(lat,0,cam,W,H)[1];ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  const gs=+state.gridStep||10;for(let lon=Math.ceil((cam.lon-90)/gs)*gs;lon<=cam.lon+90;lon+=gs){const a=project(-80,lon,cam,W,H),b=project(80,lon,cam,W,H);ctx.beginPath();ctx.moveTo(a[0],0);ctx.lineTo(b[0],H);ctx.stroke();}
+  for(let lat=-80;lat<=80;lat+=gs){const y=project(lat,0,cam,W,H)[1];ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   ctx.restore();
 }
 function buildWorldTexture(){
@@ -848,6 +849,7 @@ function drawIntensityIcon(ctx,W,H,cam,frac){
   if(state.iconFx.rings){ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=.45;ctx.strokeStyle=iconCol;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.22,0,7);ctx.stroke();ctx.globalAlpha=.2;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.34,0,7);ctx.stroke();ctx.restore();}
   if(state.iconFx.sparks){ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<8;i++){const a=t*.5+i*2.399,r=fallbackRadius*(1.15+((i*17)%20)/100);ctx.beginPath();ctx.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,Math.max(1,fallbackRadius*.025),0,7);ctx.fillStyle=iconCol;ctx.globalAlpha=.18+(i%3)*.08;ctx.fill();}ctx.restore();}
   if(state.iconFx.glow){ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.12;ctx.strokeStyle=iconCol;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.48,0,7);ctx.stroke();ctx.restore();}
+  if(state.iconFx.bolts){ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=Math.max(1,fallbackRadius*.018);ctx.shadowColor=iconCol;ctx.shadowBlur=8;for(let b=0;b<2;b++){const base=t*.4+b*2.2;ctx.beginPath();for(let j=0;j<=8;j++){const q=j/8,r=fallbackRadius*(1.0-.56*q),a=base+(j%2?-.05:.03);const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;j?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}ctx.restore();}
   const txt = cur.status || iconLevel(cur.wind);
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
@@ -1372,7 +1374,7 @@ async function loadLand(res){
   $('splash').classList.add('hide');
 }
 function init(){
-  bindUI();document.addEventListener('keydown',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable)return;if(e.code==='Space'){e.preventDefault();document.getElementById('play').click();}else if(e.key==='ArrowLeft'){e.preventDefault();setPlaying(false);setFrac(state.frac-1);}else if(e.key==='ArrowRight'){e.preventDefault();setPlaying(false);setFrac(state.frac+1);}else if(e.key==='Home'){e.preventDefault();setFrac(0);}else if(e.key==='End'){e.preventDefault();setFrac(state.points.length-1);}else if(e.key==='f'||e.key==='F'){e.preventDefault();document.getElementById('btnFull').click();}else if(e.key==='1'){setViewMode('2d');}else if(e.key==='2'){setViewMode('3d');}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveStudioProject();}});loadSample();resizeCanvas();updateHeader();drawPreview();setInterval(()=>{if(!state.points||!state.points.length)return;try{localStorage.setItem('sudre_studio_auto',JSON.stringify(studioSnapshot()));}catch(e){}},10000);loadLand().then(()=>drawPreview());
+  bindUI();document.addEventListener('keydown',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable)return;if(e.code==='Space'){e.preventDefault();document.getElementById('play').click();}else if(e.key==='ArrowLeft'){e.preventDefault();setPlaying(false);setFrac(state.frac-1);}else if(e.key==='ArrowRight'){e.preventDefault();setPlaying(false);setFrac(state.frac+1);}else if(e.key==='Home'){e.preventDefault();setFrac(0);}else if(e.key==='End'){e.preventDefault();setFrac(state.points.length-1);}else if(e.key==='f'||e.key==='F'){e.preventDefault();document.getElementById('btnFull').click();}else if(e.key==='1'){setViewMode('2d');}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveStudioProject();}});loadSample();resizeCanvas();updateHeader();drawPreview();setInterval(()=>{if(!state.points||!state.points.length)return;try{localStorage.setItem('sudre_studio_auto',JSON.stringify(studioSnapshot()));}catch(e){}},10000);loadLand().then(()=>drawPreview());
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
