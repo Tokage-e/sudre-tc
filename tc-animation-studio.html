@@ -1184,6 +1184,7 @@ function studioSnapshot(){
     titleText:state.titleText,subtitleText:state.subtitleText,res:state.res,fps:state.fps,view:state.view,
     iconScale:state.iconScale,iconX:state.iconX,iconY:state.iconY,iconSpin:state.iconSpin,maskNum:state.maskNum,
     keyingMode:state.keyingMode,keyingThreshold:state.keyingThreshold,blendMode:state.blendMode,
+    blendBand:state.blendBand,mapRes:state.mapRes,gridStep:state.gridStep,viewZoom:state.viewZoom,viewLon:state.viewLon,viewLat:state.viewLat,iconFx:state.iconFx,
     icons:Object.fromEntries(Object.entries(state.customIcons).map(([k,v])=>[k,v?{type:v.type,baseAngle:v.baseAngle||0}:null]))};
 }
 function saveStudioProject(){
@@ -1201,14 +1202,15 @@ function loadStudioProject(file){
     st.points=d.points.map(p=>Object.assign({},p,{radii:p.radii||{34:null,50:null,64:null}}));
     state.storm=st;state.points=st.points;state.keys=Array.isArray(d.keys)?d.keys:[];
     state.titleText=d.titleText||state.titleText;state.subtitleText=d.subtitleText||state.subtitleText;
-    ['res','fps','view','iconScale','iconX','iconY','iconSpin','maskNum','keyingMode','keyingThreshold','blendMode'].forEach(k=>{if(d[k]!=null)state[k]=d[k];});
+    ['res','fps','view','iconScale','iconX','iconY','iconSpin','maskNum','keyingMode','keyingThreshold','blendMode','blendBand','mapRes','gridStep','viewZoom','viewLon','viewLat'].forEach(k=>{if(d[k]!=null)state[k]=d[k];});
+    if(d.iconFx)Object.assign(state.iconFx,d.iconFx);
     if(d.icons){for(const lv of ['TD','TS','C1','C2','C3','C4','C5']){if(state.customIcons[lv]&&d.icons[lv])state.customIcons[lv].baseAngle=+d.icons[lv].baseAngle||0;}}
     const elScale=document.getElementById('iconScale'),elScaleV=document.getElementById('iconScaleV'),elMask=document.getElementById('maskNum'),elKey=document.getElementById('keyingMode'),elBlend=document.getElementById('blendMode');
     if(elScale){elScale.value=state.iconScale;if(elScaleV)elScaleV.textContent=(+state.iconScale).toFixed(1);}
     if(elMask)elMask.checked=!!state.maskNum;
     if(elKey)elKey.value=state.keyingMode;
     if(elBlend)elBlend.value=state.blendMode;
-    renderKeys();loadStorm(st);resizeCanvas();drawPreview();toast('工程已载入','ok');
+    renderKeys();loadStorm(st);if(state.view!=='2d')state.view='2d';if($('iconBlend')){$('iconBlend').value=state.blendBand;$('iconBlendV').textContent=(+state.blendBand).toFixed(1);}if($('gridStep'))$('gridStep').value=state.gridStep;if($('mapRes'))$('mapRes').value=state.mapRes;['rings','sparks','glow','bolts'].forEach((k,i)=>{const el=$(['iconRings','iconSparks','iconGlow','iconBolts'][i]);if(el)el.checked=!!state.iconFx[k];});resizeCanvas();if(state.mapRes&&state.mapRes!=='110')loadLand(state.mapRes).then(()=>drawPreview());else drawPreview();toast('工程已载入','ok');
   }catch(e){toast('工程 JSON 解析失败','warn');}};
   r.readAsText(file);
 }
@@ -1229,7 +1231,7 @@ function bindUI(){
   $('scrub').oninput=e=>{setPlaying(false);setFrac(+e.target.value*(state.points.length-1));};
   $('speed').oninput=e=>{state.speed=+e.target.value;$('speedV').textContent=state.speed.toFixed(1)+'×';};
   $('camMode').onchange=e=>{state.camMode=e.target.value;drawPreview();};
-  $('viewMode').onchange=e=>setViewMode(e.target.value);
+  if($('viewMode'))$('viewMode').onchange=e=>setViewMode(e.target.value);
   $('camPush').oninput=e=>{state.camPush=+e.target.value;$('camPushV').textContent=state.camPush.toFixed(2);drawPreview();};
   $('camOrbit').oninput=e=>{state.camOrbit=+e.target.value;$('camOrbitV').textContent=state.camOrbit.toFixed(2);drawPreview();};
   $('camRoll').oninput=e=>{state.camRoll=+e.target.value;$('camRollV').textContent=state.camRoll.toFixed(1);drawPreview();};
