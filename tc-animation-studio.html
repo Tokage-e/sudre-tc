@@ -192,6 +192,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
         <label class="chk"><input type="checkbox" id="iconBolts" checked>图标闪电</label>
         <div class="lbl"><label>地图精度</label><select id="mapRes"><option value="110">低 110m</option><option value="50">高 50m</option><option value="10">超高 10m</option></select></div>
         <div class="lbl"><label>经纬网</label><select id="gridStep"><option value="20">20°</option><option value="15">15°</option><option value="10" selected>10°</option><option value="5">5°</option></select></div>
+        <div class="lbl"><label>地图源</label><select id="mapSource"><option value="vector" selected>深色矢量</option><option value="esri">Esri 卫星</option><option value="carto">Carto 深色</option></select></div>
         <div class="lbl"><label>地图</label><button id="mapReset" style="height:24px;border:1px solid var(--line);border-radius:4px;background:#071522;color:var(--txt2);font-size:8px">重置缩放/平移</button></div>
         <label class="chk"><input type="checkbox" id="maskNum">遮挡原生数字</label>
         <div class="lbl"><label>去黑底</label><select id="keyingMode"><option value="none">不去除</option><option value="screen" selected>滤色 Screen</option><option value="threshold">阈值抠像</option><option value="mix">混合模式</option></select></div>
@@ -235,7 +236,7 @@ const state = {
   palette:'deepsea', points:[], storm:null, frac:0, playing:false, speed:1, last:0, raf:0,
   W:1920, H:1080, previewW:1280, previewH:720, lastPreview:0, _fpsFrames:0, _fpsT0:0, _lastQChange:0, lowQuality:false, adaptive:true, exportCancel:false, fps:30, res:'1080', bitrate:'auto', camMode:'director', camPush:1.25, camOrbit:0, camRoll:0, view:'2d',
   fx:{particles:true,vignette:true,grain:true,rings:true,rain:true,clouds:true,bloom:true,cinema:false,hudTitle:true,grid:true,labels:true},
-  lineW:4, blendBand:1.5, viewZoom:1, viewLon:0, viewLat:0, viewManual:false, iconFx:{rings:true,sparks:true,glow:true,bolts:true}, mapRes:'110', gridStep:10, logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
+  lineW:4, blendBand:1.5, viewZoom:1, viewLon:0, viewLat:0, viewManual:false, iconFx:{rings:true,sparks:true,glow:true,bolts:true}, mapRes:'110', gridStep:10, mapSource:'vector', tileCache:null, logo:null, icon:null, iconUrl:null, customIcons:{TD:null,TS:null,C1:null,C2:null,C3:null,C4:null,C5:null}, keyingMode:'screen', keyingThreshold:20, blendMode:'screen', keyCache:null, iconExportTime:null, keys:[], titleText:'POLO', subtitleText:'WP01 / BEST TRACK', grade:'none', iconScale:1, iconX:0, iconY:0, iconSpin:0, maskNum:false,
   land:null, worldTex:null, worldPalette:'', cam:{lat:0,lon:0,scale:20}, exporting:false, sfx:true, peakPlayed:false
 };
 const SAMPLE = `WP, 01, 2026100100, , BEST, 0, 100N, 1500E, 65, 990, TY, 34, NEQ, 120, 80, 70, 100
@@ -339,8 +340,9 @@ function bounds(){
   for(const p of pts){la0=Math.min(la0,p.lat);la1=Math.max(la1,p.lat);lo0=Math.min(lo0,p.lon);lo1=Math.max(lo1,p.lon);}
   return {la0,la1,lo0,lo1};
 }
+function mercY(lat){return Math.log(Math.tan(Math.PI/4+clamp(lat,-85,85)*Math.PI/360));}
 function project(lat,lon,cam,W,H){
-  return [W/2+(lon-cam.lon)*cam.scale,H/2-(lat-cam.lat)*cam.scale*1.02];
+  return [W/2+(lon-cam.lon)*cam.scale,H/2-(mercY(lat)-mercY(cam.lat))*cam.scale*180/Math.PI];
 }
 function cameraFor(frac,W,H){
   const cur=pointAt(frac);const b=bounds();
@@ -392,7 +394,7 @@ function buildWorldTexture(){
     const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.type==='MultiPolygon'?f.geometry.coordinates:[];
     for(const poly of polys)for(const ring of poly){
       x.beginPath();let started=false;
-      for(const p of ring){const px=(p[0]+180)/360*TW,py=(90-p[1])/180*TH;started?x.lineTo(px,py):(x.moveTo(px,py),started=true);}
+      for(const p of ring){const px=(p[0]+180)/360*TW,py=(1-mercY(p[1])/Math.PI)/2*TH;started?x.lineTo(px,py):(x.moveTo(px,py),started=true);}
       x.closePath();x.fill();x.stroke();
     }
   }
@@ -402,13 +404,50 @@ function drawLand(ctx,W,H,cam,pal){
   if(!state.worldTex||state.worldPalette!==state.palette)buildWorldTexture();
   const tex=state.worldTex;if(!tex)return;
   const TW=tex.width,TH=tex.height;
-  const sw=(W/cam.scale)/360*TW,sh=(H/(cam.scale*1.02))/180*TH;
-  const cx=(cam.lon+180)/360*TW,cy=(90-cam.lat)/180*TH;
+  const sw=(W/cam.scale)/360*TW,sh=(H/cam.scale)*(TH/360);
+  const cx=(cam.lon+180)/360*TW,cy=(1-mercY(cam.lat)/Math.PI)/2*TH;
   let sx=cx-sw/2,sy=cy-sh/2;
   ctx.save();ctx.imageSmoothingEnabled=true;
   ctx.drawImage(tex,sx,sy,sw,sh,0,0,W,H);
   if(sx<0)ctx.drawImage(tex,sx+TW,sy,sw,sh,0,0,W,H);
   if(sx+sw>TW)ctx.drawImage(tex,sx-TW,sy,sw,sh,0,0,W,H);
+  ctx.restore();
+}
+const TILE_LAYERS={
+  esri:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  carto:'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+};
+function tileCache(){if(!state.tileCache)state.tileCache=new Map();return state.tileCache;}
+function getTile(kind,z,x,y){
+  const key=kind+'/'+z+'/'+x+'/'+y,cache=tileCache();
+  if(cache.has(key))return cache.get(key);
+  const img=new Image();img.crossOrigin='anonymous';img.decoding='async';
+  img.src=TILE_LAYERS[kind].replace('{z}',z).replace('{x}',x).replace('{y}',y);
+  const rec={img,ready:false};img.onload=()=>{rec.ready=true;if(!state.exporting)drawPreview();};
+  cache.set(key,rec);
+  if(cache.size>180){const k=cache.keys().next().value;cache.delete(k);}
+  return rec;
+}
+function drawTiles(ctx,W,H,cam){
+  if(state.mapSource==='vector')return;
+  const kind=state.mapSource;
+  const z=Math.max(1,Math.min(7,Math.round(Math.log2(Math.max(.3,cam.scale*360/256)))));
+  const n=1<<z,size=256,world=n*size;
+  let lon=((cam.lon+180)%360+360)%360-180;
+  const cx=(lon+180)/360*world;
+  const cy=(1-mercY(cam.lat)/Math.PI)/2*world;
+  const x0=Math.floor((cx-W/2)/size),x1=Math.floor((cx+W/2)/size);
+  const y0=Math.floor((cy-H/2)/size),y1=Math.floor((cy+H/2)/size);
+  ctx.save();
+  for(let ty=y0;ty<=y1;ty++){
+    if(ty<0||ty>=n)continue;
+    for(let tx=x0;tx<=x1;tx++){
+      const wx=((tx%n)+n)%n;
+      const rec=getTile(kind,z,wx,ty);if(!rec.ready)continue;
+      const px=tx*size-(cx-W/2),py=ty*size-(cy-H/2);
+      try{ctx.drawImage(rec.img,px,py,size+.5,size+.5);}catch(e){}
+    }
+  }
   ctx.restore();
 }
 function destination(lat,lon,bearing,nm){
@@ -956,7 +995,7 @@ function renderScene(ctx,W,H,frac){
   ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,W,H);
   ctx.save();
   if(cam.roll){ctx.translate(W/2,H/2);ctx.rotate(cam.roll);ctx.translate(-W/2,-H/2);}
-  drawBase(ctx,W,H,pal);drawGrid(ctx,W,H,cam,pal);drawLand(ctx,W,H,cam,pal);
+  drawBase(ctx,W,H,pal);if(state.mapSource!=='vector'){ctx.save();ctx.globalAlpha=.26;drawLand(ctx,W,H,cam,pal);ctx.restore();drawTiles(ctx,W,H,cam);}else{drawLand(ctx,W,H,cam,pal);}drawGrid(ctx,W,H,cam,pal);
   if(!state.lowQuality)drawRainbands(ctx,W,H,cam,frac);drawRadii(ctx,W,H,cam,frac,pal);if(!state.lowQuality)drawParticles(ctx,W,H,cam,frac);drawTrack(ctx,W,H,cam,frac,pal);drawLabels(ctx,W,H,cam,frac,pal);applyBloom(ctx,W,H);
   ctx.restore();
   drawIcon(ctx,W,H,cam,frac);drawHUDCached(ctx,W,H,pal,frac);drawLogo(ctx,W,H);drawPost(ctx,W,H,pal,frac);drawGrade(ctx,W,H);
@@ -1184,7 +1223,7 @@ function studioSnapshot(){
     titleText:state.titleText,subtitleText:state.subtitleText,res:state.res,fps:state.fps,view:state.view,
     iconScale:state.iconScale,iconX:state.iconX,iconY:state.iconY,iconSpin:state.iconSpin,maskNum:state.maskNum,
     keyingMode:state.keyingMode,keyingThreshold:state.keyingThreshold,blendMode:state.blendMode,
-    blendBand:state.blendBand,mapRes:state.mapRes,gridStep:state.gridStep,viewZoom:state.viewZoom,viewLon:state.viewLon,viewLat:state.viewLat,iconFx:state.iconFx,
+    blendBand:state.blendBand,mapRes:state.mapRes,mapSource:state.mapSource,gridStep:state.gridStep,viewZoom:state.viewZoom,viewLon:state.viewLon,viewLat:state.viewLat,iconFx:state.iconFx,
     icons:Object.fromEntries(Object.entries(state.customIcons).map(([k,v])=>[k,v?{type:v.type,baseAngle:v.baseAngle||0}:null]))};
 }
 function saveStudioProject(){
@@ -1202,7 +1241,7 @@ function loadStudioProject(file){
     st.points=d.points.map(p=>Object.assign({},p,{radii:p.radii||{34:null,50:null,64:null}}));
     state.storm=st;state.points=st.points;state.keys=Array.isArray(d.keys)?d.keys:[];
     state.titleText=d.titleText||state.titleText;state.subtitleText=d.subtitleText||state.subtitleText;
-    ['res','fps','view','iconScale','iconX','iconY','iconSpin','maskNum','keyingMode','keyingThreshold','blendMode','blendBand','mapRes','gridStep','viewZoom','viewLon','viewLat'].forEach(k=>{if(d[k]!=null)state[k]=d[k];});
+    ['res','fps','view','iconScale','iconX','iconY','iconSpin','maskNum','keyingMode','keyingThreshold','blendMode','blendBand','mapRes','mapSource','gridStep','viewZoom','viewLon','viewLat'].forEach(k=>{if(d[k]!=null)state[k]=d[k];});
     if(d.iconFx)Object.assign(state.iconFx,d.iconFx);
     if(d.icons){for(const lv of ['TD','TS','C1','C2','C3','C4','C5']){if(state.customIcons[lv]&&d.icons[lv])state.customIcons[lv].baseAngle=+d.icons[lv].baseAngle||0;}}
     const elScale=document.getElementById('iconScale'),elScaleV=document.getElementById('iconScaleV'),elMask=document.getElementById('maskNum'),elKey=document.getElementById('keyingMode'),elBlend=document.getElementById('blendMode');
@@ -1251,6 +1290,9 @@ function bindUI(){
   $('iconSparks').onchange=e=>{state.iconFx.sparks=e.target.checked;drawPreview();};
   $('iconGlow').onchange=e=>{state.iconFx.glow=e.target.checked;drawPreview();};
   $('mapRes').onchange=e=>{state.mapRes=e.target.value;toast('正在加载 '+state.mapRes+'m 地图');loadLand(state.mapRes).then(()=>{resizeCanvas();drawPreview();});};
+  $('gridStep').onchange=e=>{state.gridStep=+e.target.value;drawPreview();};
+  $('mapSource').onchange=e=>{state.mapSource=e.target.value;drawPreview();};
+  $('mapReset').onclick=()=>{state.viewZoom=1;state.viewLon=0;state.viewLat=0;drawPreview();};
   $('keyingMode').onchange=e=>{state.keyingMode=e.target.value;state.keyCache=null;$('keyingThreshold').disabled=e.target.value!=='threshold';$('blendMode').disabled=e.target.value!=='mix';drawPreview();};
   $('keyingThreshold').oninput=e=>{state.keyingThreshold=+e.target.value;$('keyingThresholdV').textContent=e.target.value;state.keyCache=null;drawPreview();};
   $('blendMode').onchange=e=>{state.blendMode=e.target.value;drawPreview();};
