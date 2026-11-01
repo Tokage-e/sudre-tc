@@ -540,15 +540,19 @@ function drawParticles(ctx,W,H,cam,frac){
   const cur=pointAt(frac),cp=project(cur.lat,cur.lon,cam,W,H);
   const t=frac*3.2;
   ctx.save();ctx.globalCompositeOperation='lighter';
-  for(let i=0;i<64;i++){
+  ctx.fillStyle='rgba(110,245,222,.10)';ctx.beginPath();
+  for(let i=0;i<48;i++){
     const a=t*(.15+(i%5)*.018)+i*2.399,rad=20+(i%9)*16+Math.sin(t+i)*8;
     const x=cp[0]+Math.cos(a)*rad,y=cp[1]+Math.sin(a)*rad*.55;
-    ctx.fillStyle='rgba(110,245,222,'+(.025+(i%6)*.014)+')';ctx.beginPath();ctx.arc(x,y,.5+(i%3)*.4,0,7);ctx.fill();
+    ctx.moveTo(x+.8,y);ctx.arc(x,y,.8,0,7);
   }
+  ctx.fill();
+  ctx.strokeStyle='rgba(90,210,230,.05)';ctx.lineWidth=.7;ctx.beginPath();
   for(let i=0;i<20;i++){
     const x=(i*173+Math.sin(t*.4+i)*80)%W,y=(i*97+frac*40)%H;
-    ctx.strokeStyle='rgba(90,210,230,.05)';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-16,y+3);ctx.stroke();
+    ctx.moveTo(x,y);ctx.lineTo(x-16,y+3);
   }
+  ctx.stroke();
   ctx.restore();
 }
 function processKeyPixels(cv,threshold){
