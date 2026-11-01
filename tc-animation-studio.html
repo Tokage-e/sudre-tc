@@ -192,7 +192,7 @@ textarea:focus{border-color:rgba(25,226,197,.55)}
         <label class="chk"><input type="checkbox" id="iconBolts" checked>图标闪电</label>
         <div class="lbl"><label>地图精度</label><select id="mapRes"><option value="110">低 110m</option><option value="50">高 50m</option><option value="10">超高 10m</option></select></div>
         <div class="lbl"><label>经纬网</label><select id="gridStep"><option value="20">20°</option><option value="15">15°</option><option value="10" selected>10°</option><option value="5">5°</option></select></div>
-        <div class="lbl"><label>地图源</label><select id="mapSource"><option value="vector" selected>深色矢量</option><option value="esri">Esri 卫星</option><option value="carto">Carto 深色</option></select></div>
+        <div class="lbl"><label>地图源</label><select id="mapSource"><option value="vector" selected>深色矢量</option><option value="esri">Esri 卫星</option><option value="terrain">Esri 地形</option><option value="darkgray">Esri 深灰</option><option value="carto">Carto 深色</option></select></div>
         <div class="lbl"><label>地图</label><button id="mapReset" style="height:24px;border:1px solid var(--line);border-radius:4px;background:#071522;color:var(--txt2);font-size:8px">重置缩放/平移</button></div>
         <label class="chk"><input type="checkbox" id="maskNum">遮挡原生数字</label>
         <div class="lbl"><label>去黑底</label><select id="keyingMode"><option value="none">不去除</option><option value="screen" selected>滤色 Screen</option><option value="threshold">阈值抠像</option><option value="mix">混合模式</option></select></div>
@@ -415,6 +415,8 @@ function drawLand(ctx,W,H,cam,pal){
 }
 const TILE_LAYERS={
   esri:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  terrain:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
+  darkgray:'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
   carto:'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
 };
 function tileCache(){if(!state.tileCache)state.tileCache=new Map();return state.tileCache;}
@@ -886,9 +888,10 @@ function drawIntensityIcon(ctx,W,H,cam,frac){
   }
   const t = (state.exporting && state.iconExportTime != null ? state.iconExportTime : performance.now() / 1000);
   const bA=blend.a,bB=blend.b,bT=blend.b?Math.max(0,Math.min(1,blend.t)):0;
-  const iconCol=blend.b?mixColor(levelColor(bA),levelColor(bB),bT):levelColor(bA);
+  const iconCol=levelColor(bT<.5?bA:bB);
   const fallbackRadius = Math.max(20, base * .78 * state.iconScale * (1 + .035 * (bT - .5)));
-  drawDefaultIcon(ctx, x, y, fallbackRadius, iconCol, t * (state.iconSpin > 0 ? state.iconSpin : 1));
+  const iconT = t * (state.iconSpin > 0 ? state.iconSpin : 1);
+  if(blend.b){ctx.save();ctx.globalAlpha=1-bT;drawDefaultIcon(ctx,x,y,fallbackRadius,levelColor(bA),iconT);ctx.restore();ctx.save();ctx.globalAlpha=bT;drawDefaultIcon(ctx,x,y,fallbackRadius,levelColor(bB),iconT);ctx.restore();}else{drawDefaultIcon(ctx,x,y,fallbackRadius,iconCol,iconT);}
   if(state.iconFx.rings){ctx.save();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=.45;ctx.strokeStyle=iconCol;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.22,0,7);ctx.stroke();ctx.globalAlpha=.2;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.34,0,7);ctx.stroke();ctx.restore();}
   if(state.iconFx.sparks){ctx.save();ctx.globalCompositeOperation='lighter';for(let i=0;i<8;i++){const a=t*.5+i*2.399,r=fallbackRadius*(1.15+((i*17)%20)/100);ctx.beginPath();ctx.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,Math.max(1,fallbackRadius*.025),0,7);ctx.fillStyle=iconCol;ctx.globalAlpha=.18+(i%3)*.08;ctx.fill();}ctx.restore();}
   if(state.iconFx.glow){ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.12;ctx.strokeStyle=iconCol;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,fallbackRadius*1.48,0,7);ctx.stroke();ctx.restore();}
@@ -1422,7 +1425,7 @@ async function loadLand(res){
   $('splash').classList.add('hide');
 }
 function init(){
-  bindUI();(function(){const cv=document.getElementById("cv");let drag=null;const reset=()=>{state.viewZoom=1;state.viewLon=0;state.viewLat=0;drawPreview();};cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId);});cv.addEventListener('pointermove',e=>{if(!drag)return;const cam=state.cam||cameraFor(state.frac,state.previewW,state.previewH);state.viewLon-=(e.clientX-drag.x)/Math.max(1,cam.scale);state.viewLat+=(e.clientY-drag.y)/Math.max(1,cam.scale*1.02);drag={x:e.clientX,y:e.clientY};drawPreview();});cv.addEventListener('pointerup',()=>{drag=null;});cv.addEventListener('dblclick',reset);cv.addEventListener('wheel',e=>{e.preventDefault();state.viewZoom=Math.max(.5,Math.min(6,state.viewZoom*Math.exp(-e.deltaY*.001)));drawPreview();},{passive:false});mapReset.onclick=reset;})();document.addEventListener('keydown',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable)return;if(e.code==='Space'){e.preventDefault();document.getElementById('play').click();}else if(e.key==='ArrowLeft'){e.preventDefault();setPlaying(false);setFrac(state.frac-1);}else if(e.key==='ArrowRight'){e.preventDefault();setPlaying(false);setFrac(state.frac+1);}else if(e.key==='Home'){e.preventDefault();setFrac(0);}else if(e.key==='End'){e.preventDefault();setFrac(state.points.length-1);}else if(e.key==='f'||e.key==='F'){e.preventDefault();document.getElementById('btnFull').click();}else if(e.key==='1'){setViewMode('2d');}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveStudioProject();}});loadSample();resizeCanvas();updateHeader();drawPreview();setInterval(()=>{if(!state.points||!state.points.length)return;try{localStorage.setItem('sudre_studio_auto',JSON.stringify(studioSnapshot()));}catch(e){}},10000);loadLand().then(()=>drawPreview());
+  bindUI();(function(){const cv=document.getElementById("cv");let drag=null;const reset=()=>{state.viewZoom=1;state.viewLon=0;state.viewLat=0;drawPreview();};cv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId);});cv.addEventListener('pointermove',e=>{if(!drag)return;const cam=state.cam||cameraFor(state.frac,state.previewW,state.previewH);state.viewLon-=(e.clientX-drag.x)/Math.max(1,cam.scale);state.viewLat+=(e.clientY-drag.y)/Math.max(1,cam.scale*1.02);drag={x:e.clientX,y:e.clientY};drawPreview();});cv.addEventListener('pointerup',()=>{drag=null;});cv.addEventListener('dblclick',reset);cv.addEventListener('wheel',e=>{e.preventDefault();state.viewZoom=Math.max(.5,Math.min(6,state.viewZoom*Math.exp(-e.deltaY*.001)));drawPreview();},{passive:false});mapReset.onclick=reset;})();document.addEventListener('keydown',e=>{if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable)return;if(e.code==='Space'){e.preventDefault();document.getElementById('play').click();}else if(e.key==='ArrowLeft'){e.preventDefault();setPlaying(false);setFrac(state.frac-1);}else if(e.key==='ArrowRight'){e.preventDefault();setPlaying(false);setFrac(state.frac+1);}else if(e.key==='Home'){e.preventDefault();setFrac(0);}else if(e.key==='End'){e.preventDefault();setFrac(state.points.length-1);}else if(e.key==='f'||e.key==='F'){e.preventDefault();document.getElementById('btnFull').click();}else if(e.key==='1'){setViewMode('2d');}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveStudioProject();}});splash.classList.add('hide');setTimeout(()=>splash.classList.add('hide'),1200);loadSample();resizeCanvas();updateHeader();drawPreview();setInterval(()=>{if(!state.points||!state.points.length)return;try{localStorage.setItem('sudre_studio_auto',JSON.stringify(studioSnapshot()));}catch(e){}},10000);loadLand().then(()=>drawPreview());
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
